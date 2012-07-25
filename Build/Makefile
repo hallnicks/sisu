@@ -2,7 +2,7 @@ getFiles = $(shell find $(1) -type f -name \*.$(2) -printf \%h/%f\\n)
 stripBaseFolder = $(subst $(abspath $(PWD)/..)/,,$(abspath $(1)))
 
 TARGET_LINKMODES = static shared exe test
-TARGET_NAME := TinyTDD
+TARGET_NAME := sisu
 TARGET_LIBS := pthread m
 SOURCE_DIRS := ../Source
 SOURCE_EXTS = cpp

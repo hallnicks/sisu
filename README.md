@@ -1,4 +1,3 @@
-TinyTDD
+sisu productivity framework
 =======
 
-TinyTDD
