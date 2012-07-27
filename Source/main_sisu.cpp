@@ -6,17 +6,29 @@ namespace
 {
 	class SisuTDD : public ::sisu::context
 	{
+		private:
+			int mPrivateMember;
+
+		protected:
+			int mProtectedMember;
+
 		public:
-			SisuTDD( ) : ::sisu::context( ) { }
-			void Up() { }
-			void Down() { }
+			SisuTDD( ) : ::sisu::context( ), mPrivateMember(3), mProtectedMember(5) { }
+			void Up()
+			{
+				std::cout << __FUNCTION__ <<  " : Private member is " << mPrivateMember << std::endl;
+				mPrivateMember = 972;
+			}
+			void Down()
+			{
+				std::cout << __FUNCTION__ <<  " : Private member is " << mPrivateMember << std::endl;
+			}
 	};
 
 } // namespace
 
 DECL_UT(SisuTDD, HelloWorld, {
-
-	std::cout << "Hello, World!" << std::endl;
+	std::cout << __FUNCTION__ << " : Hello, World! Protected member is " << mProtectedMember << std::endl;
 });
 
 int main(void)
@@ -24,3 +36,4 @@ int main(void)
 	sisu::ExecuteTests( );
 	return 0;
 }
+

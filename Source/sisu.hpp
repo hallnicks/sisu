@@ -21,6 +21,16 @@ namespace sisu
 
 	typedef void ( *InvokeTests ) ( );
 
+	template< class XContext >
+	class test : public XContext
+	{
+		public:
+			test( ) : XContext( ) { }
+			~test( ) { }
+			template< typename T>
+			void Body( );
+	};
+
 	template < typename T >
 	class chain
 	{
@@ -53,7 +63,7 @@ namespace sisu
 	};
 
 	template< typename T, typename XStorage >
-	inline XStorage & UnitTest( void ( context::*XF ) ( ) = 0 )
+	inline XStorage & UnitTest( void ( test< T >::*XF ) ( ) = 0 )
 	{
 		static XStorage instance;
 		if ( XF != 0 ) { instance.push_back( XF ); }
@@ -169,7 +179,7 @@ namespace sisu
 			{
 				try
 				{
-					static T type;
+					static test<T> type;
 
 					try
 					{
@@ -224,16 +234,17 @@ namespace sisu
 #define DECL_UT( xUTClass, xUTName, xExpression )\
 	namespace sisu {\
 		class UT_CLASS(xUTClass, xUTName) { private: UT_CLASS(xUTClass, xUTName)( ); };\
-	 	template<> void context::Body< UT_CLASS(xUTClass, xUTName) >( )xExpression\
+		template<> template<>\
+		void test< xUTClass >::Body< UT_CLASS(xUTClass, xUTName) >( )xExpression\
 	}\
 	namespace {\
 		static class UT_STORAGE(xUTClass, xUTName) {\
 		public:\
 			UT_STORAGE(xUTClass, xUTName)( ) {\
-				typedef void(sisu::context::*InvokeUnitTest)();\
-				typedef sisu::chain< InvokeUnitTest > list_t;\
-				sisu::UnitTest< xUTClass, list_t >( &sisu::context::Body< sisu::UT_CLASS(xUTClass, xUTName) > );\
-				sisu::InvocationList( &sisu::RunUnitTest< xUTClass, list_t > );\
+				typedef void(::sisu::test< xUTClass >::*InvokeUnitTest)();\
+				typedef ::sisu::chain< InvokeUnitTest > list_t;\
+				::sisu::UnitTest< xUTClass, list_t >( &sisu::test< xUTClass >::Body< sisu::UT_CLASS(xUTClass, xUTName) > );\
+				::sisu::InvocationList( &sisu::RunUnitTest< xUTClass, list_t > );\
 			}\
 		} UT_INSTANCE(xUTClass, xUTName);\
 	}
