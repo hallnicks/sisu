@@ -1,3 +1,17 @@
+//    This file is part of sisu.
+
+//    sisu is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+
+//    sisu is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+
+//    You should have received a copy of the GNU General Public License
+//    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef SISU_F88C97663Cf44CE9B325FF50DC9B2C18_HPP_
 #define SISU_F88C97663Cf44CE9B325FF50DC9B2C18_HPP_
 
@@ -19,7 +33,7 @@ namespace sisu
 			void Body( );
 	};
 
-	typedef void ( *InvokeTests ) ( );
+	typedef void ( *Invoke ) ( );
 
 	template< class XContext >
 	class test : public XContext
@@ -161,20 +175,6 @@ namespace sisu
 
 			} mResult;
 
-		public:
-
-			TestResult( ) : mResult( eFailed )
-			{
-				signal( SIGABRT, onAbort );
-				signal( SIGFPE, onFloatingPointException );
-				signal( SIGILL, onIllegalInstruction );
-				signal( SIGINT, onInterrupt );
-				signal( SIGSEGV, onSegmentationViolation );
-				signal( SIGTERM, onTerminate );
-			}
-
-			virtual ~TestResult( ) { ::sisu::HookSignals( ); }
-
 			void Run( )
 			{
 				try
@@ -212,18 +212,53 @@ namespace sisu
 					mResult = eExceptionInConstructor;
 				}
 			}
-		} r;
 
-		r.Run( );
+		public:
+
+			TestResult( ) : mResult( eFailed )
+			{
+				signal( SIGABRT, onAbort );
+				signal( SIGFPE, onFloatingPointException );
+				signal( SIGILL, onIllegalInstruction );
+				signal( SIGINT, onInterrupt );
+				signal( SIGSEGV, onSegmentationViolation );
+				signal( SIGTERM, onTerminate );
+
+				Run( );
+			}
+
+			virtual ~TestResult( ) { ::sisu::HookSignals( ); }
+
+		} r;
 	}
 
-	inline void InvocationList( InvokeTests xF = 0 )
+	inline void InvocationList( Invoke xF = 0 )
 	{
-		static chain< InvokeTests > s;
+		static chain< Invoke > s;
 		xF != 0 ? s.push_back( xF ) : s( );
 	}
 
 	inline void ExecuteTests( ) { InvocationList( ); }
+
+	template< typename T>
+	inline void PerformExactlyOnce( Invoke i )
+	{
+		static struct c
+		{
+			c( Invoke i )
+			{
+				static bool d = false;
+
+				if (!d)
+				{
+					i( );
+
+					d = true;
+				}
+			}
+
+		} s(i) ;
+	};
 
 	class TestFailedException { };
 
@@ -239,12 +274,14 @@ namespace sisu
 	}\
 	namespace {\
 		static class UT_STORAGE(xUTClass, xUTName) {\
+		typedef void(::sisu::test< xUTClass >::*InvokeUnitTest)();\
+		typedef ::sisu::chain< InvokeUnitTest > list_t;\
+		static inline void initContext() { ::sisu::InvocationList( &sisu::RunUnitTest< xUTClass, list_t > ); }\
+		static inline void initTest( ) { ::sisu::UnitTest< xUTClass, list_t >( &sisu::test< xUTClass >::Body< sisu::UT_CLASS(xUTClass, xUTName) > ); }\
 		public:\
 			UT_STORAGE(xUTClass, xUTName)( ) {\
-				typedef void(::sisu::test< xUTClass >::*InvokeUnitTest)();\
-				typedef ::sisu::chain< InvokeUnitTest > list_t;\
-				::sisu::UnitTest< xUTClass, list_t >( &sisu::test< xUTClass >::Body< sisu::UT_CLASS(xUTClass, xUTName) > );\
-				::sisu::InvocationList( &sisu::RunUnitTest< xUTClass, list_t > );\
+				::sisu::PerformExactlyOnce< xUTClass >( &initContext );\
+				::sisu::PerformExactlyOnce< sisu::UT_CLASS(xUTClass, xUTName) >( &initTest );\
 			}\
 		} UT_INSTANCE(xUTClass, xUTName);\
 	}

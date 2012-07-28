@@ -1,9 +1,9 @@
 getFiles = $(shell find $(1) -type f -name \*.$(2) -printf \%h/%f\\n)
 stripBaseFolder = $(subst $(abspath $(PWD)/..)/,,$(abspath $(1)))
 
-TARGET_LINKMODES = static shared exe test
+TARGET_LINKMODES = exe
 TARGET_NAME := sisu
-TARGET_LIBS := pthread m
+TARGET_LIBS :=
 SOURCE_DIRS := ../Source
 SOURCE_EXTS = cpp
 OBJECTS_DIR := ../Objects
@@ -34,8 +34,8 @@ TARGETS += lib$(TARGET_NAME).so
 LDFLAGS += -fPIC
 endif
 
-#CXXFLAGS +=
-LDFLAGS += -std=c++0x
+CXXFLAGS += -Werror -O3
+LDFLAGS +=
 CXX ?= g++
 CXX_OBJ_FLAG ?= -o
 CXX_FILE_FLAG ?= -c
@@ -68,7 +68,7 @@ help:
 	$(eval OBJ_DIR  = $(abspath $(OBJECTS_DIR)/$(call stripBaseFolder,$(@D)))/)
 	$(eval OBJ_FILE = $(OBJ_DIR)$(notdir $@))
 	$(shell test -d $OBJ_DIR || mkdir -p $(OBJ_DIR) > /dev/null)
-	@$(CXX) $(CXX_FILE_FLAG) $(SRC_FILE) $(CXX_OBJ_FLAG) $(OBJ_FILE) $(LDFLAGS)
+	@$(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(SRC_FILE) $(CXX_OBJ_FLAG) $(OBJ_FILE) 
 
 %.a: $(PHONY_OBJECTS)
 	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),o))
