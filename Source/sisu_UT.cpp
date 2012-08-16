@@ -43,27 +43,32 @@ class SisuUT : public context
 
 } // namespace
 
-TEST(SisuUT, HelloWorld1){
+TEST(SisuUT, HelloWorld1)
+{
 	std::cout << __FUNCTION__ << " : Hello, World! Protected member is " << ++mProtectedMember << std::endl;
 	mProtectedMember = 35;
 }
 
 
-TEST(SisuUT, HelloWorld2){
+TEST(SisuUT, HelloWorld2)
+{
 	std::cout << __FUNCTION__ << " : Hello, World! Protected member is " << ++mProtectedMember << std::endl;
 }
 
-TEST(SisuUT, Sisu_MUSTEQ){
+TEST(SisuUT, Sisu_MUSTEQ)
+{
 	std::cout << __FUNCTION__ << " : Hello, World! Protected member is " << ++mProtectedMember << std::endl;
 	MUSTEQ(1,1);
 }
 
-TEST(SisuUT, Sisu_MUSTNEQ){
+TEST(SisuUT, Sisu_MUSTNEQ)
+{
 	std::cout << __FUNCTION__ << std::endl;
 	MUSTNEQ(1,0);
 }
 
-TEST(SisuUT, Sisu_Commas){
+TEST(SisuUT, Sisu_Commas)
+{
 	int x = 1, y = 2, z = 3;
 	std::cout << __FUNCTION__ << x << y << z << std::endl;
 }

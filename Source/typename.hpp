@@ -12,8 +12,8 @@
 
 //    You should have received a copy of the GNU General Public License
 //    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
-#ifndef TYPENAME_HPP_
-#define TYPENAME_HPP_
+#ifndef TYPENAME_840DF5FBDEC64EAD9F7622D0B843C909_HPP_
+#define TYPENAME_840DF5FBDEC64EAD9F7622D0B843C909_HPP_
 
 #include <cxxabi.h>
 

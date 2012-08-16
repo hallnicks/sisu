@@ -12,47 +12,40 @@
 
 //    You should have received a copy of the GNU General Public License
 //    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
-#include "sisu.hpp"
+#include "test.hpp"
+#include "ttycolor.hpp"
+#include <time.h>
 
-#include <iostream>
-
-namespace
-{
-	class SisuTDD : public ::sisu::context
-	{
-		private:
-			int mPrivateMember;
-
-		protected:
-			int mProtectedMember;
-
-		public:
-			SisuTDD( ) : ::sisu::context( ), mPrivateMember(3), mProtectedMember(-1) { }
-			void Up()
-			{
-				std::cout << __FUNCTION__ <<  " : Private member is " << mPrivateMember << std::endl;
-				mPrivateMember = 972;
-			}
-			void Down()
-			{
-				std::cout << __FUNCTION__ <<  " : Private member is " << mPrivateMember << std::endl;
-			}
-	};
-
-} // namespace
-
-DECL_UT(SisuTDD, HelloWorld, {
-	std::cout << __FUNCTION__ << " : Hello, World! Protected member is " << ++mProtectedMember << std::endl;
-	mProtectedMember = 35;
-});
-
-DECL_UT(SisuTDD, HelloWorld2, {
-	std::cout << __FUNCTION__ << " : Hello, World! Protected member is " << ++mProtectedMember << std::endl;
-});
+using std::cout;
+using std::endl;
 
 int main(void)
 {
-	sisu::ExecuteTests( );
-	return 0;
-}
+	srand( time( NULL ) );
+	// TODO - get and save original color. For now, screw you!
+	ccolor const d( eTTYCBlack, eTTYCYellow, eModBold );
+	ccolor const b( eTTYCBlack, eTTYCYellow, eModBold );
 
+	cout << d;
+
+	static const int ES = 7;
+
+	std::cout << '`' << std::endl;
+	unsigned i = 0;
+
+	for ( ; i < ES; ++i)
+		{ cout <<
+			endl << "                          ... ☁ ▅▒░☼‿☼░▒▅ ☁  "
+				<< endl; }
+
+	int r = ::sisu::Execute();
+
+	cout << b;
+
+	for ( i = 0; i < ES; ++i )
+		{ cout <<
+			endl << "                          ... ☁ ▅▒░OoO░▒▅ ☁  "
+				<< endl; }
+
+	return r;
+}

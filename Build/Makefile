@@ -3,7 +3,7 @@ stripBaseFolder = $(subst $(abspath $(PWD)/..)/,,$(abspath $(1)))
 
 TARGET_LINKMODES = exe
 TARGET_NAME := sisu
-TARGET_LIBS :=
+TARGET_LIBS := pthread
 SOURCE_DIRS := ../Source
 SOURCE_EXTS = cpp
 OBJECTS_DIR := ../Objects

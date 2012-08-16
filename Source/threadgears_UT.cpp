@@ -1,3 +1,4 @@
+#if 0
 //    This file is part of sisu.
 
 //    sisu is free software: you can redistribute it and/or modify
@@ -31,22 +32,25 @@ class tgUT : public context
 
 } // namespace
 
-TEST(tgUT, ThreadTrivial){
+TEST(tgUT, ThreadTrivial)
+{
 	std::cout << __PRETTY_FUNCTION__ << std::endl;
-	class TrivialThread
+
+	class Sink
 	{
 		public:
-			TrivialThread( ) { }
-			void DoSomething( int ) { }
+			Sink( ) { }
+			void Function( int ) { }
 	};
 
-	TrivialThread m;
-	/*
-	thread<void, TrivialThread, int> t( m, &TrivialThread::DoSomething );
-	*/
+	Sink m;
+
+	//thread<void, TrivialThread, int> * t;
+	//( m, &TrivialThread::DoSomething );
 }
 
-TEST(tgUT, ThreadDerived){
+TEST(tgUT, ThreadDerived)
+{
 	std::cout << __PRETTY_FUNCTION__ << std::endl;
 	/*
 	class TrivialThread : public thread<int, TrivialThread, void>
@@ -62,3 +66,4 @@ TEST(tgUT, ThreadDerived){
 	m.join( );
 	*/
 }
+#endif

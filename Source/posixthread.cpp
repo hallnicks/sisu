@@ -1,3 +1,4 @@
+#if 0
 #include "threadgears.hpp"
 
 #include <pthread.h>
@@ -166,3 +167,4 @@ void thread::join( )
 }
 
 } // namespace threadgears
+#endif
