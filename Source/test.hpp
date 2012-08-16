@@ -28,7 +28,7 @@
 
 inline unsigned int Time( )
 {
-	struct And
+	static struct And
 	{
 		And( )
 		{
@@ -39,7 +39,8 @@ inline unsigned int Time( )
 		{
 			return std::numeric_limits<size_t>::max( ) % rand( );
 		}
-	};
+
+	} SDFJDID;
 
 	return And::thePersistenceThereOf( );
 }
