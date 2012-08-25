@@ -12,6 +12,8 @@ class TerminalScreen : public Screen
 
 	buffer mMemory;
 
+	buffer mDeadline;
+
 	public:
 		TerminalScreen( );
 		~TerminalScreen( );

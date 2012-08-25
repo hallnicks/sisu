@@ -53,9 +53,26 @@ unsigned short TerminalScreen::getWidth( ) const { return mW; }
 
 unsigned short TerminalScreen::getHeight( ) const { return mH; }
 
-Screen::buffer TerminalScreen::scanLine( unsigned short const xY ) const { return mMemory + ( mW * xY ); }
+Screen::buffer TerminalScreen::scanLine( unsigned short const xY ) const
+{
+	Screen::buffer ret = NULL;
 
-Screen::const_buffer TerminalScreen::scanLineConst( unsigned short const xY ) const { return const_cast<const_buffer>( mMemory + ( mW * xY ) ); }
+	if ( xY < getHeight( ) )
+	{
+		ret = mMemory + ( mW * xY );
+	}
+	else
+	{
+
+	}
+
+	return ret;
+}
+
+Screen::const_buffer TerminalScreen::scanLineConst( unsigned short const xY ) const
+{
+	return const_cast<const_buffer>( mMemory + ( mW * xY ) );
+}
 
 void TerminalScreen::setPosition( unsigned int xX, unsigned int xY )
 {

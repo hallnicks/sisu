@@ -145,31 +145,70 @@ TEST(TTYColor_UT, TerminalScreen)
 
 	unsigned int i = 0;
 
-#if 0
-	do
-	{
-		d.clear( color2ttyc( '!', eTTYCYellow, eTTYCBlack, eModBold ) );
+	static char const charas[] = { '~', '!' };
+
+	static uint8_t const bound =  sizeof(charas) / sizeof(char const);
+
+	int tog = -1;
+
+	eTTYColor ii = eTTYCBlack, jj = eTTYCBlack;
+
+        for ( ; ii < eTTYCMax; ++ii )
+       	{
+		d.clear( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog  ] , ii, jj, eModBlink ) );
 		s.refresh( );
 
-	} while( ++i < 30 );
+                for ( ; jj < eTTYCMax; ++jj )
+       	        {
+			d.clear( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog  ] , ii, jj, eModBlink ) );
+			s.refresh( );
+                }
 
-	usleep( 50000 );
+		d.clear( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog  ] , ii, jj, eModBlink ) );
+		s.refresh( );
+        }
 
-#endif
 
-	do
+	ii = eTTYCBlack, jj = eTTYCBlack;
+	eTTYModifier kk = eModBold;
+
+	static double const step = 0.1;
+	double scale = step;
+
+	for ( ; ii < eTTYCMax; ++ii )
 	{
-		d.clear( color2ttyc( '!', eTTYCGreen, eTTYCBlack, eModBold ) );
-		d.mandlebrot( color2ttyc( '@', eTTYCYellow, eTTYCBlack, eModBlink ) );
+		d.mandlebrot( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog ], ii, jj, kk ), scale );
 		s.refresh( );
 
-	} while( ++i < 30 );
+		for ( ; jj < eTTYCMax; ++jj )
+		{
+			d.mandlebrot( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog ], ii, jj, kk ), scale );
+			s.refresh( );
 
+			for ( ; kk < eModMax; ++kk )
+			{
+				d.mandlebrot( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog ], ii, jj, kk ), scale );
+				s.refresh( );
 
+				for ( ; scale <= 1.00; scale += step )
+				{
+					d.mandlebrot( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog ], ii, jj, kk ), scale );
+					s.refresh( );
+				}
 
+				d.mandlebrot( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog ], ii, jj, kk ), scale );
+				s.refresh( );
+
+			}
+
+			d.mandlebrot( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog ], ii, jj, kk ), scale );
+			s.refresh( );
+		}
+
+		d.mandlebrot( color2ttyc( charas[ ++tog == bound ? tog = 0 : tog ], ii, jj, kk ), scale );
+		s.refresh( );
+
+	}
 
 	std::setlocale( LC_ALL, locale );
-	for ( int i = 0; i < 30; ++i ) {
-		std::cout << "Alakazam!" << std::endl;
-	}
 }

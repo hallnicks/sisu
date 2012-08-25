@@ -13,7 +13,7 @@ namespace sisu
                         Drawings( Screen * xScreen );
                         ~Drawings( );
                         void clear( TTYC xC );
-                        void mandlebrot( TTYC xC );
+                        void mandlebrot( TTYC xC, double scale = 1.0 );
         };
 
 } // namespace sisu

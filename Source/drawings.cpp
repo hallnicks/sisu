@@ -13,14 +13,16 @@ void Drawings::clear( TTYC xC )
 	{
 		for ( unsigned int x = 0; x < mS->getWidth( ); ++x )
 		{
-			mS->scanLine( y )[ x ] = xC;
+			(*(*mS)[ y ][ x ]) = xC;
 		}
 	}
 }
 
-void Drawings::mandlebrot( TTYC xC )
+void Drawings::mandlebrot( TTYC xC, double xScale )
 {
-	unsigned int const h = mS->getHeight( ), w = mS->getWidth( );
+	unsigned int const 	h = static_cast<unsigned int>( mS->getHeight( ) * xScale )
+			, 	w = static_cast<unsigned int>( mS->getWidth( ) * xScale );
+
 
 	double MinRe = -2.0
 		, MaxRe = 1.0
@@ -62,7 +64,7 @@ void Drawings::mandlebrot( TTYC xC )
 				int32_t realY = y, realX = x;
 				if (realX < w && realY < h && realX >= 0 && realY >= 0)
 				{
-					mS->scanLine( realY )[ realX ] = xC;
+					(*(*mS)[ realY ][ realX ]) = xC;
 				}
 			}
 		}
