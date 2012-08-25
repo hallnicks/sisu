@@ -22,41 +22,19 @@ namespace sound
 		eFreqCO = 1046,
 	};
 
-	static inline void note( eFreq xFreq, unsigned int sleep_us = 500000 )
+	class noise
 	{
-		if ( xFreq != 0 )
-		{
-			ioctl(STDOUT_FILENO, KIOCSOUND, 1193180/static_cast<int32_t>(xFreq));
-			usleep(sleep_us);
-		}
-	}
-
-	static inline void rest( ) { ioctl(STDOUT_FILENO, KIOCSOUND, 0); }
-
-	static inline void octave( )
-	{
-		static eFreq octave[] = { eFreqCA
-					 , eFreqD
-					 , eFreqE
-					 , eFreqF
-					 , eFreqG
-					 , eFreqA
-					 , eFreqB
-					 , eFreqCO
-					};
-
-		for ( unsigned i = 0; i < sizeof(octave); ++i )
-		{
-			note( octave[i] );
-			rest( );
-		}
-	}
+		public:
+			static void note( eFreq xFreq, unsigned int xSleepUS = 500000 );
+			static void rest( );
+			static void octave( );
+	};
 
 	class Beep
 	{
 		public:
-			Beep( ) { }
-			~Beep( ) { }
+			Beep( );
+			~Beep( );
 	};
 
 } // sound

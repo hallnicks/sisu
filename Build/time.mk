@@ -5,8 +5,8 @@ TOMORROW 	:= $(THEN) $(MOMENT1) $(MOMENT2)
 INSPIRE 	?= $(NOW)
 EXPIRE 		?= $(THEN)
 
-then = $(call EXPIRE) $(info ${THEN})
-now = $(call INSPIRE) $(info ${NOW})
+then = $(call EXPIRE) $(info ${THEN} called)
+now = $(call INSPIRE) $(info ${NOW} called)
 
 .PHONY: $(NOW) $(THEN) TESTWATCH
 

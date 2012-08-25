@@ -15,6 +15,7 @@ class Screen
 		typedef TTYC const * const const_buffer;
 		virtual buffer scanLine( unsigned short const xY ) const = 0;
 		virtual const_buffer scanLineConst( unsigned short const xY ) const = 0;
+		virtual void setPosition( unsigned int xX, unsigned int xY ) = 0;
 		virtual void refresh( ) = 0;
 };
 

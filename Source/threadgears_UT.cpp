@@ -1,4 +1,3 @@
-#if 0
 //    This file is part of sisu.
 
 //    sisu is free software: you can redistribute it and/or modify
@@ -18,9 +17,10 @@
 
 #include <iostream>
 
-using namespace threadgears;
+using namespace sisu;
 
-namespace {
+namespace
+{
 
 class tgUT : public context
 {
@@ -32,21 +32,27 @@ class tgUT : public context
 
 } // namespace
 
+namespace mock
+{
+
+class Sink
+{
+	public:
+		Sink( ) { }
+		void Function( int ) { }
+};
+
+} // namespace mock
+
 TEST(tgUT, ThreadTrivial)
 {
+#if 0
 	std::cout << __PRETTY_FUNCTION__ << std::endl;
-
-	class Sink
-	{
-		public:
-			Sink( ) { }
-			void Function( int ) { }
-	};
-
-	Sink m;
-
-	//thread<void, TrivialThread, int> * t;
-	//( m, &TrivialThread::DoSomething );
+	mock::Sink m;
+	int a = 3;
+	sisu::posixthread<void, mock::Sink, int> t( m, &mock::Sink::Function, a );
+#endif
+//	t( );
 }
 
 TEST(tgUT, ThreadDerived)
@@ -66,4 +72,3 @@ TEST(tgUT, ThreadDerived)
 	m.join( );
 	*/
 }
-#endif

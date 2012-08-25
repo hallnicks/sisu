@@ -19,6 +19,7 @@ class TerminalScreen : public Screen
 		virtual unsigned short getHeight( ) const;
 		virtual Screen::buffer scanLine( unsigned short const xY ) const;
 		virtual Screen::const_buffer scanLineConst( unsigned short const xY ) const;
+		virtual void setPosition( unsigned int xX, unsigned int xY );
 		virtual void refresh( );
 };
 

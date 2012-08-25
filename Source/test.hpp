@@ -17,7 +17,7 @@
 
 #include <algorithm>
 #include <csignal>
-#include <ctime>
+#include <cstdio>
 #include <iostream>
 #include <limits>
 
@@ -26,14 +26,14 @@
 #include "ttycolor.hpp"
 #include "typename.hpp"
 
+//#define KEYPRESS { char const * const f = __FILE__; char const * const fn = __PRETTY_FUNCTION__; unsigned long l = __LINE__; char c = 0; std::cout << "Paused: " << f << ":" << l << ":" << fn << std::endl; do { } while(c = std::cin.get() && c == 0); std::cout << "Resuming: " << f << ":" << l << ":" << fn << std::endl; }
+#define KEYPRESS
+
 inline unsigned int Time( )
 {
 	static struct And
 	{
-		And( )
-		{
-			srand( time( NULL ) );
-		}
+		And( ) { srand( time( NULL ) ); }
 
 		static inline unsigned int thePersistenceThereOf( )
 		{
@@ -46,9 +46,7 @@ inline unsigned int Time( )
 }
 
 template< typename XType, size_t XDestSize, size_t XSourceSize >
-void const_memcopy( XType ( & xDestination ) [ XDestSize ]
-		, XType const ( & xSource ) [ XSourceSize ]
-		, size_t xBytesToCopy = XSourceSize )
+void const_memcopy( XType ( & xDestination ) [ XDestSize ], XType const ( & xSource ) [ XSourceSize ], size_t xBytesToCopy = XSourceSize )
 {
 	size_t i = 0;
 
@@ -61,20 +59,29 @@ void const_memcopy( XType ( & xDestination ) [ XDestSize ]
 }
 
 template< typename XType, size_t XSize = Time( ) >
-struct constmemory
+class constmemory
 {
-	XType mString[ XSize ];
+	XType mDest[ XSize ];
+
+	constmemory( constmemory const & xRef ) { }
+
+	constmemory & operator=( constmemory const & xRef );
 
 	public:
-
-		~constmemory( )
+		template< size_t XOtherSize >
+		constmemory( XType ( & xSrc ) [ XOtherSize ] ) : mDest( )
 		{
-			;
+			for ( unsigned int i = 0; i < std::min( XOtherSize, XSize ); ++i )
+			{
+				mDest[ i ] = xSrc[ i ];
+			}
 		}
+
+		~constmemory( ) { ; }
 
 		typedef XType const * const ReadOnlyPtr;
 
-		ReadOnlyPtr operator*( ) { return const_cast<ReadOnlyPtr>( mString ); }
+		ReadOnlyPtr operator*( ) { return const_cast<ReadOnlyPtr>( mDest ); }
 };
 
 class context
@@ -88,13 +95,28 @@ class context
 
 inline char const * const HL( )
 {
-	static char const * const array =  "°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸ °º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸ °º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸ ";
-	return array;
+	static char const array[548] = "°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸"
+						"°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸"
+							"°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸"
+								"°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸"
+									"°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸ ";
+	static char ret[300] = { 0, };
+
+
+	unsigned int const upperbound = 90 + ( rand( ) % 207 );
+
+	unsigned int i = 0;
+
+	for ( ; i < upperbound; ++i ) { ret[ i ] = array[ i ]; }
+
+	ret[ i + 1 ] = '\0';
+
+	return ret;
 }
 
-inline ccolor const CHL( ) { return ccolor( eTTYCBlack, static_cast<eTTYColor>( ( rand( ) % 7 ) + 2 ), eModBold ); }
-inline ccolor const CTXT( ) { static const ccolor cTXT( eTTYCBlack, eTTYCGreen, eModBold ); return cTXT; }
-inline void LINE( ) {  std::cout << CHL( ) << HL( ) << CTXT( ) << std::endl; }
+inline sisu::ccolor const CHL( ) { return sisu::ccolor( sisu::eTTYCBlack, static_cast<sisu::eTTYColor>( ( rand( ) % 7 ) + 2 ), sisu::eModBold ); }
+inline sisu::ccolor const CTXT( ) { static const sisu::ccolor cTXT( sisu::eTTYCBlack, sisu::eTTYCGreen, sisu::eModBold ); return cTXT; }
+inline void LINE( ) { std::cout << CHL( ) << HL( ) << CTXT( ) << std::endl; }
 
 template< class XContext >
 class test : public XContext
@@ -102,12 +124,8 @@ class test : public XContext
 	public:
 		inline test( ) : XContext( ) { }
 		inline ~test( ) { }
-
-		template< typename XUnitTest >
-		void Body( );
-
+		template< typename XUnitTest > void Body( );
 		template<typename XUnitTest> struct Unit;
-
 		template< typename XUnitTest >
 		void ExecuteTest( )
 		{
@@ -118,10 +136,25 @@ class test : public XContext
 			std::cout << "[ File : " 		<< Unit<XUnitTest>::File( ) 		<< " ]" << std::endl;
 			std::cout << "[ Function : " 		<< Unit<XUnitTest>::Func( ) 		<< " ]" << std::endl;
 			std::cout << "[ Line " 			<< Unit<XUnitTest>::Line( ) 		<< " ]" << std::endl;
+
+			timespec ts;
+			ts.tv_sec = 0;
+			ts.tv_nsec = 0;
+
+			clock_settime( CLOCK_PROCESS_CPUTIME_ID, &ts );
 			Body<XUnitTest>( );
+			clock_gettime( CLOCK_PROCESS_CPUTIME_ID, &ts );
+
 			LINE( );
-			std::cout << "[ Finished execution of " << Unit<XUnitTest>::UnitName( ) << " ]" << std::endl;
+			std::cout 	<< "[ Finished execution of "
+						<< Unit<XUnitTest>::UnitName( )
+						<< ts.tv_sec
+						<< ","
+						<< ts.tv_sec
+					<< " ]" << std::endl;
+			KEYPRESS;
 			LINE( );
+
 			std::cout << std::endl;
 			std::cout << std::endl;
 			std::cout << std::endl;
@@ -193,11 +226,7 @@ inline XStorage & UnitTest( void ( test< T >::*XF ) ( ) = 0 )
 inline void HookSignals( )
 {
 	static StackTraceHandler hook;
-	LINE( );
-	std::cout << "[ Hooking signals ... ]" << std::endl;
 	hook( );
-	std::cout << "[ Signals Hooked.. ]" << std::endl;
-	LINE( );
 }
 
 inline void ShowResult( eTestResult r )
@@ -213,39 +242,39 @@ inline void ShowResult( eTestResult r )
 	};
 
 	// TODO - Add Bitwise support
-	static eTTYModifier mods[] =
+	static sisu::eTTYModifier mods[] =
 	{
-			eModBold
-		,	eModBold
-		,	eModBold
-		,	eModBold
-		,	eModBlink
-		, 	eModBold
+			sisu::eModBold
+		,	sisu::eModBold
+		,	sisu::eModBold
+		,	sisu::eModBold
+		,	sisu::eModBlink
+		, 	sisu::eModBold
 	};
 
-	static eTTYColor fgs[] =
+	static sisu::eTTYColor fgs[] =
 	{
-			eTTYCRed
-		,	eTTYCRed
-		,	eTTYCRed
-		,	eTTYCRed
-		,	eTTYCBlack
-		,	eTTYCRed
+			sisu::eTTYCRed
+		,	sisu::eTTYCRed
+		,	sisu::eTTYCRed
+		,	sisu::eTTYCRed
+		,	sisu::eTTYCBlack
+		,	sisu::eTTYCRed
 	};
 
-	static eTTYColor bgs[] =
+	static sisu::eTTYColor bgs[] =
 	{
-			eTTYCBlack
-		,	eTTYCBlack
-		,	eTTYCBlack
-		,	eTTYCBlack
-		,	eTTYCGreen
-		,	eTTYCBlack
+			sisu::eTTYCBlack
+		,	sisu::eTTYCBlack
+		,	sisu::eTTYCBlack
+		,	sisu::eTTYCBlack
+		,	sisu::eTTYCGreen
+		,	sisu::eTTYCBlack
 	};
 
-	ccolor const cMSG( bgs[ r ], fgs[ r ], mods[ r ] );
+	sisu::ccolor const cMSG( bgs[ r ], fgs[ r ], mods[ r ] );
 
-	std::cout << " Result is: " << cMSG << messages[ static_cast<uint8_t>(r) ];
+	std::cout << " Result is: " << cMSG << messages[ static_cast<uint8_t>(r) ] << std::endl;
 }
 
 template<typename XUnitTestSet>
@@ -256,6 +285,7 @@ struct UnitTestExecute
 	{
 		LINE( );
 		std::cout << "[ Running tests without sisu ... ]" << std::endl;
+		KEYPRESS;
 		LINE( );
 
 		eTestResult r = eUninitialized;
@@ -275,6 +305,7 @@ struct UnitTestExecute
 		}
 
 		ShowResult( r );
+		KEYPRESS;
 
 		LINE( );
 		std::cout << "[ Done running tests without sisu ... ]" << std::endl;
@@ -302,11 +333,8 @@ inline void RunUnitTestSet( )
 
 		static inline eTestResult Run(  )
 		{
-
 			LINE( );
-
 			std::cout << "[ Starting test run with sisu ... ]" << std::endl;
-
 			LINE( );
 
 			eTestResult r = eUninitialized;
@@ -314,40 +342,26 @@ inline void RunUnitTestSet( )
 			try
 			{
 				LINE( );
-
 				MSG( "Creating test object" );
-
 				test<XContext> t;
-
 				OK( );
-
 				MSG( "Setting up unit test" );
-
 				TRYCATCH(t.Up( ), eExceptionInSetup);
-
 				OK( );
-
 				try
 				{
 					MSG( "Executing unit test" );
-
 					UnitTest< XContext, list_t >( ) * t;
-
 					r = eSuccess;
-
 					OK( );
 				}
 				catch ( ... )
 				{
 					FAIL( );
-
 					r = eExceptionInTest;
 				}
-
 				MSG( "Tearing down unit test" );
-
 				TRYCATCH(t.Down( ), eExceptionInTearDown);
-
 				OK( );
 			}
 			catch ( ... )
@@ -380,6 +394,7 @@ inline void RunUnitTestSet( )
 			LINE( );
 
 			Run( );
+
 
 			LINE( );
 
@@ -456,8 +471,8 @@ static class UTSTORAGE(xUTClass, xUTName) {\
 	static inline void initTest( ) { ::sisu::UnitTest< xUTClass, list_t >( &test< xUTClass >::ExecuteTest< UTCLASS(xUTClass, xUTName) > ); }\
 	public:\
 		UTSTORAGE(xUTClass, xUTName)( ) {\
-			static ccolor const clr( eTTYCBlack, eTTYCGreen, eModBold );\
-			static ccolor const rnd( eTTYCBlack, static_cast<eTTYColor>( ( rand( ) % 7 ) + 2 ), eModBold );\
+			static sisu::ccolor const clr( sisu::eTTYCBlack, sisu::eTTYCGreen, sisu::eModBold );\
+			static sisu::ccolor const rnd( sisu::eTTYCBlack, static_cast<sisu::eTTYColor>( ( rand( ) % 7 ) + 2 ), sisu::eModBold );\
 			std::cout << clr << "[ " << rnd << "Test " << # xUTClass << # xUTName << clr << "\t\t\t identified. ]" << std::endl;\
 			::sisu::Once< xUTClass >( &initContext );\
 			::sisu::Once< UTCLASS(xUTClass, xUTName) >( &initTest );\

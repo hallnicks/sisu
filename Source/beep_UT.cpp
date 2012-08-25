@@ -16,6 +16,5 @@ class Beep_UT : public context
 
 TEST(Beep_UT, Octave)
 {
-	//sisu::sound::octave( );
+//	sisu::sound::noise::octave( );
 }
-

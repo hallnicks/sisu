@@ -5,16 +5,18 @@
 #include <iostream>
 #include <limits>
 #include <cstring>
-#include <ctime>
+//#include <ctime>
 #include <clocale>
 #include <climits>
 
 namespace sisu
 {
 
+#if 0
 template<typename XType>
 struct BitsType
-{	BitsType( XType const & xRef ) : value( xRef ) { }
+{
+	BitsType( XType const & xRef ) : value( xRef ) { }
 	XType value;
 	typedef XType type;
 };
@@ -34,6 +36,8 @@ struct BitsType<xType>\
 
 #undef SPECBITS
 
+#endif // 0
+
 template< typename XType, bool XSpaced = true >
 class bits
 {
@@ -46,16 +50,21 @@ class bits
                 {
                         char * xB = mB + ( sB - 1 );
 
-			//typedef typename BitsType<XType>::type local_int;
+			#if 0
+			typedef typename BitsType<XType>::type local_int;
+			local_int a = BitsType<XType>::value;
+			#endif
 
-			//local_int a = BitsType<XType>::value;
 			XType a = xRef;
 
                         int d = 0;
 
                         for ( int8_t i = sB - 2; i >= 0; --i )
                         {
-                                if ( XSpaced && d++ % CHAR_BIT == 0 ) { *xB-- = ' '; }
+                                if ( XSpaced && d++ % CHAR_BIT == 0 )
+				{
+					*xB-- = ' ';
+				}
 
                                 *xB-- = ( a & 1 ) + '0';
 
@@ -71,7 +80,8 @@ class bits
 
                 std::ostream & operator >> ( std::ostream & xS ) const { return xS << mB; }
 
-                template<typename T> bits & operator << ( T const & xS ) { std::cout << xS; return (*this); }
+                template<typename T>
+		bits & operator << ( T const & xS ) { std::cout << xS; return (*this); }
 
                 typedef cout_t & ( * endl_t )( cout_t & );
                 std::ostream & operator << ( endl_t const & xS ) { return (*this) << xS; }

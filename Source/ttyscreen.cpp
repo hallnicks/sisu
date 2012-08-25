@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <sys/ioctl.h>
+#include <unistd.h>
+#include <term.h>
 
 using std::cerr;
 using std::cout;
@@ -55,14 +57,14 @@ Screen::buffer TerminalScreen::scanLine( unsigned short const xY ) const { retur
 
 Screen::const_buffer TerminalScreen::scanLineConst( unsigned short const xY ) const { return const_cast<const_buffer>( mMemory + ( mW * xY ) ); }
 
+void TerminalScreen::setPosition( unsigned int xX, unsigned int xY )
+{
+	std::cout << "\033[" << xX << ";" << xY << "Hm";
+}
+
 void TerminalScreen::refresh( )
 {
-	if ( system( "clear" ) != 0 )
-	{
-		cout << "clear command is unsupported"
-			" on this platform."
-				<< endl;
-	}
+	setPosition( 0, 0 );
 
 	volatile int y = -1;
 

@@ -18,10 +18,15 @@
 
 using std::cout;
 using std::endl;
+using sisu::ccolor;
+using sisu::eTTYCBlack;
+using sisu::eTTYCYellow;
+using sisu::eModBold;
 
 int main(void)
 {
 	srand( time( NULL ) );
+
 	// TODO - get and save original color. For now, screw you!
 	ccolor const d( eTTYCBlack, eTTYCYellow, eModBold );
 	ccolor const b( eTTYCBlack, eTTYCYellow, eModBold );
@@ -44,8 +49,10 @@ int main(void)
 
 	for ( i = 0; i < ES; ++i )
 		{ cout <<
-			endl << "                          ... ☁ ▅▒░OoO░▒▅ ☁  "
+			endl <<      "                          ... ☁ ▅▒░OoO░▒▅ ☁  "
 				<< endl; }
+
+	std::cout << "                              \\m/ >_< \\m/ " << std::endl;
 
 	return r;
 }

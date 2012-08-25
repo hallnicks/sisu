@@ -28,6 +28,7 @@ class memblock_UT : public context
 
 TEST(memblock_UT, memout)
 {
+#if 0
 	uint8_t * block = new uint8_t[ 300 ];
 
 	unsigned int c;
@@ -42,4 +43,5 @@ TEST(memblock_UT, memout)
 	std::cout << memblock( block, 300 ) << std::endl;
 
 	delete[] block;
+#endif
 }
