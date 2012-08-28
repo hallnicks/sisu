@@ -2,8 +2,12 @@
 #define TTYCOLOR_HPP_
 
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <time.h>
+
 #include <iostream>
 
 #include "bits.hpp"
@@ -84,6 +88,10 @@ class TTYCMap
        	static eTTYModifier const modifiers[7];
 
 	public:
+		static int getColorCount( ) { return sizeof(colors) / sizeof(eTTYColor); }
+
+		static int getModifierCount( ) { return sizeof(modifiers) / sizeof(eTTYModifier); }
+
 		static int getColorIndex( eTTYColor xColor )
 		{
 			unsigned int i = 0;
@@ -115,6 +123,16 @@ class TTYCMap
 		        }
 
 			return i;
+		}
+
+		static eTTYColor randomColor( )
+		{
+			return colors[ rand( ) % ( sizeof(colors) / sizeof(eTTYColor) ) ];
+		}
+
+		static eTTYModifier randomModifier( )
+		{
+			return modifiers[ rand( ) % ( sizeof(modifiers) / sizeof(eTTYModifier) ) ];
 		}
 
 		static eTTYColor incrementColor( eTTYColor const xColor )

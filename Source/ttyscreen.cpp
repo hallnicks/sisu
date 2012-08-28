@@ -61,10 +61,6 @@ Screen::buffer TerminalScreen::scanLine( unsigned short const xY ) const
 	{
 		ret = mMemory + ( mW * xY );
 	}
-	else
-	{
-
-	}
 
 	return ret;
 }
