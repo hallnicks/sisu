@@ -1,11 +1,10 @@
-#ifndef BITS_HPP_
-#define BITS_HPP_
+#ifndef BITS_DE20CC90_8F6F_497C_981B_7537B10BA529_HPP_
+#define BITS_DE20CC90_8F6F_497C_981B_7537B10BA529_HPP_
 
 #include <stdint.h>
 #include <iostream>
 #include <limits>
 #include <cstring>
-//#include <ctime>
 #include <clocale>
 #include <climits>
 
@@ -95,4 +94,5 @@ inline std::ostream & operator << ( std::ostream & xS, bits<XType, XSpaces> cons
 
 } // namespace sisu
 
-#endif // BITS_HPP_
+
+#endif // BITS_DE20CC90_8F6F_497C_981B_7537B10BA529_HPP_

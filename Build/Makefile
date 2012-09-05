@@ -37,7 +37,7 @@ endif
 
 CXXFLAGS += -Werror -O3
 LDFLAGS +=
-CXX ?= g++
+CXX ?= clang++
 CXX_OBJ_FLAG ?= -o
 CXX_FILE_FLAG ?= -c
 

@@ -2,14 +2,12 @@
 
 #include <cstdlib>
 #include <iostream>
+
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <term.h>
 
-using std::cerr;
 using std::cout;
-using std::endl;
-using std::flush;
 
 namespace sisu
 {
@@ -26,7 +24,7 @@ TerminalScreen::TerminalScreen( )
 
 	if ( ioctl( STDOUT_FILENO, TIOCGWINSZ, &w ) != 0 )
 	{
-		cerr << "Failed to get terminal width" << endl;
+		std::cerr << "Failed to get terminal width" << std::endl;
 		exit( -1 );
 	}
 	else
@@ -46,14 +44,16 @@ TerminalScreen::TerminalScreen( )
 
 TerminalScreen::~TerminalScreen( )
 {
-	delete[] mMemory;
+	setPosition( 0, 0 );
+
+	delete [] mMemory;
 }
 
-unsigned short TerminalScreen::getWidth( ) const { return mW; }
+uint8_t TerminalScreen::getWidth( ) const { return mW; }
 
-unsigned short TerminalScreen::getHeight( ) const { return mH; }
+uint8_t TerminalScreen::getHeight( ) const { return mH; }
 
-Screen::buffer TerminalScreen::scanLine( unsigned short const xY ) const
+Screen::buffer TerminalScreen::scanLine( uint8_t const xY ) const
 {
 	Screen::buffer ret = NULL;
 
@@ -65,14 +65,37 @@ Screen::buffer TerminalScreen::scanLine( unsigned short const xY ) const
 	return ret;
 }
 
-Screen::const_buffer TerminalScreen::scanLineConst( unsigned short const xY ) const
+void TerminalScreen::blitPixel( uint8_t const xX, uint8_t const xY )
+{
+	if ( xX < mW && xY < mH )
+	{
+		TTYCTransform c( scanLine( xY )[ xX ] );
+
+		cout << ccolor( c.getFG( )
+				, c.getBG( )
+				, c.getModifier( ) )
+
+			<< c.getChar( )
+
+			<< std::flush;
+	}
+}
+
+void TerminalScreen::refreshPosition( uint8_t const xX, uint8_t const xY )
+{
+	setPosition( xX, xY );
+
+	blitPixel( xX, xY );
+}
+
+Screen::const_buffer TerminalScreen::scanLineConst( uint8_t const xY ) const
 {
 	return const_cast<const_buffer>( mMemory + ( mW * xY ) );
 }
 
-void TerminalScreen::setPosition( unsigned int xX, unsigned int xY )
+void TerminalScreen::setPosition( uint8_t const xX, uint8_t const xY )
 {
-	std::cout << "\033[" << xX << ";" << xY << "Hm";
+	cout << "\033[" << +xX << ";" << +xY << "m";
 }
 
 void TerminalScreen::refresh( )
@@ -81,23 +104,31 @@ void TerminalScreen::refresh( )
 
 	volatile int y = -1;
 
-	char c = 0;
-	eTTYColor fg = eTTYCNone, bg = eTTYCNone;
-	eTTYModifier mod = eModNone;
-
 	for ( unsigned int y = 0; y < mH; ++y )
 	{
 		for ( unsigned int x = 0; x < mW; ++x )
 		{
-			ttyc2color( scanLine( y )[ x ], &c, &fg, &bg, &mod );
-
-			cout << ccolor( fg, bg, mod ) << c;
+			blitPixel( x, y );
 		}
-
-		cout << endl;
 	}
 
-	cout << flush;
+	cout << std::flush;
+}
+
+void TerminalScreen::setPixel( uint8_t const xX, uint8_t const xY, TTYC const xColor )
+{
+	setPosition( xX, xY );
+
+	if ( xX < mW && xY < mH )
+	{
+		TTYCTransform c( xColor );
+
+		cout 	<< ccolor( c.getFG( )
+				, c.getBG( )
+				, c.getModifier( ) )
+
+			<< c.getChar( );
+	}
 }
 
 } // namespace sisu

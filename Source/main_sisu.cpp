@@ -23,7 +23,7 @@ using sisu::eTTYCBlack;
 using sisu::eTTYCYellow;
 using sisu::eModBold;
 
-int main(void)
+int main( void )
 {
 	srand( time( NULL ) );
 
@@ -52,7 +52,7 @@ int main(void)
 			endl <<      "                          ... ☁ ▅▒░OoO░▒▅ ☁  "
 				<< endl; }
 
-	std::cout << "                              \\m/ >_< \\m/ " << std::endl;
+	std::cout << std::endl << "                              \\m/ >_< \\m/ " << std::endl;
 
 	return r;
 }

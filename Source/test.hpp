@@ -26,8 +26,9 @@
 #include "ttycolor.hpp"
 #include "typename.hpp"
 
-//#define KEYPRESS { char const * const f = __FILE__; char const * const fn = __PRETTY_FUNCTION__; unsigned long l = __LINE__; char c = 0; std::cout << "Paused: " << f << ":" << l << ":" << fn << std::endl; do { } while(c = std::cin.get() && c == 0); std::cout << "Resuming: " << f << ":" << l << ":" << fn << std::endl; }
-#define KEYPRESS
+#define KEYPRESS { char const * const f = __FILE__; char const * const fn = __PRETTY_FUNCTION__; unsigned long l = __LINE__; char c = 0; std::cout << "Paused: " << f << ":" << l << ":" << fn << std::endl; do { } while(c = std::cin.get() && c == 0); std::cout << "Resuming: " << f << ":" << l << ":" << fn << std::endl; }
+
+//#define STEPTESTS
 
 inline unsigned int Time( )
 {
@@ -152,7 +153,9 @@ class test : public XContext
 						<< ","
 						<< ts.tv_sec
 					<< " ]" << std::endl;
-			KEYPRESS;
+			#if defined(STEPTESTS)
+				KEYPRESS;
+			#endif
 			LINE( );
 
 			std::cout << std::endl;
@@ -285,7 +288,9 @@ struct UnitTestExecute
 	{
 		LINE( );
 		std::cout << "[ Running tests without sisu ... ]" << std::endl;
-		KEYPRESS;
+		#if defined(STEPTESTS)
+			KEYPRESS;
+		#endif
 		LINE( );
 
 		eTestResult r = eUninitialized;
@@ -305,7 +310,9 @@ struct UnitTestExecute
 		}
 
 		ShowResult( r );
-		KEYPRESS;
+		#if defined(STEPTESTS)
+			KEYPRESS;
+		#endif
 
 		LINE( );
 		std::cout << "[ Done running tests without sisu ... ]" << std::endl;

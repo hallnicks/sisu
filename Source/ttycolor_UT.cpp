@@ -1,17 +1,16 @@
 #include "test.hpp"
 #include "bits.hpp"
-
 #include "drawings.hpp"
 #include "memblock.hpp"
 #include "signal.hpp"
+#include "ttyc.hpp"
 #include "ttycolor.hpp"
+#include "ttyscreen.hpp"
 
 #include <iomanip>
 #include <iostream>
 #include <cstring>
 #include <clocale>
-
-#include "ttyscreen.hpp"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -30,7 +29,8 @@ namespace
 			void Up( ) { }
 			void Down( ) { }
 	};
-}
+
+} // namespace
 
 TEST(TTYColor_UT, ConvertColors)
 {
@@ -39,7 +39,7 @@ TEST(TTYColor_UT, ConvertColors)
 	eTTYColor const expBG = eTTYCRed;
 	eTTYModifier const expMod = eModBlink;
 	TTYC const expTTYC = 0x7E080208;
-	TTYC const actTTYC = color2ttyc( expChar, expFG, expBG, expMod );
+	TTYC const actTTYC = TTYCTransform::color2ttyc( expChar, expFG, expBG, expMod );
 
 	MUSTEQ(expTTYC, actTTYC);
 
@@ -47,7 +47,7 @@ TEST(TTYColor_UT, ConvertColors)
 	eTTYColor actFG = eTTYCNone, actBG = eTTYCNone;
 	eTTYModifier actMod = eModNone;
 
-	ttyc2color( actTTYC, &actChar, &actFG, &actBG, &actMod );
+	TTYCTransform::ttyc2color( actTTYC, actChar, actFG, actBG, actMod );
 
 	MUSTEQ(expChar, actChar);
 	MUSTEQ(expFG, 	actFG);
@@ -63,20 +63,20 @@ TEST(TTYColor_UT, SimpleColor)
 
 	for ( eTTYColor i = eTTYCBlack; i < eTTYCMax; ++i )
 	{
-		std::cout 	<< "i = "	<< getColorStr( i )
+		std::cout 	<< "i = "	<< std::hex << i << std::dec
 				<< "#" 		<< i
 				<< std::endl;
 
 		for ( eTTYColor j = eTTYCBlack; j < eTTYCMax; ++j )
 		{
-			std::cout 	<< "    , j = "	<< getColorStr( j )
+			std::cout 	<< "    , j = "	<< std::hex << j << std::dec
 					<< "#" 		<< j
 					<< std::endl;
 
 			for ( eTTYModifier k = eModBold; k < eModMax; ++k )
 			{
 				std::cout 	<< ccolor( i, j, k )
-						<< "         , mod = " 	<< getModifier( k )
+						<< "         , mod = " 	<< std::hex << k << std::dec
 						<< "#" << k
 						<< std::endl;
 			}

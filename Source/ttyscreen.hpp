@@ -2,26 +2,32 @@
 #define TTYSCREEN_432BD495_F79C_4480_993B_9D34C509B77E_HPP_
 
 #include "screen.hpp"
+#include "ttyc.hpp"
 
 namespace sisu
 {
 
 class TerminalScreen : public Screen
 {
-	unsigned int mW, mH, mSize, mRadius;
+	uint8_t mW, mH, mSize, mRadius;
 
-	buffer mMemory;
+	buffer mMemory, mDeadline;
 
-	buffer mDeadline;
+	void getPixel( uint8_t const xX, uint8_t const xY );
+
+	void setPosition( uint8_t const xX, uint8_t const xY );
 
 	public:
 		TerminalScreen( );
 		~TerminalScreen( );
-		virtual unsigned short getWidth( ) const;
-		virtual unsigned short getHeight( ) const;
-		virtual Screen::buffer scanLine( unsigned short const xY ) const;
-		virtual Screen::const_buffer scanLineConst( unsigned short const xY ) const;
-		virtual void setPosition( unsigned int xX, unsigned int xY );
+
+		virtual uint8_t getWidth( ) const;
+		virtual uint8_t getHeight( ) const;
+		virtual Screen::buffer scanLine( uint8_t const xY ) const;
+		virtual Screen::const_buffer scanLineConst( uint8_t const xY ) const;
+		virtual void refreshPosition( uint8_t const xX, uint8_t const xY );
+		virtual void blitPixel( uint8_t const xX, uint8_t const xY );
+		virtual void setPixel( uint8_t const xX, uint8_t const xY, TTYC const xColor );
 		virtual void refresh( );
 };
 

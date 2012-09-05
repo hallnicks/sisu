@@ -1,27 +1,97 @@
 #include "drawings.hpp"
 
+#include <limits>
+#include <cstdlib>
+#include <iostream>
+
 namespace sisu
 {
 
-Drawings::Drawings( Screen * xScreen ) : mS( xScreen ) { }
+ThoughtBox::ThoughtBox( char const * const xMessage
+			, uint8_t const xX
+                        , uint8_t const xY
+                        , uint8_t const xW
+                        , uint8_t const xH
+                        , TTYC const xBG
+                        , TTYC const xFG )
+	: Message( xMessage )
+	, X( xX )
+	, Y( xY )
+	, W( xW )
+	, H( xH )
+	, BG( xBG )
+	, FG( xFG )
+{
+	;
+}
 
-Drawings::~Drawings( ) { }
+Changed::Changed( Screen * const xS )
+	: mMax( -1 )
+	, mMagnitude( xS->getWidth( ) * xS->getHeight( ) )
+	, mBound( mMagnitude - 1 )
+	, mPoints( new Point2DOU [ mMagnitude ] )
+{
+	;
+}
+
+Changed::~Changed( )
+{
+	delete [] mPoints;
+}
+
+Point2DOU const & Changed::operator [ ] ( uint8_t const xIndex ) const
+{
+	return mPoints [ xIndex ];
+}
+
+void Changed::operator ( ) ( uint8_t const xX, uint8_t const xY )
+{
+	uint8_t const param[] = { xX, xY };
+
+	mPoints [ mMax >= mBound ? mMax = 0 : ++mMax ] = Point2DOU( param );
+}
+
+void Changed::reset( )
+{
+	mMax = -1;
+}
+
+uint8_t Changed::max() const
+{
+	return mMax + 1;
+}
+
+Drawings::Drawings( Screen * const xScreen, eDrawingMode const xDrawMode )
+	: mS( xScreen )
+	, mMode( xDrawMode )
+	, mCh( xDrawMode == eOnlyChanged ? new Changed( xScreen ) : NULL )
+{
+	if ( mS == NULL )
+	{
+		std::cerr << "Drawings object " << this <<  " received null screen." << std::endl;
+
+		exit( -1 );
+	}
+}
+
+Drawings::~Drawings( )
+{
+	;
+}
 
 void Drawings::clear( TTYC const xC )
 {
-	unsigned int const w = mS->getWidth( );
+	uint8_t const w = mS->getWidth( );
 
-	for ( unsigned int y = 0; y < mS->getHeight( ); ++y )
+	for ( uint8_t y = 0; y < mS->getHeight( ); ++y )
 	{
 		hline( y, 0, w, xC );
 	}
 }
 
-void Drawings::hline( unsigned int const xY, unsigned int const xStart, unsigned int const xWidth, TTYC const xC )
+void Drawings::hline( uint8_t const xY, uint8_t const xStart, uint8_t const xWidth, TTYC const xC )
 {
-	unsigned int const width = mS->getWidth( );
-
-	unsigned int const bound = std::min( xWidth, width );
+	uint8_t const width = mS->getWidth( ), bound = std::min( xWidth, width );
 
 	for ( unsigned int i = xStart; i < bound; ++i )
 	{
@@ -29,36 +99,60 @@ void Drawings::hline( unsigned int const xY, unsigned int const xStart, unsigned
 	}
 }
 
-#if 0
-inline static double getSlope2D( Point * const xy0, Point * const xy1 )
-{
-	return static_cast<double>( xy1->Y  - xy0->Y ) / static_cast<double>( xy1->X - xy0->X );
-}
-
-inline static double getPointLine2D_X( double const xM, double const xY, double const xB = 0 )
-{
-	return ( xY - xB ) / xM;
-}
-
-void Drawings::hquad( Quad * const xQ, TTYC const xC )
-{
-	double const m0 = getSlope2D( &xQ->X, &xQ->Y );
-
-	double const m1 = getSlope2D( &xQ->Z, &xQ->W );
-
-}
-#endif
-
-void Drawings::setPixel( unsigned int const xX, unsigned int const xY, TTYC const xC )
+void Drawings::setPixel( uint8_t const xX, uint8_t const xY, TTYC const xC )
 {
 	if ( xX < mS->getWidth( ) && xY < mS->getHeight( ) )
 	{
-		(*(*mS)[ xY ][ xX ]) = xC;
+		class SetPixelAction
+		{
+			uint8_t mX, mY;
+
+			TTYC mC;
+
+			Screen * mS;
+
+			Changed * mCH;
+
+			public:
+		                SetPixelAction( Screen * const xS
+						, Changed * const xCH
+						, TTYC const xC
+						, uint8_t const xX
+						, uint8_t const xY )
+					: mX( xX )
+					, mY( xY )
+					, mC( xC )
+					, mS( xS )
+					, mCH( xCH )
+				{
+					;
+				}
+
+				void drawImmediately( ) { mS->setPixel( mX, mY, mC ); }
+
+				void drawVsync( ) { ( * ( * mS )[ mY ][ mX ] ) = mC; }
+
+				void drawChanged( )
+				{
+					drawVsync( );
+
+					( * mCH )( mX, mY );
+				}
+
+		} actor( mS, mCh, xC, xX, xY );
+
+		typedef void (SetPixelAction::*DrawingAction)(void);
+
+		static DrawingAction const actions[] = { &SetPixelAction::drawImmediately
+							, &SetPixelAction::drawVsync
+							, &SetPixelAction::drawChanged };
+
+		( actor.* ( actions [ mMode ] ) )( );
 	}
 }
 
 // From wikipedia
-void Drawings::midpointCircle( unsigned int const xX, unsigned int const xY, unsigned int const xRadius, TTYC const xColor )
+void Drawings::midpointCircle( uint8_t const xX, uint8_t const xY, uint8_t const xRadius, TTYC const xColor )
 {
 	int f = 1 - xRadius;
 	int ddF_x = 1;
@@ -101,9 +195,8 @@ void Drawings::midpointCircle( unsigned int const xX, unsigned int const xY, uns
 
 void Drawings::mandlebrot( TTYC xC, double xScale )
 {
-	unsigned int const h = static_cast<unsigned int>( mS->getHeight( ) * xScale )
-			,  w = static_cast<unsigned int>( mS->getWidth( ) * xScale );
-
+	uint8_t const h = static_cast<uint8_t>( mS->getHeight( ) * xScale )
+			,  w = static_cast<uint8_t>( mS->getWidth( ) * xScale );
 
 	double MinRe = -2.0
 		, MaxRe = 1.0
@@ -112,22 +205,23 @@ void Drawings::mandlebrot( TTYC xC, double xScale )
 		, Re_factor = ( MaxRe - MinRe ) / ( w - 1 )
 		, Im_factor = ( MaxIm - MinIm ) / ( h - 1 );
 
-	unsigned MaxIterations = 30;
+	static uint8_t const MaxIterations = std::numeric_limits<uint8_t>::max();
 
-	for ( unsigned y = 0; y < h; ++y )
+	for ( uint8_t y = 0; y < h; ++y )
 	{
-		double c_im = MaxIm - y * Im_factor;
+		double const c_im = MaxIm - y * Im_factor;
 
-		for ( unsigned x = 0; x < w; ++x )
+		for ( uint8_t x = 0; x < w; ++x )
 		{
-			double c_re = MinRe + x * Re_factor
-					, Z_re = c_re, Z_im = c_im;
+			double const c_re = MinRe + x * Re_factor;
+
+			double Z_re = c_re, Z_im = c_im;
 
 			bool isInside = true;
 
-			for ( unsigned n = 0; n < MaxIterations; ++n )
+			for ( uint8_t n = 0; n < MaxIterations; ++n )
 			{
-				double Z_re2 = Z_re * Z_re, Z_im2 = Z_im * Z_im;
+				double const Z_re2 = Z_re * Z_re, Z_im2 = Z_im * Z_im;
 
 				if ( Z_re2 + Z_im2 > 4 )
 				{
@@ -136,21 +230,64 @@ void Drawings::mandlebrot( TTYC xC, double xScale )
 					break;
 				}
 
-				Z_im = 2*Z_re*Z_im + c_im;
+				Z_im = 2 * Z_re * Z_im + c_im;
 
 				Z_re = Z_re2 - Z_im2 + c_re;
 			}
 
-			if ( isInside )
+			if ( isInside && y < w && y < h && x >= 0 && y >= 0 )
 			{
-				int32_t realY = y, realX = x;
-				if (realX < w && realY < h && realX >= 0 && realY >= 0)
-				{
-					(*(*mS)[ realY ][ realX ]) = xC;
-				}
+				setPixel( x, y, xC );
 			}
 		}
 	}
+}
+
+void Drawings::thoughtBox( ThoughtBox const & xTB )
+{
+	for ( uint8_t ii = 0; ii < xTB.H; ++ii )
+	{
+		hline( ii, xTB.X, xTB.W, xTB.BG );
+	}
+}
+
+void Drawings::refresh( )
+{
+	class SetPixelAction
+	{
+		Screen * mS;
+		Changed * mCh;
+
+		public:
+			SetPixelAction( Screen * const xS, Changed * const xCH )
+				: mS( xS ), mCh( xCH )
+		{
+			;
+		}
+
+		void drawImmediately( ) { ; }
+		void drawVsync( ) { mS->refresh( ); }
+		void drawChanged( )
+		{
+			for ( uint8_t ii = 0; ii < mCh->max( ); ++ii )
+			{
+				Point2DOU const & p = ( * mCh )[ ii ];
+
+				mS->refreshPosition( p[ 0 ], p[ 1 ] );
+			}
+
+			mCh->reset( );
+		}
+
+	} actor( mS, mCh );
+
+	typedef void (SetPixelAction::*DrawingAction)(void);
+
+	static DrawingAction const actions[] = { &SetPixelAction::drawImmediately
+						, &SetPixelAction::drawVsync
+						, &SetPixelAction::drawChanged };
+
+	( actor.* ( actions [ mMode ] ) )( );
 }
 
 } // namespace sisu

@@ -4,6 +4,9 @@
 namespace sisu
 {
 
+#define new
+#define delete
+#define new
 
 } // namespace sisu
 
