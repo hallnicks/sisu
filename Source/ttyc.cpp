@@ -1,4 +1,5 @@
 #include "ttyc.hpp"
+#include "bits.hpp"
 
 namespace sisu
 {
@@ -204,7 +205,14 @@ eTTYModifier TTYCTransform::getModifier( ) const
 
 void TTYCTransform::setCharU( uint8_t const xChar )
 {
-	mC = ( mC >> 24 ) && xChar;
+	std::cout << "In function:" << __PRETTY_FUNCTION__ << std::endl;
+//	mC = ( mC >> && static_cast<intxChar;
+	std::cout << "Bits before set char:" << bits<TTYC>( mC ) << std::endl;
+//	std::cout << "its of mask:" << bits<TTYC>( ) << std::endl;
+	//mC &=
+	std::cout << "bits of mask: " << bits<TTYC>( static_cast<TTYC>(xChar) << 24 ) << std::endl;
+//	std::cout << "Bits after set char: " << bits<TTYC>( mC ) << std::endl;
+	while ( 1 ) { }
 }
 
 void TTYCTransform::setChar( char const xChar )

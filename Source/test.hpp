@@ -26,9 +26,12 @@
 #include "ttycolor.hpp"
 #include "typename.hpp"
 
-#define KEYPRESS { char const * const f = __FILE__; char const * const fn = __PRETTY_FUNCTION__; unsigned long l = __LINE__; char c = 0; std::cout << "Paused: " << f << ":" << l << ":" << fn << std::endl; do { } while(c = std::cin.get() && c == 0); std::cout << "Resuming: " << f << ":" << l << ":" << fn << std::endl; }
+#define KEYPRESS { constr f = __FILE__; constr fn = __PRETTY_FUNCTION__; unsigned long l = __LINE__; char c = 0; std::cout << "Paused: " << f << ":" << l << ":" << fn << std::endl; do { } while(c = std::cin.get() && c == 0); std::cout << "Resuming: " << f << ":" << l << ":" << fn << std::endl; }
 
-//#define STEPTESTS
+typedef char const * const constr;
+
+template<typename XType, size_t XSize >
+inline static size_t sizeofarray( XType const ( & xDest ) [ XSize ] ) { return XSize; }
 
 inline unsigned int Time( )
 {
@@ -94,7 +97,7 @@ class context
 		virtual void Down( ) = 0;
 };
 
-inline char const * const HL( )
+inline constr HL( )
 {
 	static char const array[548] = "°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸"
 						"°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸"
@@ -153,9 +156,6 @@ class test : public XContext
 						<< ","
 						<< ts.tv_sec
 					<< " ]" << std::endl;
-			#if defined(STEPTESTS)
-				KEYPRESS;
-			#endif
 			LINE( );
 
 			std::cout << std::endl;
@@ -234,7 +234,7 @@ inline void HookSignals( )
 
 inline void ShowResult( eTestResult r )
 {
-	static char const * const messages[] =
+	static constr messages[] =
 	{
 		 	"Exeception in constructor."
 		, 	"Exception in setup."
@@ -280,6 +280,10 @@ inline void ShowResult( eTestResult r )
 	std::cout << " Result is: " << cMSG << messages[ static_cast<uint8_t>(r) ] << std::endl;
 }
 
+inline void MSG( constr xMessage ) { std::cout << "[ " << xMessage << " ...";  }
+inline void OK( ) { std::cout << " OK ]" << std::endl; }
+inline void FAIL( ) { std::cout << " FAILED ]" << std::endl; }
+
 template<typename XUnitTestSet>
 struct UnitTestExecute
 {
@@ -297,22 +301,33 @@ struct UnitTestExecute
 
 		try
 		{
+			MSG( "Constructing unit test. -sisu." );
 			test<XUnitTestSet> t;
-#define TRYCATCH(xExpr,xEnum) try { xExpr; } catch( ... ) { r = xEnum; }
+			OK( );
+#define TRYCATCH(xExpr,xEnum) try { xExpr; } catch( ... ) { std::cout << " FAILED (sisuless) ]" << std::endl; KEYPRESS; r = xEnum; }
+			MSG( "Setting up unit test. -sisu." );
 			TRYCATCH(t.Up( ), eExceptionInSetup);
+			OK( );
+			MSG( "Executing unit test. -sisu." );
 			TRYCATCH((t.*xXF)( ), eExceptionInTest);
+			OK( );
 			r = eSuccess;
+			MSG( "Tearing down unit test.");
 			TRYCATCH(t.Down( ), eExceptionInTearDown);
+			OK( );
 		}
 		catch ( ... )
 		{
 			r = eExceptionInConstructor;
+			FAIL( );
 		}
 
 		ShowResult( r );
-		#if defined(STEPTESTS)
+
+		if ( r != eSuccess )
+		{
 			KEYPRESS;
-		#endif
+		}
 
 		LINE( );
 		std::cout << "[ Done running tests without sisu ... ]" << std::endl;
@@ -334,10 +349,6 @@ inline void RunUnitTestSet( )
 
 	static class TestResult
 	{
-		static inline void MSG( char const * const xMessage ) { std::cout << "[ " << xMessage << " ...";  }
-		static inline void OK( ) { std::cout << " OK ]" << std::endl; }
-		static inline void FAIL( ) { std::cout << " FAILED ]" << std::endl; }
-
 		static inline eTestResult Run(  )
 		{
 			LINE( );
@@ -349,12 +360,12 @@ inline void RunUnitTestSet( )
 			try
 			{
 				LINE( );
-				MSG( "Creating test object" );
+				MSG("Constructing unit test.");
+				OK( );
 				test<XContext> t;
+				MSG("Setting up unit test.");
 				OK( );
-				MSG( "Setting up unit test" );
 				TRYCATCH(t.Up( ), eExceptionInSetup);
-				OK( );
 				try
 				{
 					MSG( "Executing unit test" );
@@ -374,7 +385,6 @@ inline void RunUnitTestSet( )
 			catch ( ... )
 			{
 				FAIL( );
-
 				r = eExceptionInConstructor;
 			}
 
@@ -389,6 +399,11 @@ inline void RunUnitTestSet( )
 			std::cout << "[ Finished test run with sisu. ]" << std::endl;
 
 			LINE( );
+
+			if ( r != eSuccess )
+			{
+				KEYPRESS;
+			}
 		}
 
 	public:
@@ -402,7 +417,6 @@ inline void RunUnitTestSet( )
 
 			Run( );
 
-
 			LINE( );
 
 			std::cout << "[ Finished Test Results ]" << std::endl;
@@ -410,6 +424,7 @@ inline void RunUnitTestSet( )
 			LINE( );
 
 			UnitTestExecute<XContext> functor;
+
 			UnitTest< XContext, list_t >( ) / functor;
 		}
 
@@ -450,12 +465,45 @@ inline int Execute( )
 template< typename T>
 inline void Once( XF i ) { static struct o { o( XF i ) { i( ); } } s( i ) ; };
 
-class TestFailedException { };
+class TestFailedException
+{
+	constr mMsg;
+
+	protected:
+		TestFailedException( constr xMsg )
+			: mMsg( xMsg )
+		{
+			;
+		}
+
+		virtual ~TestFailedException( ) { ; }
+	public:
+		TestFailedException( TestFailedException const & xRhs )
+			: mMsg( xRhs.mMsg )
+		{
+			;
+		}
+
+		TestFailedException & operator = ( TestFailedException const & xRhs )
+		{
+			*this = TestFailedException( xRhs );
+		}
+
+		constr getMessage( ) const { return mMsg; }
+};
+
+#define SMPLXCPT(xName) class xName : public TestFailedException { public: xName( constr xMsg ) : TestFailedException( xMsg ) { ; } ~xName( ) { } };
+
+SMPLXCPT(DidNotEqualException);
+SMPLXCPT(EqualedException);
+
+#undef SMPLXCPT
 
 } // namespace sisu
 
-#define MUSTNEQ( xLHS, xRHS ) if ( xLHS, xRHS ) { throw ::sisu::TestFailedException( ); }
-#define MUSTEQ( xLHS, xRHS ) if ( xLHS != xRHS) { throw ::sisu::TestFailedException( ); }
+#define FAIL(xMsg) { throw ::sisu::TestFailedException( xMsg ); }
+#define MUSTNEQ( xLHS, xRHS ) if ( xLHS == xRHS ) { throw ::sisu::EqualedException( " #xLhs did not equal #xRhs " ); }
+#define MUSTEQ( xLHS, xRHS ) if ( xLHS != xRHS) { throw ::sisu::DidNotEqualException( " #xLhs equaled #xRhs " ); }
 #define UTSTORAGE( xUTClass, xUTName ) xUTClass ## xUTName ## _storage_decl
 #define UTINSTANCE( xUTClass, xUTName ) s ## xUTClass ## xUTName ## _decl
 #define UTCLASS( xUTClass, xUTName ) xUTClass ## _ ## xUTName
@@ -463,13 +511,13 @@ class TestFailedException { };
 class UTCLASS(xUTClass, xUTName) { private: UTCLASS(xUTClass, xUTName)( ); };\
 template<> template<> void test< xUTClass >::Body< UTCLASS(xUTClass, xUTName) >();\
 template<> template<> struct test< xUTClass >::Unit< UTCLASS(xUTClass, xUTName) > { \
-static char const * const TimeRegistered( ) { return __TIME__; }\
-static char const * const DateRegistered( ) { return __DATE__; }\
-static char const * const File( ) { return __FILE__; }\
-static char const * const Func( ) { return __PRETTY_FUNCTION__; }\
+static constr TimeRegistered( ) { return __TIME__; }\
+static constr DateRegistered( ) { return __DATE__; }\
+static constr File( ) { return __FILE__; }\
+static constr Func( ) { return __PRETTY_FUNCTION__; }\
 static int Line( ) { return __LINE__; }\
-static char const * const TestName( ) { return # xUTClass; }\
-static char const * const UnitName( ) { return # xUTName; }\
+static constr TestName( ) { return # xUTClass; }\
+static constr UnitName( ) { return # xUTName; }\
 };\
 static class UTSTORAGE(xUTClass, xUTName) {\
 	typedef void(test< xUTClass >::*XFUnitTest)();\

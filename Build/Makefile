@@ -5,7 +5,7 @@ stripBaseFolder = $(subst $(abspath $(PWD)/..)/,,$(abspath $(1)))
 TARGET_LINKMODES = exe
 TARGET_NAME := sisu
 TARGET_LIBS := rt pthread
-SOURCE_DIRS := ../Source
+SOURCE_DIRS := ../Source ../Tests
 SOURCE_EXTS = cpp
 OBJECTS_DIR := ../Objects
 DEPEDENCIES_DIR := ../Depends
@@ -35,7 +35,7 @@ TARGETS += lib$(TARGET_NAME).so
 LDFLAGS += -fPIC
 endif
 
-CXXFLAGS += -Werror -O3
+CXXFLAGS += -Werror -O3 -I../Source/
 LDFLAGS +=
 CXX ?= clang++
 CXX_OBJ_FLAG ?= -o
@@ -51,6 +51,9 @@ SOURCES := $(foreach dir,$(SOURCE_DIRS),\
 PHONY_OBJECTS := $(foreach dir,$(SOURCE_DIRS),\
 			$(subst dir,$(OBJECTS_DIR),\
 				$(patsubst %.cpp,%.o,$(SOURCES))))
+
+$(info PHONY_OBJECTS = $(PHONY_OBJECTS))
+
 
 BUILD_COMMAND_EXE = $(CXX) $(LINK_LIBRARIES) $(CXX_OBJ_FLAG) $(TARGET_NAME) $(OBJECTS) $(LDFLAGS) > /dev/null
 BUILD_COMMAND_STATIC = ar rvs lib$(TARGET_NAME).a $(OBJECTS) > /dev/null

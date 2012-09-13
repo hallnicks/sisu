@@ -96,9 +96,7 @@ namespace sisu
 
 				for ( uint8_t i = 0; i < XSize; ++i )
 				{
-					setPixel( x, xYPos, xString.STR [ i ] );
-
-					++x;
+					setPixel( x, xYPos, xString[ i ] ); ++x;
 				}
 			}
 

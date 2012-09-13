@@ -211,8 +211,6 @@ TEST(Drawings_UT, TerminalTextBlocks)
 
 		painterSut.refresh( );
 	}
-
-	while ( 1 ) { usleep( 300 ); }
 }
 
 TEST(Drawings_UT, TerminalRects)

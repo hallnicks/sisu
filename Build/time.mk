@@ -1,6 +1,9 @@
 BEFORE  	:= $(shell tempfile).cpp
 NOW   		:= $(abspath ${CURDIR}/now)
 THEN   		:= $(abspath ${CURDIR}/then)
+WHEN		:= $(abspath ${CURDIR}/when)
+BETWEEN		:= $(abspath ${CURDIR}/between)
+CHANGES		:= $(abspath ${CURDIR}/changes)
 TOMORROW 	:= $(THEN) $(MOMENT1) $(MOMENT2)
 INSPIRE 	?= $(NOW)
 EXPIRE 		?= $(THEN)
@@ -8,12 +11,108 @@ EXPIRE 		?= $(THEN)
 then = $(call EXPIRE) $(info ${THEN} called)
 now = $(call INSPIRE) $(info ${NOW} called)
 
-.PHONY: $(NOW) $(THEN) TESTWATCH
+.PHONY: $(BETWEEN) $(NOW) $(THEN) $(WHEN) $(CHANGES)
+
+$(CHANGES) : $(call INSPIRE)\
+	$(info Changes)\
+	$(shell printf "#include <unistd.h>\n\
+			#include <sys/types.h>\n\
+			#include <sys/stat.h>\n\
+			#include <dirent.h>\n\
+			#include <iostream>\n\
+			#include <limits>\n\
+			#include <sstream>\n\
+			int when( char const * const xFile )\
+			{	int v = std::numeric_limits<int>::max( );\
+				struct stat sb;\
+				if ( stat( xFile, &sb ) == 0 ) { v = sb.st_mtime; }\
+				return v;\
+			}\n\
+			int go( char const * const xName, int const & xTime )\
+			{	int r = 0;\
+				DIR * d = NULL;\
+				struct dirent * dir = NULL;\
+				if ( NULL != ( d = opendir( xName ) ) )\
+				{	while ( NULL != ( dir = readdir( d ) ) )\
+					{	if ( dir->d_name [ 0 ] != '.' )\
+						{	std::stringstream ss;\
+							ss << xName;\
+							if ( xName [ ss.str( ).length( ) - 1 ] != '/' )\
+								{ ss << '/'; }\
+							ss << dir->d_name;\
+							struct stat sb;\
+							if ( stat( ss.str( ).c_str( ), &sb ) == 0 )\
+							{	if ( sb.st_mtime > xTime )\
+								{	if ( dir->d_type == DT_DIR )\
+										{ r = go( ss.str( ).c_str( ), xTime ); }\
+									else	{  std::cout << ss.str( ) << ' '; }\
+								}\
+							} else { r = -1; }\
+						}\
+					}\
+					closedir( d );\
+				} else { r = -1; }\
+				return r;\
+			}\
+			int main( int xArgc, char * xArgv [ ] )\
+			{	int we_are = -1;\
+				if ( xArgc == 3 ) { we_are = go( xArgv [ 1 ], when( xArgv [ 2 ] ) ); }\
+				return we_are;\
+			}" > ${BEFORE} && g++ ${BEFORE} -o ${CHANGES} -lrt) $(call now)
+
+$(BETWEEN) : $(call INSPIRE)\
+	$(info Between)\
+	$(shell printf "#include <iostream>\n\
+			#include <sstream>\n\
+			int main( int xArgc, char * argv[] ){\
+				int r = -1;\
+				if ( xArgc == 3 )\
+				{	double w, e;\
+					std::stringstream(argv[1]) >> w;\
+					std::stringstream(argv[2]) >> e;\
+					std::cout << w - e << std::endl;\
+					r = 0;\
+				}\
+				return r;\
+			}" > ${BEFORE} && g++ ${BEFORE} -o ${BETWEEN} -lrt) $(call now)
+
+$(BETWEEN) : $(call INSPIRE)\
+	$(info Between)\
+	$(shell printf "#include <iostream>\n\
+			#include <sstream>\n\
+			int main( int xArgc, char * argv[] ){\
+				int r = -1;\
+				if ( xArgc == 3 )\
+				{	double w, e;\
+					std::stringstream(argv[1]) >> w;\
+					std::stringstream(argv[2]) >> e;\
+					std::cout << w - e << std::endl;\
+					r = 0;\
+				}\
+				return r;\
+			}" > ${BEFORE} && g++ ${BEFORE} -o ${BETWEEN} -lrt) $(call now)
+
+$(WHEN) : $(call INSPIRE)\
+	$(info When)\
+	$(shell printf "#include <iostream>\n\
+			#include <sys/stat.h>\n\
+			#include <unistd.h>\n\
+			#include <time.h>\n\
+			int main( int xArgc, char * argv[] ){\
+				if ( xArgc == 2 )\
+				{	tm * clock;\
+					struct stat attrib;\
+					stat(argv[1], &attrib);\
+					std::cout << attrib.st_mtime << std::endl;\
+				}\
+				return 0;\
+			 }" > ${BEFORE} && g++ ${BEFORE} -o ${WHEN} -lrt) $(call now)
 
 $(NOW):	$(call INSPIRE)\
+	$(info Now)\
 	 $(shell printf "#include <iostream>\n\
 			 #include <ctime>\n\
-			 int main( int xArgc, char * argv[] ) {\
+			 int main( int xArgc, char * argv[] ){\
 				timespec ts;\
 				ts.tv_nsec = 0;\
 				ts.tv_nsec = 0;\
@@ -24,21 +123,22 @@ $(NOW):	$(call INSPIRE)\
 			 }" > ${BEFORE} && g++ ${BEFORE} -o ${NOW} -lrt) $(call now)
 
 $(THEN): $(info THEN)\
+	$(info Then)\
 	$(shell printf "#include <iostream>\n\
 		  	#include <sstream>\n\
-                        int main( int xArgc, char * argv[] ) {\
+                        int main( int xArgc, char * argv[] ){\
 				int r = -1;\
-				if ( xArgc == 3 ) {\
-					double o, y;\
-					std::stringstream(argv[1]) >> o;\
-					std::stringstream(argv[2]) >> y;\
-					std::cout << o << y << std::endl;\
-					r = 1;\
+				if ( xArgc == 3 )\
+				{	double u, s;\
+					std::stringstream(argv[1]) >> u;\
+					std::stringstream(argv[2]) >> s;\
+					std::cout << u << s << std::endl;\
+					r = 0;\
 				}\
 				return r;\
 			}" > ${BEFORE} && g++ ${BEFORE} -o ${THEN} -lrt) $(info THEN DONE)
 
 startwatch = $(shell echo $(INSPIRE) && $(call inspire))
 stopwatch = $(shell echo $(THEN) $(INSPIRE) $(EXPIRE))
+#clean: $(shell rm -rf ${NOW} ${THEN} ${WHEN} ${BETWEEN})
 
-clean:	$(shell rm -rf ${NOW} ${THEN})

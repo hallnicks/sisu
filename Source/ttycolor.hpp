@@ -12,87 +12,42 @@
 namespace sisu
 {
 
-template<typename XChar>
-class basic_ttycolor
+class ccolor
 {
 	eTTYColor mFG, mBG;
 
 	eTTYModifier mMod;
 
-	static char const sTerm = 27;
-
-//	basic_ttycolor( basic_ttycolor const & );
-
-//	basic_ttycolor & operator=( basic_ttycolor const & );
-
-	template<typename YChar>
-	struct is_wide { static bool const yes = (sizeof(YChar) > 1); };
-
-	typedef std::basic_ostream< XChar, std::char_traits< XChar > > cout_t;
+	typedef std::basic_ostream<char, std::char_traits< char > > cout_t;
 
 	cout_t & mOut;
 
 	public:
-		basic_ttycolor( eTTYColor xFG
-				, eTTYColor xBG
-				, eTTYModifier xAttr
-				, std::ostream & xOut = std::cout )
-			: mMod( xAttr )
-	                , mFG( xFG )
-	                , mBG( xBG )
-	                , mOut( xOut )
-		{
-		        ;
-		}
+		ccolor( eTTYColor const xFG
+			, eTTYColor const xBG
+			, eTTYModifier const xAttr
+			, std::ostream & xOut = std::cout );
 
-                typedef cout_t & ( * endl_t )( cout_t & );
-
-		~basic_ttycolor( ) { mOut << sTerm << "[" << 0 << "m" << std::flush; }
+		~ccolor( );
 
                 template< typename T >
-                basic_ttycolor & operator << ( T & xStream )
+                ccolor & operator << ( T & xStream )
                 {
 			mOut << xStream;
 			return (*this);
                 }
 
-                basic_ttycolor & operator << ( endl_t xStream )
-		{
-		        return (*this) << xStream;
-		}
+                typedef cout_t & ( * endl_t )( cout_t & );
 
-		std::ostream & operator >> ( std::ostream & xStream ) const
-		{
-		        static int const bgOffset = 30;
-		        static int const fgOffset = 40;
+                ccolor & operator << ( endl_t xStream );
 
-		        if ( mFG != eTTYCNone )
-		        {
-		                xStream	<< sTerm
-					<< "["
-					<< TTYCMap::getModifier( mMod )
-					<< ";"
-					<< ( fgOffset + TTYCMap::getColor( mFG ) );
-
-                                if ( mBG != eTTYCNone )
-                                {
-                                        xStream << ";" << ( bgOffset + TTYCMap::getColor( mBG ) );
-                                }
-
-                               	xStream << "m" << std::flush;
-		        }
-
-		        return xStream;
-		}
+		std::ostream & operator >> ( std::ostream & xStream ) const;
 };
 
-template<typename XCharType>
-std::ostream & operator << ( std::ostream & xStream, basic_ttycolor<XCharType> const & xColor )
+inline std::ostream & operator << ( std::ostream & xS, ccolor const & xC )
 {
-        return xColor >> xStream;
+        return xC >> xS;
 }
-
-typedef basic_ttycolor<char> ccolor;
 
 } // namespace sisu
 
