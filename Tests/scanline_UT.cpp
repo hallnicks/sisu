@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "ttycolor.hpp"
 #include "scanline.hpp"
@@ -70,3 +71,4 @@ TEST(Scanline_UT, TestScanLine)
 		MUSTEQ( ( * sc [ i ] ), setTTYC [ i ] )
 	}
 }
+#endif

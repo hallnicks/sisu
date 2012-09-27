@@ -42,9 +42,7 @@ uint8_t TTYCMap::getModifierIndex( eTTYModifier const xMod )
         for ( ; i < bound; ++i )
         {
                 if ( modifiers[ i ] == xMod )
-                {
-                        break;
-                }
+                	{ break; }
         }
 
         return i;
@@ -65,19 +63,13 @@ int TTYCMap::getColor( eTTYColor const xC )
 }
 
 uint8_t TTYCMap::randomCharacter( )
-{
-	return 33 + ( rand( ) % 93 );
-}
+	{ return 33 + ( rand( ) % 93 ); }
 
 eTTYColor TTYCMap::randomColor( )
-{
-        return colors [ rand( ) % ( sizeof(colors) / sizeof(eTTYColor) ) ];
-}
+	{ return colors [ rand( ) % ( sizeof(colors) / sizeof(eTTYColor) ) ]; }
 
 eTTYModifier TTYCMap::randomModifier( )
-{
-        return modifiers [ rand( ) % ( sizeof(modifiers) / sizeof(eTTYModifier) ) ];
-}
+	{ return modifiers [ rand( ) % ( sizeof(modifiers) / sizeof(eTTYModifier) ) ]; }
 
 TTYC TTYCMap::randomTTYC( )
 {
@@ -88,14 +80,10 @@ TTYC TTYCMap::randomTTYC( )
 }
 
 eTTYColor TTYCMap::incrementColor( eTTYColor const xColor )
-{
-        return colors [ xColor != eTTYCMax ? getColorIndex( xColor ) + 1 : 0 ];
-}
+	{ return colors [ xColor != eTTYCMax ? getColorIndex( xColor ) + 1 : 0 ]; }
 
 eTTYModifier TTYCMap::incrementModifier( eTTYModifier const xMod )
-{
-        return modifiers [ xMod != eModMax ? getModifierIndex( xMod ) + 1 : 0  ];
-}
+	{ return modifiers [ xMod != eModMax ? getModifierIndex( xMod ) + 1 : 0  ]; }
 
 eTTYColor const TTYCMap::colors [ 10 ] = { eTTYCNone
                                     , eTTYCBlack
@@ -117,7 +105,7 @@ eTTYModifier const TTYCMap::modifiers [ 7 ] = { eModNone
                                            , eModMax };
 
 
-namespace { static const uint32_t sMask = 0x000000FF; }
+namespace { static const uint32_t sMask = 0x000000FF, fMask = 0x00FFFFFF; }
 
 TTYCTransform::TTYCTransform( TTYC const xC )
 	: mC( xC )
@@ -141,9 +129,7 @@ TTYCTransform::TTYCTransform( char const xChar
 			, eTTYColor const xFG
 			, eTTYColor const xBG
 			, eTTYModifier const xMod )
-
 	#define INUINT8(x) static_cast<uint8_t>(x)
-
         : mC( static_cast<TTYC>( ( INUINT8(xChar) << 24 ) |
 				 ( INUINT8(xFG) << 16 )   |
 				 ( INUINT8(xBG) << 8 )    |
@@ -154,101 +140,58 @@ TTYCTransform::TTYCTransform( char const xChar
 }
 
 TTYCTransform::~TTYCTransform( )
-{
-	;
-}
+	{ ; }
 
 TTYC const & TTYCTransform::getRaw( ) const
-{
-	return mC;
-}
+	{ return mC; }
 
 uint8_t TTYCTransform::getCharU( ) const
-{
-	return static_cast<uint8_t>( ( mC >> 24 ) & sMask );
-}
+	{ return static_cast<uint8_t>( ( mC >> 24 ) & sMask ); }
 
 char TTYCTransform::getChar( ) const
-{
-	return static_cast< char >( getCharU( ) );
-}
+	{ return static_cast< char >( getCharU( ) ); }
 
 uint8_t TTYCTransform::getFGU( ) const
-{
-	return static_cast< uint8_t >( ( mC >> 16 ) & sMask );
-}
+	{ return static_cast< uint8_t >( ( mC >> 16 ) & sMask ); }
 
 eTTYColor TTYCTransform::getFG( ) const
-{
-        return static_cast< eTTYColor >( getFGU( ) );
-}
+	{ return static_cast< eTTYColor >( getFGU( ) ); }
 
 uint8_t TTYCTransform::getBGU( ) const
-{
-	return static_cast< uint8_t >( ( mC >> 8  ) & sMask );
-}
+	{ return static_cast< uint8_t >( ( mC >> 8  ) & sMask ); }
 
 eTTYColor TTYCTransform::getBG( ) const
-{
-	return static_cast< eTTYColor >( ( mC >> 8  ) & sMask );
-}
+	{ return static_cast< eTTYColor >( ( mC >> 8  ) & sMask ); }
 
 uint8_t TTYCTransform::getModifierU( ) const
-{
-        return static_cast< uint8_t >( mC & sMask );
-}
+	{ return static_cast< uint8_t >( mC & sMask ); }
 
 eTTYModifier TTYCTransform::getModifier( ) const
-{
-	return static_cast< eTTYModifier >( getModifierU( ) );
-}
+	{ return static_cast< eTTYModifier >( getModifierU( ) ); }
 
 void TTYCTransform::setCharU( uint8_t const xChar )
-{
-	std::cout << "In function:" << __PRETTY_FUNCTION__ << std::endl;
-//	mC = ( mC >> && static_cast<intxChar;
-	std::cout << "Bits before set char:" << bits<TTYC>( mC ) << std::endl;
-//	std::cout << "its of mask:" << bits<TTYC>( ) << std::endl;
-	//mC &=
-	std::cout << "bits of mask: " << bits<TTYC>( static_cast<TTYC>(xChar) << 24 ) << std::endl;
-//	std::cout << "Bits after set char: " << bits<TTYC>( mC ) << std::endl;
-	while ( 1 ) { }
-}
+	{ mC = ( xChar << 24 & fMask ) | mC; }
 
 void TTYCTransform::setChar( char const xChar )
-{
-	setCharU( static_cast<uint8_t>( xChar ) );
-}
+	{ setCharU( static_cast<uint8_t>( xChar ) ); }
 
 void TTYCTransform::setFGU( uint8_t const xFG )
-{
-	mC = ( mC >> 16 ) && xFG;
-}
+	{ mC = ( ( xFG << 16 ) & fMask ) | mC; }
 
 void TTYCTransform::setFG( eTTYColor const xFG )
-{
-	setFGU( static_cast<uint8_t>( xFG ) );
-}
+	{ setFGU( static_cast<uint8_t>( xFG ) ); }
 
 void TTYCTransform::setBGU( uint8_t const xBG )
-{
-	mC = ( mC >> 8 ) && xBG;
-}
+	{ mC = ( ( xBG << 8 ) & fMask ) | mC; }
 
 void TTYCTransform::setBG( eTTYColor const xBG )
-{
-	setBGU( static_cast<uint8_t>( xBG ) );
-}
+	{ setBGU( static_cast<uint8_t>( xBG ) ); }
 
 void TTYCTransform::setModifierU( uint8_t const xMod )
-{
-	mC = mC && xMod;
-}
+	{ mC = ( ( xMod << 8 ) & fMask ) | mC; }
 
 void TTYCTransform::setModifier( eTTYModifier const xMod )
-{
-	setModifierU( static_cast<uint8_t>( xMod ) );
-}
+	{ setModifierU( static_cast<uint8_t>( xMod ) ); }
 
 TTYC TTYCTransform::color2ttyc( char const xChar
 				, eTTYColor const xFG
@@ -256,12 +199,11 @@ TTYC TTYCTransform::color2ttyc( char const xChar
 				, eTTYModifier const xMod )
 {
 	#define INUINT8(x) static_cast<uint8_t>(x)
-        return static_cast<TTYC>( ( INUINT8(xChar) << 24 )	|
-				  ( INUINT8(xFG) << 16 )   	|
-				  ( INUINT8(xBG) << 8 )    	|
+        return static_cast<TTYC>( ( INUINT8(xChar) << 24 ) |
+				  ( INUINT8(xFG) << 16 )   |
+				  ( INUINT8(xBG) << 8 )    |
 				  ( INUINT8(xMod) ) );
 	#undef INUINT8
-
 }
 
 TTYC TTYCTransform::uint2ttyc( uint8_t const xChar
@@ -269,7 +211,7 @@ TTYC TTYCTransform::uint2ttyc( uint8_t const xChar
 				, uint8_t const xBG
 				, uint8_t const xMod )
 {
-        return static_cast<TTYC>( ( xChar << 24 ) |
+	return static_cast<TTYC>( ( xChar << 24 ) |
 				  ( xFG  << 16 )  |
 				  ( xBG << 8 )    |
 				  ( xMod ) );

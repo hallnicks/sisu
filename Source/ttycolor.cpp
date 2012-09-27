@@ -7,25 +7,19 @@ namespace { static char const sTerm = 27; }
 
 ccolor::ccolor( eTTYColor const xFG
 		, eTTYColor const xBG
-		, eTTYModifier const xAttr
-		, std::ostream & xOut )
+		, eTTYModifier const xAttr )
 	: mMod( xAttr )
 	, mFG( xFG )
 	, mBG( xBG )
-	, mOut( xOut )
 {
 	;
 }
 
 ccolor::~ccolor( )
-{
-	mOut << sTerm << "[" << 0 << "m" << std::flush;
-}
+	{ std::cout << sTerm << "[" << 0 << "m" << std::flush; }
 
 ccolor & ccolor::operator << ( endl_t xStream )
-{
-	return (*this) << xStream;
-}
+	{ return (*this) << xStream; }
 
 std::ostream & ccolor::operator >> ( std::ostream & xStream ) const
 {

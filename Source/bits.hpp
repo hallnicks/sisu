@@ -8,10 +8,11 @@
 #include <clocale>
 #include <climits>
 
+#include "nibble.hpp"
+
 namespace sisu
 {
 
-#if 0
 template<typename XType>
 struct BitsType
 {
@@ -20,41 +21,84 @@ struct BitsType
 	typedef XType type;
 };
 
-#define SPECBITS(xType, xShiftableAndable, X_cast)\
+#define SPECBITS(xType, xShiftableAndableType, X_cast)\
 template<>\
 struct BitsType<xType>\
 {\
 	BitsType( xType const & xRef )\
-		: value( X_cast<xShiftableAndable>( xRef ) ) { }\
-	xShiftableAndable value;\
-	typedef xShiftableAndable type;\
+		: value( X_cast< xShiftableAndableType >( xRef ) ) { ; }\
+	xShiftableAndableType value;\
+	typedef xShiftableAndableType type;\
 }
 
-//SPECBITS(double, uint64_t, reinterpret_cast);
-//SPECBITS(float, uint32_t, static_cast);
+SPECBITS(double, uint64_t, static_cast);
+SPECBITS(float, uint32_t, static_cast);
 
 #undef SPECBITS
-
-#endif // 0
 
 template< typename XType, bool XSpaced = true >
 class bits
 {
-        static const uint32_t sB = sizeof(XType) * CHAR_BIT + 1 + ( XSpaced ? sizeof(XType) : 0 );
+        static const size_t sT = sizeof( XType ) * CHAR_BIT;
 
-        char mB[ sB ];
+	XType & mRef;
+
+	class nibbler
+	{
+		static const uint32_t sMask = 0x000000FF, fMask = 0x00FFFFFF;
+
+		XType & mRef;
+
+		size_t const mShift;
+
+		public:
+			nibbler( size_t const xIndex, XType & xRef )
+				: mRef( xRef )
+				, mShift( xIndex * CHAR_BIT )
+			{
+				;
+			}
+
+
+			uint8_t & operator [ ] ( eUpperLower const xUL )
+			{
+				//	return xUL == eUL_Lower ? mB & 0x0F : mB & 0xF0;
+				static uint8_t hoge;
+				return hoge;
+			}
+
+			nibbler & operator = ( uint8_t const & xRhs )
+			{
+//				mRef = ( xRhs << mShift & ) | mRef;
+				return (*this);
+			}
+
+	};
 
         public:
-                bits( XType const & xRef ) : mB( )
+                bits( XType & xRef )
+			: mRef( xRef )
                 {
-                        char * xB = mB + ( sB - 1 );
+			;
+                }
 
-			#if 0
-			typedef typename BitsType<XType>::type local_int;
-			local_int a = BitsType<XType>::value;
-			#endif
+                bits( XType const & xRef )
+			: mRef( const_cast<XType & >( xRef ) )
+                {
+			;
+                }
 
-			XType a = xRef;
+                ~bits( ) { }
+
+                std::ostream & operator >> ( std::ostream & xS ) const
+		{
+		        static const uint32_t sB = sT + 1 + ( XSpaced ? sizeof( XType ) : 0 );
+
+		        uint8_t mB[ sB ];
+
+                        uint8_t * xB = mB + ( sB - 1 );
+
+			typename BitsType<XType>::type a = BitsType<XType>( mRef ).value;
 
                         int d = 0;
 
@@ -71,26 +115,19 @@ class bits
                         }
 
                         mB[ sB - 1 ] = '\0';
-                }
 
-                ~bits( ) { }
+			return xS << mB;
+		}
 
-                typedef std::basic_ostream< char, std::char_traits< char > > cout_t;
+		static size_t numberOfBytes( ) { return sT; }
 
-                std::ostream & operator >> ( std::ostream & xS ) const { return xS << mB; }
-
-                template<typename T>
-		bits & operator << ( T const & xS ) { std::cout << xS; return (*this); }
-
-                typedef cout_t & ( * endl_t )( cout_t & );
-                std::ostream & operator << ( endl_t const & xS ) { return (*this) << xS; }
+		nibbler operator [ ] ( size_t const xIndex )
+			{ return nibbler( xIndex, mRef ); }
 };
 
-template<typename XType, bool XSpaces>
-inline std::ostream & operator << ( std::ostream & xS, bits<XType, XSpaces> const & xBits )
-{
-	return xBits >> xS;
-}
+template< typename XType, bool XSpaces >
+inline std::ostream & operator << ( std::ostream & xS, bits< XType, XSpaces > const & xBits )
+	{ return xBits >> xS; }
 
 } // namespace sisu
 

@@ -205,12 +205,14 @@ TEST(Drawings_UT, TerminalTextBlocks)
 		TTYString< SIZEOF(m4) > ms4( m4, TTYCMap::randomTTYC( ) );
 
 		painterSut.drawText< SIZEOF(m1) >( 5, 10, ms1 );
-		painterSut.drawText< SIZEOF(m2) >( 5, 11, ms2 );
-		painterSut.drawText< SIZEOF(m3) >( 5, 12, ms3 );
-		painterSut.drawText< SIZEOF(m4) >( 5, 13, ms4 );
+//		painterSut.drawText< SIZEOF(m2) >( 5, 11, ms2 );
+//		painterSut.drawText< SIZEOF(m3) >( 5, 12, ms3 );
+//		painterSut.drawText< SIZEOF(m4) >( 5, 13, ms4 );
 
 		painterSut.refresh( );
 	}
+
+	while(1) { }
 }
 
 TEST(Drawings_UT, TerminalRects)

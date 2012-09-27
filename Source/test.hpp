@@ -26,11 +26,19 @@
 #include "ttycolor.hpp"
 #include "typename.hpp"
 
-#define KEYPRESS { constr f = __FILE__; constr fn = __PRETTY_FUNCTION__; unsigned long l = __LINE__; char c = 0; std::cout << "Paused: " << f << ":" << l << ":" << fn << std::endl; do { } while(c = std::cin.get() && c == 0); std::cout << "Resuming: " << f << ":" << l << ":" << fn << std::endl; }
-
 typedef char const * const constr;
 
-template<typename XType, size_t XSize >
+inline static void BREAK( )
+{
+	constr f = __FILE__, fn = __PRETTY_FUNCTION__;
+	unsigned long l = __LINE__;
+	char c = 0;
+	std::cout << "Paused: " << f << ":" << l << ":" << fn << std::endl;
+	do { ; } while(c = std::cin.get() && c == 0);
+	std::cout << "Resuming: " << f << ":" << l << ":" << fn << std::endl;
+}
+
+template < typename XType, size_t XSize >
 inline static size_t sizeofarray( XType const ( & xDest ) [ XSize ] ) { return XSize; }
 
 inline unsigned int Time( )
@@ -104,8 +112,8 @@ inline constr HL( )
 							"°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸"
 								"°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸"
 									"°º¤ø,¸¸,ø¤º°`°º¤ø,¸,ø¤°º¤ø,¸¸,ø¤º°`°º¤ø,¸ ";
-	static char ret[300] = { 0, };
 
+	static char ret[300] = { 0, };
 
 	unsigned int const upperbound = 90 + ( rand( ) % 207 );
 
@@ -118,9 +126,21 @@ inline constr HL( )
 	return ret;
 }
 
-inline sisu::ccolor const CHL( ) { return sisu::ccolor( sisu::eTTYCBlack, static_cast<sisu::eTTYColor>( ( rand( ) % 7 ) + 2 ), sisu::eModBold ); }
-inline sisu::ccolor const CTXT( ) { static const sisu::ccolor cTXT( sisu::eTTYCBlack, sisu::eTTYCGreen, sisu::eModBold ); return cTXT; }
-inline void LINE( ) { std::cout << CHL( ) << HL( ) << CTXT( ) << std::endl; }
+inline sisu::ccolor const CHL( )
+{
+	return sisu::ccolor( sisu::eTTYCBlack, static_cast<sisu::eTTYColor>( ( rand( ) % 7 ) + 2 ), sisu::eModBold );
+}
+
+inline sisu::ccolor const CTXT( )
+{
+	static const sisu::ccolor cTXT( sisu::eTTYCBlack, sisu::eTTYCGreen, sisu::eModBold );
+	return cTXT;
+}
+
+inline void LINE( )
+{
+	std::cout << CHL( ) << HL( ) << CTXT( ) << std::endl;
+}
 
 template< class XContext >
 class test : public XContext
@@ -128,9 +148,9 @@ class test : public XContext
 	public:
 		inline test( ) : XContext( ) { }
 		inline ~test( ) { }
-		template< typename XUnitTest > void Body( );
-		template<typename XUnitTest> struct Unit;
-		template< typename XUnitTest >
+		template < typename XUnitTest > void Body( );
+		template < typename XUnitTest > struct Unit;
+		template < typename XUnitTest >
 		void ExecuteTest( )
 		{
 			std::cout << "[ Set Name : " 		<< Unit<XUnitTest>::TestName( ) 	<< " ]" << std::endl;
@@ -222,7 +242,12 @@ template< typename T, typename XStorage >
 inline XStorage & UnitTest( void ( test< T >::*XF ) ( ) = 0 )
 {
 	static XStorage instance;
-	if ( XF != 0 ) { instance.push_back( XF ); }
+
+	if ( XF != 0 )
+	{
+		instance.push_back( XF );
+	}
+
 	return instance;
 }
 
@@ -280,9 +305,20 @@ inline void ShowResult( eTestResult r )
 	std::cout << " Result is: " << cMSG << messages[ static_cast<uint8_t>(r) ] << std::endl;
 }
 
-inline void MSG( constr xMessage ) { std::cout << "[ " << xMessage << " ...";  }
-inline void OK( ) { std::cout << " OK ]" << std::endl; }
-inline void FAIL( ) { std::cout << " FAILED ]" << std::endl; }
+inline void MSG( constr xMessage )
+{
+	std::cout << "[ " << xMessage << " ...";
+}
+
+inline void OK( )
+{
+	std::cout << " OK ]" << std::endl;
+}
+
+inline void FAIL( )
+{
+	std::cout << " FAILED ]" << std::endl;
+}
 
 template<typename XUnitTestSet>
 struct UnitTestExecute
@@ -292,9 +328,6 @@ struct UnitTestExecute
 	{
 		LINE( );
 		std::cout << "[ Running tests without sisu ... ]" << std::endl;
-		#if defined(STEPTESTS)
-			KEYPRESS;
-		#endif
 		LINE( );
 
 		eTestResult r = eUninitialized;
@@ -304,7 +337,7 @@ struct UnitTestExecute
 			MSG( "Constructing unit test. -sisu." );
 			test<XUnitTestSet> t;
 			OK( );
-#define TRYCATCH(xExpr,xEnum) try { xExpr; } catch( ... ) { std::cout << " FAILED (sisuless) ]" << std::endl; KEYPRESS; r = xEnum; }
+#define TRYCATCH(xExpr,xEnum) try { xExpr; } catch( ... ) { std::cout << " FAILED (sisuless) ]" << std::endl; BREAK(); r = xEnum; }
 			MSG( "Setting up unit test. -sisu." );
 			TRYCATCH(t.Up( ), eExceptionInSetup);
 			OK( );
@@ -326,7 +359,7 @@ struct UnitTestExecute
 
 		if ( r != eSuccess )
 		{
-			KEYPRESS;
+			BREAK();
 		}
 
 		LINE( );
@@ -402,7 +435,7 @@ inline void RunUnitTestSet( )
 
 			if ( r != eSuccess )
 			{
-				KEYPRESS;
+				BREAK();
 			}
 		}
 
@@ -492,7 +525,8 @@ class TestFailedException
 		constr getMessage( ) const { return mMsg; }
 };
 
-#define SMPLXCPT(xName) class xName : public TestFailedException { public: xName( constr xMsg ) : TestFailedException( xMsg ) { ; } ~xName( ) { } };
+#define SMPLXCPT(xName)\
+class xName : public TestFailedException { public: xName( constr xMsg ) : TestFailedException( xMsg ) { ; } ~xName( ) { } };
 
 SMPLXCPT(DidNotEqualException);
 SMPLXCPT(EqualedException);

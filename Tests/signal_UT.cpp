@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "signal.hpp"
 
@@ -28,3 +29,4 @@ TEST(Signal_UT, RaiseSignals)
 {
 	std::cout << "!!!! STUB:" << __PRETTY_FUNCTION__ << std::endl;
 }
+#endif

@@ -1,3 +1,4 @@
+#if 0
 //    This file is part of sisu.
 
 //    sisu is free software: you can redistribute it and/or modify
@@ -72,3 +73,4 @@ TEST(tgUT, ThreadDerived)
 	m.join( );
 	*/
 }
+#endif

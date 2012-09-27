@@ -2,6 +2,7 @@ include time.mk
 getFiles = $(shell find $(1) -type f -name \*.$(2) -printf \%h/%f\\n)
 stripBaseFolder = $(subst $(abspath $(PWD)/..)/,,$(abspath $(1)))
 
+THIS := $(abspath ./Makefile)
 TARGET_LINKMODES = exe
 TARGET_NAME := sisu
 TARGET_LIBS := rt pthread
@@ -43,6 +44,8 @@ CXX_FILE_FLAG ?= -c
 
 LINK_LIBRARIES += $(strip $(foreach lib,$(TARGET_LIBS),-l$(lib) ))
 
+SOURCES := $(shell $(CHANGES) $(THIS) $(SOURCE_DIRS))
+
 SOURCES := $(foreach dir,$(SOURCE_DIRS),\
 		$(foreach ext,$(SOURCE_EXTS),\
 			$(call getFiles,$(dir),$(ext))))
@@ -51,9 +54,6 @@ SOURCES := $(foreach dir,$(SOURCE_DIRS),\
 PHONY_OBJECTS := $(foreach dir,$(SOURCE_DIRS),\
 			$(subst dir,$(OBJECTS_DIR),\
 				$(patsubst %.cpp,%.o,$(SOURCES))))
-
-$(info PHONY_OBJECTS = $(PHONY_OBJECTS))
-
 
 BUILD_COMMAND_EXE = $(CXX) $(LINK_LIBRARIES) $(CXX_OBJ_FLAG) $(TARGET_NAME) $(OBJECTS) $(LDFLAGS) > /dev/null
 BUILD_COMMAND_STATIC = ar rvs lib$(TARGET_NAME).a $(OBJECTS) > /dev/null
@@ -73,25 +73,31 @@ help:	@echo "make all" - build exe, static and shared libs
 	$(shell test -d $OBJ_DIR || mkdir -p $(OBJ_DIR) > /dev/null)
 	$(info $(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(SRC_FILE) $(CXX_OBJ_FLAG) $(OBJ_FILE) = $@)
 	$(shell $(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(SRC_FILE) $(CXX_OBJ_FLAG) $(OBJ_FILE))
+	$(shell touch $(SRC_FILE))
 
 %.a: $(PHONY_OBJECTS)
 	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),o))
 	$(info $(BUILD_COMMAND_STATIC) = $@.a)
 	$(shell $(BUILD_COMMAND_STATIC))
+	$(shell touch $@.a)
 
 %.so: $(PHONY_OBJECTS)
 	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),o))
 	$(info $(BUILD_COMMAND_SHARED) = $@.so)
 	$(shell $(BUILD_COMMAND_SHARED))
+	$(shell touch $@.so)
 
 $(TARGET_EXE_NAME): $(PHONY_OBJECTS)
 	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),o))
 	$(info $(BUILD_COMMAND_EXE) = $@.exe)
 	$(shell $(BUILD_COMMAND_EXE))
+	$(shell touch $@.exe)
 
 all:	$(TARGETS)
 
 clean:  $(shell rm -rf *.o *.a *.so $(TARGET_NAME))
 	$(shell rm -rf $(OBJECTS_DIR))
 	$(shell rm -rf $(DEPENDENCIES_DIR))
+	$(shell rm -rf $(BETWEEN) $(NOW) $(THEN) $(WHEN) $(CHANGES))
+
 

@@ -20,22 +20,16 @@ class ccolor
 
 	typedef std::basic_ostream<char, std::char_traits< char > > cout_t;
 
-	cout_t & mOut;
-
 	public:
 		ccolor( eTTYColor const xFG
 			, eTTYColor const xBG
-			, eTTYModifier const xAttr
-			, std::ostream & xOut = std::cout );
+			, eTTYModifier const xAttr );
 
 		~ccolor( );
 
                 template< typename T >
                 ccolor & operator << ( T & xStream )
-                {
-			mOut << xStream;
-			return (*this);
-                }
+                	{ std::cout << xStream; return (*this); }
 
                 typedef cout_t & ( * endl_t )( cout_t & );
 
@@ -45,9 +39,7 @@ class ccolor
 };
 
 inline std::ostream & operator << ( std::ostream & xS, ccolor const & xC )
-{
-        return xC >> xS;
-}
+	{ return xC >> xS; }
 
 } // namespace sisu
 

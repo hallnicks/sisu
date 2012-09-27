@@ -2,7 +2,9 @@
 #include "ttyc.hpp"
 #include "ttycolor.hpp"
 #include "ttystring.hpp"
+#include "bits.hpp"
 
+using sisu::bits;
 using sisu::TTYC;
 using sisu::TTYCMap;
 using sisu::TTYString;
@@ -30,24 +32,11 @@ TEST(TTYString_UT, BuildBasicString)
 	TTYString<5> actual( string, expected );
 
 	MUSTEQ(sizeofarray(string), 5);
-
 	for ( size_t ii = 0; ii < sizeofarray( string ); ++ii )
 	{
 		TTYCTransform t( actual [ ii ] );
-
-		std::cout << "TTY string size template test executing. string [ ii ] ="
-			<< +string[ ii ]
-			<< " and t = "
-			<< +t.getChar( )
-			<< std::endl;
-
-		while(1) { }
-
-		MUSTEQ(string[ ii ], t.getChar( ));
-
+		std::cout << "actual[" << ii << "] = " << bits<TTYC>( actual[ ii ] ) << std::endl;
+		std::cout << "string[" << ii << "].getChar() = " << bits<char>( string[ ii ] ) << std::endl;
+		std::cout << "actual[" << ii << "].getChar() = " << bits<char>( t.getChar( ) ) << std::endl;
 	}
-
-	std::cout << "TTY string test passed." << std::endl;
-
-	while(1) { }
 }
