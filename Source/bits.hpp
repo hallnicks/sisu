@@ -8,8 +8,6 @@
 #include <clocale>
 #include <climits>
 
-#include "nibble.hpp"
-
 namespace sisu
 {
 
@@ -42,38 +40,6 @@ class bits
         static const size_t sT = sizeof( XType ) * CHAR_BIT;
 
 	XType & mRef;
-
-	class nibbler
-	{
-		static const uint32_t sMask = 0x000000FF, fMask = 0x00FFFFFF;
-
-		XType & mRef;
-
-		size_t const mShift;
-
-		public:
-			nibbler( size_t const xIndex, XType & xRef )
-				: mRef( xRef )
-				, mShift( xIndex * CHAR_BIT )
-			{
-				;
-			}
-
-
-			uint8_t & operator [ ] ( eUpperLower const xUL )
-			{
-				//	return xUL == eUL_Lower ? mB & 0x0F : mB & 0xF0;
-				static uint8_t hoge;
-				return hoge;
-			}
-
-			nibbler & operator = ( uint8_t const & xRhs )
-			{
-//				mRef = ( xRhs << mShift & ) | mRef;
-				return (*this);
-			}
-
-	};
 
         public:
                 bits( XType & xRef )
@@ -120,9 +86,6 @@ class bits
 		}
 
 		static size_t numberOfBytes( ) { return sT; }
-
-		nibbler operator [ ] ( size_t const xIndex )
-			{ return nibbler( xIndex, mRef ); }
 };
 
 template< typename XType, bool XSpaces >
