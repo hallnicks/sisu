@@ -1,3 +1,3 @@
 #!/bin/bash
-make clean && nano -w $1 && make all && ./sisu && echo "Success!"
+make clean && nano -w $1 && make && ./sisu && echo "Success!"
 

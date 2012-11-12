@@ -1,103 +1,104 @@
-include time.mk
-getFiles = $(shell find $(1) -type f -name \*.$(2) -printf \%h/%f\\n)
-stripBaseFolder = $(subst $(abspath $(PWD)/..)/,,$(abspath $(1)))
+#include time.mk
+include files.mk
 
-THIS := $(abspath ./Makefile)
-TARGET_LINKMODES = exe
-TARGET_NAME := sisu
-TARGET_LIBS := rt pthread
-SOURCE_DIRS := ../Source ../Tests
-SOURCE_EXTS = cpp
-OBJECTS_DIR := ../Objects
-DEPEDENCIES_DIR := ../Depends
-
-ifeq ($(SOURCE_DIRS),"")
-	$(error "Source dir was empty.")
+ifneq (,$(findstring clean,$(LINKMODES)))
+ ifneq (,$(findstring static,$(LINKMODES)))
+  ifneq (,$(findstring shared,$(LINKMODES)))
+   ifneq (,$(findstring objects,$(LINKMODES)))
+    ifneq (,$(findstring all,$(LINKMODES)))
+     ifneq (,$(findstring exe,$(LINKMODES)))
+      $(error Invalid make command goals. Valid commands are make exe, make shared, make static and make clean.)
+     endif
+    endif
+   endif
+  endif
+ endif
 endif
 
-TARGET_NAME_STRIPPED := $(strip $(TARGET_NAME))
-
-ifeq ($(TARGET_NAME_STRIPPED),"")
-	$(error "Target name was empty.")
-endif
+THIS 	     := $(abspath $(CURDIR)/Makefile)
+LINKMODES    := static shared exe
+TARGET_NAME  := sisu
+TARGET_LIBS  := rt pthread
+SOURCE_DIRS  := ../Source ../Tests
+INCLUDE_DIRS := ../Source
+SOURCE_EXT   := cpp
+OBJ_EXT	     := o
+OBJDIR	     := $(call coalesceDirectory,../Objects)
 
 # Set up targets
-ifneq (,$(findstring exe,$(TARGET_LINKMODES)))
+ifneq (,$(findstring exe,$(LINKMODES)))
 TARGET_EXE_NAME := $(TARGET_NAME)
-TARGETS += $(TARGET_EXE_NAME)
+SOURCE_DIRS 	+= $(abspath ../${TARGET_NAME}Main)
+$(info SOURCE_DIRS = $(SOURCE_DIRS))
 endif
 
-ifneq (,$(findstring static,$(TARGET_LINKMODES)))
-TARGETS += lib$(TARGET_NAME).a
+ifneq (,$(findstring static,$(LINKMODES)))
+TARGET_STATICLIB_NAME 	:= lib$(TARGET_NAME).a
 endif
 
-ifneq (,$(findstring shared,$(TARGET_LINKMODES)))
-TARGETS += lib$(TARGET_NAME).so
-LDFLAGS += -fPIC
+ifneq (,$(findstring shared,$(LINKMODES)))
+TARGET_SHAREDLIB_NAME 	:= lib$(TARGET_NAME).so
+LDFLAGS 		+= -fPIC
 endif
 
-CXXFLAGS += -Werror -O3 -I../Source/
-LDFLAGS +=
-CXX ?= clang++
-CXX_OBJ_FLAG ?= -o
+TARGETS := $(TARGET_EXE_NAME) $(TARGET_STATICLIB_NAME) $(TARGET_SHAREDLIB_NAME)
+
+INCLUDE_PATHS := $(call prefixAllPaths,$(INCLUDE_DIRS),-I)
+CXXFLAGS      += -Werror -O3 
+CXXFLAGS      += $(INCLUDE_PATHS)
+CXX_OBJ_FLAG  ?= -o
 CXX_FILE_FLAG ?= -c
 
-LINK_LIBRARIES += $(strip $(foreach lib,$(TARGET_LIBS),-l$(lib) ))
-
-SOURCES := $(shell $(CHANGES) $(THIS) $(SOURCE_DIRS))
-
-SOURCES := $(foreach dir,$(SOURCE_DIRS),\
-		$(foreach ext,$(SOURCE_EXTS),\
-			$(call getFiles,$(dir),$(ext))))
-
-# Not actual location of obj files, for compilation recipe only.
-PHONY_OBJECTS := $(foreach dir,$(SOURCE_DIRS),\
-			$(subst dir,$(OBJECTS_DIR),\
-				$(patsubst %.cpp,%.o,$(SOURCES))))
-
-BUILD_COMMAND_EXE = $(CXX) $(LINK_LIBRARIES) $(CXX_OBJ_FLAG) $(TARGET_NAME) $(OBJECTS) $(LDFLAGS) > /dev/null
+PHONY_OBJECTS	     := $(call coalesceObjects,$(OBJDIR),$(call getFiles,$(SOURCE_DIRS),$(SOURCE_EXT)))
+LINK_LIBRARIES 	     := $(call prefixAll,$(TARGET_LIBS),-l)
+BUILD_COMMAND_EXE    = $(CXX) $(LINK_LIBRARIES) $(CXX_OBJ_FLAG) $(TARGET_NAME) $(OBJECTS) $(LDFLAGS) > /dev/null
 BUILD_COMMAND_STATIC = ar rvs lib$(TARGET_NAME).a $(OBJECTS) > /dev/null
 BUILD_COMMAND_SHARED = $(CXX) -shared $(LINK_LIBRARIES) $(CXX_OBJ_FLAG) lib$(TARGET_NAME).so $(OBJECTS) > /dev/null
 
-.PHONY: help all
+getSource = $(subst Objects/,,$(patsubst %.$(1),%.$(2),$(3)))
 
-help:	@echo "make all" - build exe, static and shared libs
-	@echo "make exe" - build exe
-	@echo "make static" - build static lib
-	@echo "make shared" - build shared lib
+%.cpp: 
+	$(info o hi $@)
+	$(eval foo = $(call getSource,$(OBJ_EXT),$(SOURCE_EXT),$@))
+	$(info foo = $(foo))
+	@touch $(foo)
 
-%.o:	$(info Compiling $@ ...)
-	$(eval SRC_FILE = $(patsubst %.o,%.cpp,$@))
-	$(eval OBJ_DIR  = $(abspath $(OBJECTS_DIR)/$(call stripBaseFolder,$(@D)))/)
-	$(eval OBJ_FILE = $(OBJ_DIR)$(notdir $@))
-	$(shell test -d $OBJ_DIR || mkdir -p $(OBJ_DIR) > /dev/null)
-	$(info $(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(SRC_FILE) $(CXX_OBJ_FLAG) $(OBJ_FILE) = $@)
-	$(shell $(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(SRC_FILE) $(CXX_OBJ_FLAG) $(OBJ_FILE))
-	$(shell touch $(SRC_FILE))
+#$(subst Objects/,,$(patsubst %.$(OBJ_EXT),%.$(SOURCE_EXT),$@))
 
-%.a: $(PHONY_OBJECTS)
-	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),o))
-	$(info $(BUILD_COMMAND_STATIC) = $@.a)
+%.o: 
+	$(info OBJECT = $@)
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(subst Objects/,,$(patsubst %.o,%.cpp,$@)) $(CXX_OBJ_FLAG) $@
+
+$(TARGET_STATICLIB_NAME): $(PHONY_OBJECTS)
+	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),$(OBJ_EXT)))
+	$(info $(BUILD_COMMAND_STATIC) = $@)
 	$(shell $(BUILD_COMMAND_STATIC))
-	$(shell touch $@.a)
+	$(shell touch $@)
 
-%.so: $(PHONY_OBJECTS)
-	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),o))
-	$(info $(BUILD_COMMAND_SHARED) = $@.so)
+$(TARGET_SHAREDLIB_NAME): $(PHONY_OBJECTS)
+	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),$(OBJ_EXT)))
+	$(info $(BUILD_COMMAND_SHARED) = $@)
 	$(shell $(BUILD_COMMAND_SHARED))
-	$(shell touch $@.so)
+	$(shell touch $@)
 
 $(TARGET_EXE_NAME): $(PHONY_OBJECTS)
-	$(eval OBJECTS = $(call getFiles,$(OBJECTS_DIR),o))
-	$(info $(BUILD_COMMAND_EXE) = $@.exe)
+	$(eval OBJECTS = $(call getFiles,../Objects,$(OBJ_EXT)))
+	$(info $(BUILD_COMMAND_EXE) = $@)
 	$(shell $(BUILD_COMMAND_EXE))
-	$(shell touch $@.exe)
+	$(shell touch $@)
 
-all:	$(TARGETS)
+.PHONY: all objects static exe shared
 
-clean:  $(shell rm -rf *.o *.a *.so $(TARGET_NAME))
-	$(shell rm -rf $(OBJECTS_DIR))
-	$(shell rm -rf $(DEPENDENCIES_DIR))
-	$(shell rm -rf $(BETWEEN) $(NOW) $(THEN) $(WHEN) $(CHANGES))
+objects: $(PHONY_OBJECTS)
+static: $(TARGET_STATICLIB_NAME)
+exe: $(TARGET_EXE_NAME)
+shared: $(TARGET_SHAREDLIB_NAME)
+all: exe static objects shared
 
+clean:
+	$(call toTheVoid,$(TARGET_EXE_NAME))
+	$(call toTheVoid,$(TARGET_STATICLIB_NAME))
+	$(call toTheVoid,$(TARGET_SHAREDLIB_NAME))
+	$(call toTheVoid,../Objects)
 

@@ -8,10 +8,9 @@ coalesceObjects         = $(foreach srcfile,$(2), \
 				$(abspath $(1)/$(call stripBaseFolder,\
 							$(patsubst %.cpp,%.o,$(srcfile)))))
 
-coalesceDirectory	= $(shell test -d $(dir $(1)) || mkdir -p $(dir $(1)) > /dev/null)
+coalesceDirectory	= $(shell test -d $(dir $(1)) || mkdir -p $(dir $(1)) && echo $(abspath $(1)))
 
-
-toTheVoid		= $(shell test -d $(1) && rm -R $(1) || test -b $(1) && rm $(1))
+toTheVoid		= $(shell rm -rf $(1))
 
 prefixAll		= $(strip $(foreach lib,$(1),$(2)$(lib)))
 
