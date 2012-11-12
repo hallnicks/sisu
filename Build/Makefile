@@ -1,12 +1,12 @@
 #include time.mk
 include files.mk
 
-ifneq (,$(findstring clean,$(LINKMODES)))
- ifneq (,$(findstring static,$(LINKMODES)))
-  ifneq (,$(findstring shared,$(LINKMODES)))
-   ifneq (,$(findstring objects,$(LINKMODES)))
-    ifneq (,$(findstring all,$(LINKMODES)))
-     ifneq (,$(findstring exe,$(LINKMODES)))
+ifeq (,$(findstring clean,$(MAKECMDGOALS)))
+ ifeq (,$(findstring static,$(MAKECMDGOALS)))
+  ifeq (,$(findstring shared,$(MAKECMDGOALS)))
+   ifeq (,$(findstring objects,$(MAKECMDGOALS)))
+    ifeq (,$(findstring all,$(MAKECMDGOALS)))
+     ifeq (,$(findstring exe,$(MAKECMDGOALS)))
       $(error Invalid make command goals. Valid commands are make exe, make shared, make static and make clean.)
      endif
     endif
@@ -29,7 +29,6 @@ OBJDIR	     := $(call coalesceDirectory,../Objects)
 ifneq (,$(findstring exe,$(LINKMODES)))
 TARGET_EXE_NAME := $(TARGET_NAME)
 SOURCE_DIRS 	+= $(abspath ../${TARGET_NAME}Main)
-$(info SOURCE_DIRS = $(SOURCE_DIRS))
 endif
 
 ifneq (,$(findstring static,$(LINKMODES)))
@@ -59,13 +58,9 @@ getSource = $(subst Objects/,,$(patsubst %.$(1),%.$(2),$(3)))
 
 %.cpp: 
 	$(info o hi $@)
-	$(eval foo = $(call getSource,$(OBJ_EXT),$(SOURCE_EXT),$@))
-	$(info foo = $(foo))
-	@touch $(foo)
+	ln -s $@ $(subst Objects/,,$(patsubst %.o,%.cpp,$@))
 
-#$(subst Objects/,,$(patsubst %.$(OBJ_EXT),%.$(SOURCE_EXT),$@))
-
-%.o: 
+%.o: %.cpp
 	$(info OBJECT = $@)
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(subst Objects/,,$(patsubst %.o,%.cpp,$@)) $(CXX_OBJ_FLAG) $@
