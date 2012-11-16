@@ -12,47 +12,78 @@
 
 //    You should have received a copy of the GNU General Public License
 //    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
-#include "test.hpp"
-#include "ttycolor.hpp"
-#include <time.h>
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+#include <sstream>
 
-using std::cout;
-using std::endl;
-using sisu::ccolor;
-using sisu::eTTYCBlack;
-using sisu::eTTYCYellow;
-using sisu::eModBold;
+#include <sys/types.h>
+#include <sys/stat.h>
 
-int main( void )
+#include <unistd.h>
+
+namespace
 {
-	srand( time( NULL ) );
+	class Directory
+	{
+		std::string const & mPath;
 
-	// TODO - get and save original color. For now, screw you!
-	ccolor const d( eTTYCBlack, eTTYCYellow, eModBold );
-	ccolor const b( eTTYCBlack, eTTYCYellow, eModBold );
+		int const mStatus;
 
-	cout << d;
+		public:
+			Directory( std::string const & xPath )
+				: mPath( xPath )
+				, mStatus( mkdir( mPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH ) )
+			{
+				;
+			}
 
-	static const int ES = 7;
+			std::string const & getPath( ) const { return mPath; }
 
-	std::cout << '`' << std::endl;
-	unsigned i = 0;
+			int const & getStatus( ) const { return mStatus; }
 
-	for ( ; i < ES; ++i)
-		{ cout <<
-			endl << "                          ... ☁ ▅▒░☼‿☼░▒▅ ☁  "
-				<< endl; }
+			template<size_t XSize>
+			static void createDirectories( std::string const (& sDirectories )[ XSize ] )
+			{
+				for ( unsigned i = 0; i < XSize; ++i )
+				{
+					Directory dir( sDirectories[ i ].c_str( ) );
 
-	int r = ::sisu::Execute();
+					if ( dir.getStatus( ) != 0 )
+					{
+						std::cerr << "Failed to create directory \"" << dir.getPath( ).c_str( ) << "\"" << std::endl;
 
-	cout << b;
+						exit( -1 );
+					}
+					else
+					{
+						std::cout << "Persisted " << dir.getPath( ).c_str( ) << std::endl;
+					}
+				}
+			}
+	}; // class Directory
+} // namespace
 
-	for ( i = 0; i < ES; ++i )
-		{ cout <<
-			endl <<      "                          ... ☁ ▅▒░OoO░▒▅ ☁  "
-				<< endl; }
+int main( int xArgc, char ** xArgv )
+{
+	if ( xArgc > 1 )
+	{
+		std::string param( xArgv[ 1 ]  );
 
-	std::cout << std::endl << "                              \\m/ >_< \\m/ " << std::endl;
+		param.erase( remove_if( param.begin( ), param.end( ), isspace ), param.end( ) );
 
-	return r;
+		std::string const sDirectories[] = { param
+						   , param + "/Make"
+						   , param + "/" + param + "Main"
+						   , param + "/testMain"
+						   , param + "/Source"
+						   , param + "/Tests" };
+
+		Directory::createDirectories( sDirectories );
+	}
+
+//	std::cout << sAfter << std::endl;
+
+	return 0;
 }

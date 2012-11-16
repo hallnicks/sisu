@@ -1,0 +1,3 @@
+#!/bin/bash
+nano -w $1 && make all && ../build/bin/sisu && echo "Success!"
+

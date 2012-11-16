@@ -1,9 +1,10 @@
+BIN_DIR		:= bin
 BEFORE  	:= $(shell tempfile).cpp
-NOW   		:= $(abspath ${CURDIR}/now)
-THEN   		:= $(abspath ${CURDIR}/then)
-WHEN		:= $(abspath ${CURDIR}/when)
-BETWEEN		:= $(abspath ${CURDIR}/between)
-CHANGES		:= $(abspath ${CURDIR}/changes)
+NOW   		:= $(abspath ${CURDIR}/${BIN_DIR}/now)
+THEN   		:= $(abspath ${CURDIR}/${BIN_DIR}/then)
+WHEN		:= $(abspath ${CURDIR}/${BIN_DIR}/when)
+BETWEEN		:= $(abspath ${CURDIR}/${BIN_DIR}/between)
+CHANGES		:= $(abspath ${CURDIR}/${BIN_DIR}/changes)
 TOMORROW 	:= $(THEN) $(MOMENT1) $(MOMENT2)
 INSPIRE 	?= $(NOW)
 EXPIRE 		?= $(THEN)
@@ -11,7 +12,14 @@ EXPIRE 		?= $(THEN)
 then = $(call EXPIRE)
 now = $(call INSPIRE)
 
-$(CHANGES):$(shell printf\
+startwatch = $(shell echo $(INSPIRE) && $(call inspire))
+stopwatch = $(shell echo $(THEN) $(INSPIRE) $(EXPIRE))
+
+then = $(call EXPIRE)
+now = $(call INSPIRE)
+
+$(CHANGES): $(BIN_DIR)
+		$(shell printf\
 		       "#include <unistd.h>\n\
 			#include <sys/types.h>\n\
 			#include <sys/stat.h>\n\
@@ -70,7 +78,8 @@ $(CHANGES):$(shell printf\
 			}" > ${BEFORE} && g++ ${BEFORE} -o ${CHANGES} -lrt) $(call now)
 
 
-$(BETWEEN):$(shell printf "#include <iostream>\n\
+$(BETWEEN): $(BIN_DIR)
+		$(shell printf "#include <iostream>\n\
 			#include <sstream>\n\
 			int main( int xArgc, char * argv[] )\
 			{	int r = -1;\
@@ -84,22 +93,8 @@ $(BETWEEN):$(shell printf "#include <iostream>\n\
 				return r;\
 			}" > ${BEFORE} && g++ ${BEFORE} -o ${BETWEEN})
 
-$(BETWEEN):$(shell printf\
-			"#include <iostream>\n\
-			 #include <sstream>\n\
-			 int main( int xArgc, char * argv[] )\
-			 {	int r = -1;\
-				if ( xArgc == 3 )\
-				{	double w, e;\
-					std::stringstream(argv[1]) >> w;\
-					std::stringstream(argv[2]) >> e;\
-					std::cout << w - e << std::endl;\
-					r = 0;\
-				}\
-				return r;\
-			 }" > ${BEFORE} && g++ ${BEFORE} -o ${BETWEEN})
-
-$(WHEN):$(shell printf "#include <iostream>\n\
+$(WHEN): $(BIN_DIR)
+		$(shell printf "#include <iostream>\n\
 			#include <sys/stat.h>\n\
 			#include <unistd.h>\n\
 			int main( int xArgc, char * argv[] )\
@@ -111,7 +106,8 @@ $(WHEN):$(shell printf "#include <iostream>\n\
 				return 0;\
 			}" > ${BEFORE} && g++ ${BEFORE} -o ${WHEN})
 
-$(NOW):$(shell printf "#include <iostream>\n\
+$(NOW): $(BIN_DIR)
+		$(shell printf "#include <iostream>\n\
 			#include <ctime>\n\
 			int main( int xArgc, char * argv[] )\
 			{	timespec ts;\
@@ -123,7 +119,8 @@ $(NOW):$(shell printf "#include <iostream>\n\
 				return 0;\
 			}" > ${BEFORE} && g++ ${BEFORE} -o ${NOW} -lrt) $(call now)
 
-$(THEN):$(shell printf "#include <iostream>\n\
+$(THEN): $(BIN_DIR)
+		$(shell printf "#include <iostream>\n\
 		  	#include <sstream>\n\
                         int main( int xArgc, char * argv[] )\
 			{	int r = -1;\
@@ -136,8 +133,3 @@ $(THEN):$(shell printf "#include <iostream>\n\
 				}\
 				return r;\
 			}" > ${BEFORE} && g++ ${BEFORE} -o ${THEN})
-
-startwatch = $(shell echo $(INSPIRE) && $(call inspire))
-stopwatch = $(shell echo $(THEN) $(INSPIRE) $(EXPIRE))
-#clean: $(shell rm -rf ${NOW} ${THEN} ${WHEN} ${BETWEEN})
-

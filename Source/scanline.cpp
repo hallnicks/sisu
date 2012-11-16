@@ -1,5 +1,6 @@
 #include "scanline.hpp"
 
+
 namespace sisu
 {
 

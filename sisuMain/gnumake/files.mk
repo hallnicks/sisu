@@ -8,7 +8,7 @@ coalesceObjects         = $(foreach srcfile,$(2), \
 				$(abspath $(1)/$(call stripBaseFolder,\
 							$(patsubst %.cpp,%.o,$(srcfile)))))
 
-coalesceDirectory	= $(shell test -d $(dir $(1)) || mkdir -p $(dir $(1)) && echo $(abspath $(1)))
+coalesceDirectory	= $(shell mkdir -p $(abspath $(1)) && echo $(abspath $(1)))
 
 toTheVoid		= $(shell rm -rf $(1))
 

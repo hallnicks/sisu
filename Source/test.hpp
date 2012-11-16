@@ -562,7 +562,7 @@ static class UTSTORAGE(xUTClass, xUTName) {\
 		UTSTORAGE(xUTClass, xUTName)( ) {\
 			static sisu::ccolor const clr( sisu::eTTYCBlack, sisu::eTTYCGreen, sisu::eModBold );\
 			static sisu::ccolor const rnd( sisu::eTTYCBlack, static_cast<sisu::eTTYColor>( ( rand( ) % 7 ) + 2 ), sisu::eModBold );\
-			std::cout << clr << "[ " << rnd << "Test " << # xUTClass << # xUTName << clr << "\t\t\t identified. ]" << std::endl;\
+			std::cout << clr << "[ " << rnd << "Test " << # xUTClass << # xUTName << clr << " identified. ]" << std::endl;\
 			::sisu::Once< xUTClass >( &initContext );\
 			::sisu::Once< UTCLASS(xUTClass, xUTName) >( &initTest );\
 		}\
