@@ -1,5 +1,5 @@
 SISU := ../sisuMain/gnumake
-#include strings.mk
+
 include $(SISU)/before.mk
 
 LINKMODES    := static shared exe

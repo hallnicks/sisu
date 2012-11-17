@@ -13,8 +13,10 @@ coalesceDirectory	= $(shell mkdir -p $(abspath $(1)) && echo $(abspath $(1)))
 toTheVoid		= $(shell rm -rf $(1))
 
 prefixAll		= $(strip $(foreach lib,$(1),$(2)$(lib)))
+suffixAll		= $(strip $(foreach lib,$(1),$(lib)$(2)))
 
 prefixAllPaths		= $(strip $(foreach lib,$(1),$(2)$(abspath $(lib))))
+suffixAllPaths		= $(strip $(foreach lib,$(1),$(abspath $(lib))$(2)))
 
 getObjectSource		= $(patsubst %.o,%.cpp,$(1))
 

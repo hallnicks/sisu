@@ -1,5 +1,4 @@
 //    This file is part of sisu.
-
 //    sisu is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
@@ -34,6 +33,7 @@ int main( void )
 	cout << d;
 
 	static const int ES = 7;
+
 
 	std::cout << '`' << std::endl;
 	unsigned i = 0;

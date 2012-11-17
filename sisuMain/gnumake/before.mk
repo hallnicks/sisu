@@ -1,14 +1,17 @@
 include $(SISU)/time.mk
 include $(SISU)/files.mk
-include $(SISU)/asserts.mk
+include $(SISU)/goals.mk
 
 NIL           := /dev/null
 SOURCE_EXT    := cpp
+HEADER_EXT    := hpp
 OBJ_EXT       := o
 OBJ_META      := obj
 BIN_META      := bin
 LIB_META      := lib
 BUILD_META    := build
+AR	      ?= ar
+CXX	      ?= g++
 CXX_OBJ_FLAG  ?= -o
 CXX_FILE_FLAG ?= -c
 CXXFLAGS      += -Werror -O3
