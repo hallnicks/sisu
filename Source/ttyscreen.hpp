@@ -3,16 +3,25 @@
 
 #include "screen.hpp"
 #include "ttyc.hpp"
+#ifndef __linux__
+#include <Windows.h>
+#endif
 
 namespace sisu
 {
 
 class TerminalScreen : public Screen
 {
+
+#ifndef __linux__
+	HANDLE mStdOut;
+#endif
+
 	uint8_t mW, mH, mSize, mRadius;
 
 	buffer mMemory, mDeadline;
 
+	void clearScreen( char const xAttribute );
 	void getPixel( uint8_t const xX, uint8_t const xY );
 
 	void setPosition( uint8_t const xX, uint8_t const xY );
@@ -28,6 +37,7 @@ class TerminalScreen : public Screen
 		virtual void refreshPosition( uint8_t const xX, uint8_t const xY );
 		virtual void blitPixel( uint8_t const xX, uint8_t const xY );
 		virtual void setPixel( uint8_t const xX, uint8_t const xY, TTYC const xColor );
+                virtual void fill( TTYC const xColor );
 		virtual void refresh( );
 };
 

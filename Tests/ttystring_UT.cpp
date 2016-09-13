@@ -39,4 +39,5 @@ TEST(TTYString_UT, BuildBasicString)
 		std::cout << "string[" << ii << "].getChar() = " << bits<char>( string[ ii ] ) << std::endl;
 		std::cout << "actual[" << ii << "].getChar() = " << bits<char>( t.getChar( ) ) << std::endl;
 	}
+
 }

@@ -26,6 +26,7 @@ class Screen
 		virtual void refreshPosition( uint8_t const xX, uint8_t const xY ) = 0;
 		virtual void blitPixel( uint8_t const xX, uint8_t const xY ) = 0;
 		virtual void setPixel( uint8_t const xX, uint8_t const xY, TTYC const xColor ) = 0;
+		virtual void fill( TTYC const xColor ) = 0; 
 		virtual void refresh( ) = 0;
 };
 

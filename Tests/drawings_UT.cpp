@@ -1,3 +1,4 @@
+#if 0
 #include "drawings.hpp"
 #include "test.hpp"
 #include "ttycolor.hpp"
@@ -60,11 +61,11 @@ namespace
 
 // To debug a specific mode, use the appropriate definition
 //#define FORALLMODES(xVar) sisu::eDrawingMode xVar = sisu::eRedrawImmediately;
-#define FORALLMODES(xVar) sisu::eDrawingMode xVar = sisu::eVsync;
+//#define FORALLMODES(xVar) sisu::eDrawingMode xVar = sisu::eVsync;
 //#define FORALLMODES(xVar) sisu::eDrawingMode xVar = sisu::eOnlyChanged;
 
 // For regular testing, use this.
-//#define FORALLMODES(xVar) for ( sisu::eDrawingMode xVar = sisu::eRedrawImmediately; xVar < sisu::eDrawingModeMax; ++xVar )
+#define FORALLMODES(xVar) for ( sisu::eDrawingMode xVar = sisu::eRedrawImmediately; xVar < sisu::eDrawingModeMax; ++xVar )
 
 #define PAINTERSUT Drawings painterSut( &mScreen, e);
 
@@ -230,3 +231,5 @@ TEST(Drawings_UT, TerminalRects)
 		painterSut.refresh( );
 	}
 }
+
+#endif

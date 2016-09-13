@@ -1,4 +1,3 @@
-#if 0
 //    This file is part of sisu.
 
 //    sisu is free software: you can redistribute it and/or modify
@@ -73,4 +72,3 @@ TEST(SisuUT, Sisu_Commas)
 	int x = 1, y = 2, z = 3;
 	std::cout << __FUNCTION__ << x << y << z << std::endl;
 }
-#endif

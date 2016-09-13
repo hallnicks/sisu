@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "signal.hpp"
 
@@ -6,7 +5,6 @@
 #include <cstring>
 #include <clocale>
 
-#include <sys/ioctl.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <wchar.h>
@@ -29,4 +27,3 @@ TEST(Signal_UT, RaiseSignals)
 {
 	std::cout << "!!!! STUB:" << __PRETTY_FUNCTION__ << std::endl;
 }
-#endif

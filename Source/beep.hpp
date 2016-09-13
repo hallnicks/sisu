@@ -1,3 +1,4 @@
+#if 0
 #ifndef BEEP_50075EE7_DFA8_4DFB_A709_2E6ACF4F2AF5_HPP_
 #define BEEP_50075EE7_DFA8_4DFB_A709_2E6ACF4F2AF5_HPP_
 
@@ -41,3 +42,4 @@ namespace sound
 
 } // namespace sisu
 #endif // BEEP_50075EE7_DFA8_4DFB_A709_2E6ACF4F2AF5_HPP_
+#endif

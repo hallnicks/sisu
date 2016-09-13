@@ -1,3 +1,2 @@
 #!/bin/bash
-nano -w $1 && make all verbose && ../build/bin/sisu && echo "Success!"
-
+nano -w $1 && make clean && make all verbose && echo "Build complete." && cd ../build/bin/; ./sisuTest.exe && echo "Success!"

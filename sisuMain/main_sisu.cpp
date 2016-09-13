@@ -23,8 +23,12 @@
 
 #include <unistd.h>
 
+#include <SDL.h.>
+
 namespace
 {
+#if 0
+
 	class Directory
 	{
 		std::string const & mPath;
@@ -32,6 +36,7 @@ namespace
 		int const mStatus;
 
 		public:
+// TODO -- Fix
 			Directory( std::string const & xPath )
 				: mPath( xPath )
 				, mStatus( mkdir( mPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH ) )
@@ -63,10 +68,14 @@ namespace
 				}
 			}
 	}; // class Directory
+#endif
 } // namespace
 
-int main( int xArgc, char ** xArgv )
+
+int main( int xArgc, char * xArgv[] )
 {
+	std::cout << "Hello, User." << std::endl;
+#if 0
 	if ( xArgc > 1 )
 	{
 		std::string param( xArgv[ 1 ]  );
@@ -80,10 +89,15 @@ int main( int xArgc, char ** xArgv )
 						   , param + "/Source"
 						   , param + "/Tests" };
 
+		std::cout << "Creating directories..." << std::endl; 
+		for (int i = 0; i < sizeof(sDirectories); ++i) 
+		{
+			std::cout << sDirectories[i] <<std::endl;
+		}
 		Directory::createDirectories( sDirectories );
 	}
 
-//	std::cout << sAfter << std::endl;
-
+#endif
 	return 0;
 }
+

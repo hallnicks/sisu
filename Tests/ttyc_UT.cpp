@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "ttyc.hpp"
 
@@ -113,6 +112,7 @@ TEST(TTYCUT, getRaw)
 	MUSTEQ(expectedTTYC, color.getRaw( ));
 }
 
+#if 0
 TEST(TTYCUT, TTYCTransform)
 {
 	TTYC const expectedGetTTYC = TTYCMap::randomTTYC( );
@@ -188,4 +188,5 @@ TEST(TTYCUT, TTYCTransform)
         MUSTEQ(eSetBG,   actual.getBG( ));
         MUSTEQ(eSetMod,  actual.getModifier( ));
 }
+
 #endif

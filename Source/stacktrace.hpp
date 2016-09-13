@@ -2,7 +2,9 @@
 #define BACKTRACE_HPP_
 
 #include <cxxabi.h>
+#ifdef __linux__
 #include <execinfo.h>
+#endif
 
 #include <iostream>
 #include <string>
@@ -31,8 +33,19 @@ class stacktrace
 	public:
 		stacktrace( std::ostream & mOut = std::cout )
 			: mArray( )
+#ifdef __linux__
 			, mSymbolCount( backtrace( mArray, XDepth ) )
 			, mStrings( backtrace_symbols( mArray, mSymbolCount ) )
+#else
+//#warning Backtrace not implemented on windows yet
+/*
+		PVOID * backTrace = NULL;
+		PULONG backTraceHash;
+		USHORT const result = CaptureStackBackTrace(0, MAXUSHORT, backTrace, backTraceHash);
+
+		mSymbolCount = result;
+*/
+#endif
 			, mOut( std::cout )
 		{
 			;
