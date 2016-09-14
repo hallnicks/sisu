@@ -1,3 +1,5 @@
+#Deficiencies: YOu have to do a make clean to rebuild binaries. Make links shared and creates static.
+
 SISU := recipe/
 
 include $(SISU)/before.mk
@@ -8,7 +10,7 @@ LINKMODES    := static shared exe
 #Need to optimize it such that test library links only to test 
 #and runtime to runtime vice versa etc etc
 TARGET_NAME  := sisu sisuTest
-#TARGET_LIBS := rt pthread # for when renabled test
+#TARGET_LIBS  += rt pthread # for when renabled test
 TARGET_LIBS  += opengl32 freeglut glew32
 
 # for SDL

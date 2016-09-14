@@ -62,39 +62,40 @@ GLuint vao, vbo[2];
 float r = 0;
 
 
-const char* loadFile(const char * fname)
+const char * loadFile( const char * xFilename )
 {
 	int size;
 	char * memblock;
 
-	std::ifstream file( fname, std::ios::in | std::ios::binary | std::ios::ate );
+	std::ifstream file( xFilename, std::ios::in | std::ios::binary | std::ios::ate );
 
 	if ( file.is_open() )
 	{
-		size = (int) file.tellg(); // get location of file pointer i.e. file size
-		memblock = new char [size+1]; // create buffer with space for null char
-		file.seekg (0, std::ios::beg);
-		file.read (memblock, size);
-		file.close();
-		memblock[size] = 0;
-		std::cout << "file " << fname << " loaded" << std::endl;
+		size = (int) file.tellg( ); // get location of file pointer i.e. file size
+		memblock = new char[ size+1 ]; // create buffer with space for null char
+		file.seekg( 0, std::ios::beg );
+		file.read( memblock, size );
+		file.close( );
+		memblock[ size ] = 0;
+		std::cout << "file " << xFilename << " loaded" << std::endl;
 	}
 	else
 	{
-		std::cout << "Unable to open file " << fname << std::endl;
+		std::cout << "Unable to open file " << xFilename << std::endl;
 		exit(-1);
 	}
+
 	return memblock;
 }
 
 
 // Something went wrong - print SDL error message and quit
-void exitFatalError(const char * message)
+void exitFatalError( const char * xMessage )
 {
-    std::cout << message << " ";
-	std::cout << SDL_GetError();
-    SDL_Quit();
-    exit( -1 );
+	std::cout << xMessage << " ";
+	std::cout << SDL_GetError( );
+	SDL_Quit();
+	exit( -1 );
 }
 
 
@@ -116,10 +117,7 @@ void setupRC( SDL_Window * & window, SDL_GLContext &context)
 	SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 4 );
  
     	window = SDL_CreateWindow( "SDL VAO Shader Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-				   800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS 
-					
-				  
-);
+				   1, 1, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS );
 	if ( window == NULL ) 
 	{
         	exitFatalError("Unable to create window");
@@ -209,8 +207,8 @@ GLuint initShaders(const char * vertFile, const char *fragFile)
 	glAttachShader(p,v); // attach vertex shader to program
 	glAttachShader(p,f); // attach fragment shader to program
 
-	glBindAttribLocation(p,0,"in_Position"); // bind position attribute to location 0
-	glBindAttribLocation(p,1,"in_Color"); // bind color attribute to location 0
+	glBindAttribLocation( p, 0, "in_Position" ); // bind position attribute to location 0
+	glBindAttribLocation( p, 1, "in_Color"    ); // bind color    attribute to location 0
 
 	glLinkProgram(p); // link the shader program and test for errors
 	glGetProgramiv(p, GL_LINK_STATUS, &linked);
@@ -232,20 +230,21 @@ GLuint initShaders(const char * vertFile, const char *fragFile)
 void init( void )
 {
 	const GLfloat pyramid[15] = {     // a simple pyramid
-		0.0, 0.5, 0.0, // top
-		-1.0,  -0.5, 1.0, // front bottom left
-		1.0, -0.5, 1.0, // front bottom right
-		1.0,  -0.5, -1.0, // back bottom right
-		-1.0, -0.5, -1.0 }; // back bottom left
+		 0.0,  0.5,  0.0, // top
+		-1.2, -0.5,  1.0, // front bottom left
+		 1.0, -0.5,  1.0, // front bottom right
+		 1.0, -0.5, -1.0, // back bottom right
+		-1.2, -0.5, -1.0  }; // back bottom left
+
 	const GLfloat colors[15] = {
-		0.0,  0.0,  0.0, // black
-		1.0,  0.0,  0.0, // red
-		0.0,  1.0,  0.0, // green
-		0.0,  0.0,  1.0, // blue
-		1.0,  1.0,  0.0 }; // yellow
+		0.0 ,  0.4 ,  0.33, 
+		1.0 ,  0.8 ,  0.66, 
+		0.44,  0.9 ,  0.77, 
+		0.66,  0.25,  1.0 , 
+		1.0 ,  0.6 ,  0.88 }; 
 
 
-	shaderprogram = initShaders( "simple.vert","simple.frag" ); // Create and start shader program
+	shaderprogram = initShaders( "resources/simple.vert","resources/simple.frag" ); // Create and start shader program
 	glGenVertexArrays( 1, &vao ); // allocate & assign a Vertex Array Object (VAO)
 	glBindVertexArray( vao ); // bind VAO as current object
 	glGenBuffers( 2, vbo ); // allocate two Vertex Buffer Objects (VBO)
@@ -270,7 +269,7 @@ void init( void )
 	// swapping between different ones. In this program there is only one shader program and one VAO
 
 	glEnable( GL_DEPTH_TEST ); // enable depth testing
-	glEnable( GL_CULL_FACE ); // enable back face culling - try this and see what happens!
+	// glEnable( GL_CULL_FACE ); // enable back face culling - try this and see what happens!
 }
 
 
@@ -282,7 +281,7 @@ void draw( SDL_Window * window )
 		exit(-1);
 	}
 
-        glClearColor(1.0, 1.0, 1.0, 1.0); 
+        glClearColor(1.0, 0.0, 0.0, 1.0); 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); 
 
 	// Create perspective projection matrix
@@ -356,7 +355,7 @@ TEST(OpenGL_UT, CreateOpenGLShaderApplicationWithoutExceptions)
 	SDL_Event sdlEvent; 
 
 
-	for(int i = 0; i < 300; ++i)	
+	for(int i = 0; i < 500; ++i)	
 	{
 
 		draw( hWindow ); 

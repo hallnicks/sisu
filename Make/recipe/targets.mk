@@ -13,5 +13,7 @@ LDFLAGS               += -fPIC
 endif
 
 CXXFLAGS += --std=c++11
+
 TARGETS := $(TARGET_EXE_NAME) $(TARGET_STATICLIB_NAME) $(TARGET_SHAREDLIB_NAME)
+
 

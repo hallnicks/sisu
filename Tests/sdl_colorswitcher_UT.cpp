@@ -134,7 +134,7 @@ TEST(sdl_UT, CreateSDLWindowWithoutExceptions)
 
 					_setOpenGLAttributes( );
 
-					glClearColor( 0.0, 0.0, 0.0, 1.0 );
+					glClearColor( 1.0, 0.0, 0.0, 1.0 );
 
 					glClear( GL_COLOR_BUFFER_BIT );
 
@@ -146,7 +146,7 @@ TEST(sdl_UT, CreateSDLWindowWithoutExceptions)
 				void run()
 				{
 
-					for ( int ii = 0; ii < 300; ++ii )
+					for ( int ii = 0; ii < 250; ++ii )
 					{
 						SDL_Event event;
 
@@ -189,8 +189,6 @@ TEST(sdl_UT, CreateSDLWindowWithoutExceptions)
 						
 						glClear( GL_COLOR_BUFFER_BIT );
 
-					
-
 						SDL_GL_SwapWindow( mMainWindow );
 					}
 				}
@@ -204,9 +202,4 @@ TEST(sdl_UT, CreateSDLWindowWithoutExceptions)
 
 		test.run();
 	}
-
-	for(int i = 0; i < 15; ++i) { 
-		std::cout << "А дело бывало -- и коза волка съедала" <<std::endl;
-	}
-
 }

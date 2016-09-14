@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "word.hpp"
 #include <unistd.h>
@@ -45,11 +46,14 @@ void divide( word < XIntegralType > ( & xWord ) [ XSize ] )
 
 TEST(word_UT, words_cout)
 {
+	static int const maxCount = 100;
+	int count = 0;
 	for (int i = 1; i != 0; i <<= 1 )
-		{ std::cout << word< int32_t >( i ) << std::endl; }
+		{ ++count; std::cout << word< int32_t >( i ) << std::endl; if(count > maxCount) break; }
 
+	count =0;
 	for (int i = 1; i != 0; i >>= 1 )
-		{ std::cout << word< int32_t >( i ) << std::endl; }
+		{ ++count; std::cout << word< int32_t >( i ) << std::endl; if(count > maxCount) break; }
 
 	#define W(xV) word< uint8_t >( xV )
 	static word< uint8_t > uint8[] = { W( 0xFF ), W( 0xE0 ), W( 0xBE ), W( 0xEA ), W( 0xCA ), W( 0xA1 ), W( 0x11 ) };
@@ -148,3 +152,4 @@ TEST(word_UT, words_set)
 		std::cout << p << std::endl;
 	}
 }
+#endif
