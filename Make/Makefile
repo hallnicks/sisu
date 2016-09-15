@@ -10,8 +10,10 @@ LINKMODES    := static shared exe
 #Need to optimize it such that test library links only to test 
 #and runtime to runtime vice versa etc etc
 TARGET_NAME  := sisu sisuTest
-#TARGET_LIBS  += rt pthread # for when renabled test
-TARGET_LIBS  += opengl32 freeglut glew32
+TARGET_LIBS  += pthread # rt # for when renabled test
+
+#This is now windows specific. Need to test on linux again.
+TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp
 
 # for SDL
 SDL_CONFIG   := sdl2-config --prefix=/usr
