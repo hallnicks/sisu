@@ -1,197 +1,253 @@
 #ifndef THREADGEARS_72F99E37_FA22_494C_BAC4_87EF12b6351A_HPP_
 #define THREADGEARS_72F99E37_FA22_494C_BAC4_87EF12b6351A_HPP_
 
-#include <cstdlib>
-#include <cstddef>
+// This file is part of sisu.
+
+// sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by 
+// the Free Software Foundation, either version 3 of the License, or // (at your option) any later version.
+
+// sisu is distributed in the hope that it will be useful, // but WITHOUT ANY WARRANTY; without even the implied warranty of // 
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the // GNU General Public License for more details.
+
+//    You should have received a copy of the GNU General Public License
+//    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
+
 #include <pthread.h>
 #include <iostream>
-#include <sched.h>
+#include <functional>
+#include <vector>
+#include <deque>
+#include <unordered_map>
+#include <time.h>
+#include <errno.h>
+#include <algorithm>
+#include <string>
 
-namespace sisu
+namespace sisu {
+
+namespace _initializers { 
+
+class _pthreadInitializer 
 {
-	enum eSchedPolicy { eFifo = 0, eRoundRobin = 1, eOther = 2 };
+	static pthread_once_t const mOnce = PTHREAD_ONCE_INIT;
+};
 
-#define XPT(xPR,...)    if ( xPR(__VA_ARGS__) != 0 ) {\
-                                std::cerr << #xPR << "(" << #__VA_ARGS__ << ")" << std::endl;\
-                                exit( -1 );\
-                        }
+} // namespace _initializers
 
-#define ARGS size_t xStackSize\
-                , size_t xCpuSetSize\
-                , size_t xGuardSize\
-                , int xPriority\
-                , eSchedPolicy xPolicy\
-                , int xInheritScheduler\
-                , bool xCreateDetached\
-                , bool xSystemScope
+class mutex 
+{ 
+	pthread_mutex_t mMutex;
 
-#define PARAMS xStackSize\
-                , xCpuSetSize\
-                , xGuardSize\
-                , xPriority\
-                , eSchedPolicy xPolicy\
-                , xInheritScheduler\
-                , xCreateDetached\
-                , xSystemScope
+	public: 
+		mutex( const pthread_mutexattr_t * xAttributes = NULL );
+		~mutex( );
 
-	template < typename XRet, typename XSink, typename XArg >
-	class posixthread
+		void lock( );
+		void unlock( );
+		void run( std::function<void(void)> xLambda );
+};
+
+class sleep 
+{
+
+	static int _sleep( timespec * const xDuration );
+
+	public: 
+		static void ms( int64_t const xMilliseconds );
+		static void ns( int64_t const xNanoseconds );
+
+};
+
+template< typename XReturnType, typename XParameterType >
+class gear
+{
+	struct _PThreadStatus
 	{
-		struct thread_state
+		_PThreadStatus( ) 
 		{
-        		pthread_t Handle;
 
-		        pthread_attr_t Attrib;
-
-	                thread_state(ARGS) : Attrib( ), Handle( 0 )
-	                {
-	                        cpu_set_t cpus;
-
-	                        XPT(pthread_attr_setaffinity_np, &Attrib, xCpuSetSize, &cpus);
-
-	                        XPT(pthread_attr_setdetachstate, &Attrib, xCreateDetached ? PTHREAD_CREATE_DETACHED : PTHREAD_CREATE_JOINABLE);
-
-	                        XPT(pthread_attr_setguardsize, &Attrib, xGuardSize);
-
-	                        XPT(pthread_attr_setinheritsched, &Attrib, xInheritScheduler);
-
-	                        sched_param const param = { xPriority };
-
-	                        XPT(pthread_attr_setschedparam, &Attrib, &param);
-
-	                        XPT(pthread_attr_setstacksize, &Attrib, xStackSize);
-
-	                        int polices[3] = { SCHED_FIFO, SCHED_RR, SCHED_OTHER };
-
-	                        XPT(pthread_attr_setschedpolicy, &Attrib, polices[static_cast<int>(xPolicy)]);
-
-	                        XPT(pthread_attr_setscope, &Attrib, xSystemScope ? PTHREAD_SCOPE_SYSTEM : PTHREAD_SCOPE_PROCESS);
-
-	                        XPT(pthread_attr_init, &Attrib);
-        	        }
-
-                	~thread_state( ) { XPT(pthread_attr_destroy, &Attrib); }
-		} m;
-
-
-		typedef XRet ( XSink::* XFEvent )( XArg );
-
-		typedef void* (*ThreadStart)( void* );
-
-		class XCB
-		{
-			XFEvent mXF;
-			XSink & mSink;
-			XArg & mArg;
-
-			public:
-				XCB( XSink & xSink, XFEvent xF, XArg & xArg )
-					: mSink( xSink ), mXF( xF ), mArg( xArg ) { }
-
-				XRet operator ( )( void ) { return ( mSink.*mXF )( mArg ); }
-		} mXCB;
-
-		static void * startRoutine( void * xObject )
-		{
-			static_cast< XCB * >( xObject )( );
-			return static_cast<void*>( 0 );
 		}
 
-		static const unsigned int DefStackSize = 2048;
-		static const size_t DefCpuSetSize = sizeof( cpu_set_t );
-		static const size_t DefaultGuardSize;
-
-		public:
-			posixthread( XSink & 	xSink
-					, XFEvent 	xF
-					, XArg & 	xArg
-					, unsigned int 	xStackSize		= DefStackSize
-                			, unsigned int 	xCpuSetSize      	= sizeof( cpu_set_t )
-                			, unsigned int 	xGuardSize       	= 0
-                			, int 		xPriority               = 1
-	                		, eSchedPolicy 	xPolicy          	= eFifo
-	                		, int 		xInheritScheduler       = 1
-	                		, bool 		xCreateDetached         = false
-	                		, bool 		xSystemScope            = false )
-
-				: mXCB( xSink, xF, xArg )
-
-				, m( xStackSize
-					, xCpuSetSize
-					, xGuardSize
-					, xPriority
-					, xPolicy
-					, xInheritScheduler
-					, xCreateDetached
-					, xSystemScope )
-				{
-					;
-				}
-
-			~posixthread( ) { join( ); }
-
-			void detach( ) { XPT(pthread_detach, &m.Handle); }
-
-			posixthread & operator ( )( void )
+		void join( ) 
+		{
+			if ( mStatus != 0 )
 			{
-				XPT(pthread_create, &m.Handle, &m.Attrib, &startRoutine, &mXCB);
-				return *this;
+				std::cout << "Thread with status " << mStatus << "detected. " << std::endl;
 			}
 
-			void join( ) { XPT(pthread_join, m.Handle, NULL); }
-
-			bool isDetached( )
+		     	if ( pthread_join( mThread, NULL) != 0 )
 			{
-				int detachState;
-				XPT(pthread_attr_getdetachstate, &m.Attrib, &detachState);
-				return (detachState == PTHREAD_CREATE_DETACHED);
+				std::cerr << "pthread_join() failed. " << std::endl;
+				exit(-1);
 			}
+		}
 
-			bool isSystemScoped( )
-			{
-        			int scope;
-				XPT(pthread_attr_getscope, &m.Attrib, &scope);
-			        return (scope == PTHREAD_SCOPE_SYSTEM);
-			}
-
-			cpu_set_t getAffinityNp( )
-			{
-				cpu_set_t t;
-				size_t s;
-				XPT(pthread_attr_getaffinity_np, &m.Attrib, &s, &t);
-				return t;
-			}
-
-			unsigned int getGuardSize( )
-			{
-				cpu_set_t t;
-			        size_t s;
-			        XPT(pthread_attr_getaffinity_np, &m.Attrib, &s, &t);
-			        return t;
-			}
-
-			eSchedPolicy getSchedPolicy( )
-			{
-				eSchedPolicy e;
-				int p;
-				XPT(pthread_attr_getschedpolicy, &m.Attrib, &p);
-				switch ( p )
-				{
-			                case SCHED_FIFO:        { e = eFifo;            } break;
-			                case SCHED_FIFO:        { e = eRoundRobin;      } break;
-			                default:                { e = eOther;           } break;
-			        }
-			        return e;
-			}
-
-			unsigned int getStackSize( )
-			{
-				size_t size;
-				XPT(pthread_attr_getstacksize, &m.Attrib, &size);
-				return size;
-			}
+		
+		pthread_t mThread;
+		int32_t mStatus;
 	};
 
-} // namespace sisu
 
+	struct _ThreadParameters
+	{
+
+		_ThreadParameters( gear * const xGear
+				  , XParameterType * xParameters )
+			: mGear( xGear )
+			, mParameters( xParameters ) 
+			, mID( 0 )
+		{ 
+			static uint32_t _threadIDCounter = 0;
+			mID = ++_threadIDCounter;
+		}
+
+		gear * const mGear;
+		XParameterType * mParameters;
+		uint32_t mID;
+	};
+
+	std::function< XReturnType ( XParameterType ) >  mLambda;
+
+	std::deque< XReturnType > mResults;
+
+	typedef 	 std::unordered_map< uint32_t, _ThreadParameters * > 		_ThreadParameterMap;
+	typedef typename std::unordered_map< uint32_t, _ThreadParameters * >::iterator 	_ThreadParameterMapIterator;
+
+	typedef		 std::vector< _PThreadStatus > 		 _ThreadVector;
+	typedef typename std::vector< _PThreadStatus >::iterator _ThreadVectorIterator;
+
+	_ThreadParameterMap mThreadParameters;
+	_ThreadVector mThreads;
+	bool mJoined;
+
+	inline static void * _actualPosixThreadSink( void * xParameter ) 
+	{
+		if (xParameter == NULL)		
+		{
+			std::cerr << "Null gear passed to pthread sink." << std::endl;
+			exit( -1 ); 
+		} 
+
+		_ThreadParameters * g = static_cast< _ThreadParameters* >( xParameter );
+
+		if ( g == NULL || g->mGear == NULL ) 
+		{
+			std::cerr << "Could not find gear" << std::endl;
+			exit( -1 );
+		}
+		
+		void * result = g->mGear->_actualPosixThreadWork( g->mParameters );
+
+		_ThreadParameters * param = g->mGear->mThreadParameters[ g->mID ];
+
+		if ( param != NULL ) 
+		{
+			delete param;
+		} 
+
+		return result;
+	}
+
+	inline void * _actualPosixThreadWork( XParameterType * const xParameters )
+	{
+		if ( xParameters == NULL ) 
+		{
+			std::cerr << "Thread parameters were NULL. Cannot dereference." << std::endl;
+			exit( -1 );
+		}
+
+		mResults.push_back( mLambda( *xParameters ) );
+
+		return static_cast< void * >( &mResults.back( ) );
+	}
+
+	public:
+		gear( std::function< XReturnType ( XParameterType ) > xLambda )
+			: mLambda( xLambda )
+			, mResults( )
+			, mThreadParameters( )
+			, mThreads( )
+			, mJoined( false )
+		{
+
+		}
+
+		~gear( )
+		{
+			join( );
+		}
+
+		void join( )
+		{
+			if ( !mJoined )
+			{
+				for ( _ThreadVectorIterator it = mThreads.begin(); it != mThreads.end(); ++it )
+				{
+					it->join();
+				}
+			}
+
+			mJoined = true;
+		}
+
+		gear< XReturnType, XParameterType > & operator( )( XParameterType xParams )
+		{
+			if ( mJoined )
+			{
+				std::cout << "Behavior of this operator is undefined after join( ) is called" << std::endl;
+				exit( -1 );
+			}
+	
+			mThreads.push_back( _PThreadStatus( ) );
+
+
+			_PThreadStatus & status = mThreads.back( );
+	
+			_ThreadParameters * params = new _ThreadParameters( this, &xParams );
+	
+			mThreadParameters[ params->mID ] = params;
+
+			if ( mThreads.back( ).mStatus = pthread_create( &status.mThread
+									, NULL
+									, _actualPosixThreadSink
+									, static_cast< void * >( params ) ) != 0 )
+			{
+
+				std::cerr << "Failed to create thread. " << mThreads.back( ).mStatus << std::endl;
+				exit( -1 );
+			}
+			return *this; 
+		}
+
+
+		// NOT thread safe - call join() first before inspecting return values. 
+		XReturnType operator * ( )
+		{
+			if ( !mJoined ) 
+			{
+				std::cerr << "The behavior of this operator is undefined if the threads are not joined." << std::endl;
+				exit( -1 );
+			}
+
+			XReturnType copy = mResults.front( );
+
+			mResults.pop_front( );
+
+			return copy;
+		}
+
+		int32_t size( ) const
+		{
+			if ( !mJoined ) 
+			{
+				std::cerr << "The behavior of size( ) is undefined if the threads are not joined." << std::endl;
+				exit( -1 );
+			}
+ 
+			return mResults.size( ); 
+		}
+};
+
+} // namespace sisu
 #endif // THREADGEARS_72F99E37_FA22_494C_BAC4_87EF12b6351A_HPP_
+

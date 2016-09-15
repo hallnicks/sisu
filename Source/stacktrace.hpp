@@ -1,13 +1,20 @@
+
 #ifndef BACKTRACE_HPP_
 #define BACKTRACE_HPP_
+
+#include "test.hpp" // remove
 
 #include <cxxabi.h>
 #ifdef __linux__
 #include <execinfo.h>
+#else
+#include <Windows.h>
+#include <DbgHelp.h>
 #endif
 
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <cstdlib>
 
 #include "ttycolor.hpp"
@@ -38,17 +45,46 @@ class stacktrace
 			, mStrings( backtrace_symbols( mArray, mSymbolCount ) )
 #else
 //#warning Backtrace not implemented on windows yet
-/*
-		PVOID * backTrace = NULL;
-		PULONG backTraceHash;
-		USHORT const result = CaptureStackBackTrace(0, MAXUSHORT, backTrace, backTraceHash);
-
-		mSymbolCount = result;
-*/
+			, mSymbolCount( 0 )
+			, mStrings( NULL )
+		
 #endif
 			, mOut( std::cout )
 		{
-			;
+#ifndef __linux__
+			HANDLE         process;
+
+  			process = GetCurrentProcess();
+
+			SymInitialize( process, NULL, TRUE );
+	
+			unsigned int   i;
+		     	
+			void         * stack[ 100 ];
+		     	unsigned short frames;
+     			SYMBOL_INFO  * symbol;
+
+    			frames               = CaptureStackBackTrace( 0, 100, stack, NULL );
+ 			symbol               = ( SYMBOL_INFO * )calloc( sizeof( SYMBOL_INFO ) + 256 * sizeof( char ), 1 );
+     			symbol->MaxNameLen   = 255;
+     			symbol->SizeOfStruct = sizeof( SYMBOL_INFO );
+
+			mSymbolCount = frames;
+
+			mStrings = (char**)malloc( frames * sizeof(char*));
+
+ 		    	for( i = 0; i < frames; i++ )
+     			{
+ 			        SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
+		
+				std::ostringstream oss;
+				oss << symbol->Name << " - 0x" << symbol->Address << std::endl;
+				std::cout << oss.str( );
+				memcpy( mStrings, oss.str().c_str( ), oss.str( ).size( ) );
+			}
+
+		     	free( symbol );
+#endif
 		}
 
 		~stacktrace( ) { if ( mStrings ) { free( mStrings ); } }
@@ -149,7 +185,7 @@ std::ostream & operator << ( std::ostream & xStream, stacktrace<XDepth> const & 
 template< unsigned int XDepth >
 inline void printstack( )
 {
-	std::cerr << ccolor( eTTYCWhite, eTTYCBlack, eModNone ) << stacktrace< XDepth >( ) << std::endl;
+	std::cerr << ccolor( eTTYCRed, eTTYCBlack, eModNone ) << stacktrace< XDepth >( ) << std::endl;
 }
 
 } // namespace sisu
