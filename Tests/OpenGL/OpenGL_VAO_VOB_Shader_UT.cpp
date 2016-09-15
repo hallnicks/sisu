@@ -1,5 +1,5 @@
-#if 0
 #include "test.hpp"
+#include "ioassist.hpp"
 #include <string>
 #include <iostream>
 
@@ -10,8 +10,11 @@
 
 #include <SDL2/SDL.h>
 
+using namespace sisu;
+
 /*This source code copyrighted by Lazy Foo' Productions (2004-2015)
 and may not be redistributed without written permission.*/
+// TODO: Fix this or remove from repo. What we wanted was a basic shader application. We can make an even simpler one with just a triangle
 
 //Using SDL, SDL OpenGL, GLEW, standard IO, and strings
 #include <GL/glew.h>
@@ -60,33 +63,6 @@ class OpenGL_UT : public context
 GLuint shaderprogram;
 GLuint vao, vbo[2]; 
 float r = 0;
-
-
-const char * loadFile( const char * xFilename )
-{
-	int size;
-	char * memblock;
-
-	std::ifstream file( xFilename, std::ios::in | std::ios::binary | std::ios::ate );
-
-	if ( file.is_open() )
-	{
-		size = (int) file.tellg( ); // get location of file pointer i.e. file size
-		memblock = new char[ size+1 ]; // create buffer with space for null char
-		file.seekg( 0, std::ios::beg );
-		file.read( memblock, size );
-		file.close( );
-		memblock[ size ] = 0;
-		std::cout << "file " << xFilename << " loaded" << std::endl;
-	}
-	else
-	{
-		std::cout << "Unable to open file " << xFilename << std::endl;
-		exit(-1);
-	}
-
-	return memblock;
-}
 
 
 // Something went wrong - print SDL error message and quit
@@ -174,8 +150,11 @@ GLuint initShaders(const char * vertFile, const char *fragFile)
 	v = glCreateShader(GL_VERTEX_SHADER); // Create vertex shader handle
 	f = glCreateShader(GL_FRAGMENT_SHADER);	// " fragment shader handle
 
-	const char *vertSource = loadFile(vertFile); // load vertex shader source
-	const char *fragSource = loadFile(fragFile);  // load frag shader source
+	std::string const vertSourceString = fileToString( vertFile );
+	std::string const fragSourceString = fileToString( fragFile );
+
+	const char *vertSource = vertSourceString.c_str( );
+	const char *fragSource = fragSourceString.c_str( );
 	
 	// Send the shader source to the GPU
 	// Strings here are null terminated - a non-zero final parameter can be
@@ -220,9 +199,6 @@ GLuint initShaders(const char * vertFile, const char *fragFile)
 	}
 
 	glUseProgram(p);  // Make the shader program the current active program
-
-	delete [] vertSource; // Don't forget to free allocated memory
-	delete [] fragSource; // We allocated this in the loadFile function...
 
 	return p; // Return the shader program handle
 }
@@ -329,7 +305,6 @@ TEST(OpenGL_UT, CreateOpenGLShaderApplicationWithoutExceptions)
 
 	if  ( hWindow == NULL ) 
 	{
-		std::cout << "Get down!! (╯°□°)–︻╦╤─ – – –" << std::endl;
 		exit(-1);
 	}
 
@@ -345,7 +320,6 @@ TEST(OpenGL_UT, CreateOpenGLShaderApplicationWithoutExceptions)
 
 	if  ( hWindow == NULL ) 
 	{
-		std::cout << "Draw!! (╯°□°)–︻╦╤─ – – –" << std::endl;
 		exit(-1);
 	}
 
@@ -368,4 +342,3 @@ TEST(OpenGL_UT, CreateOpenGLShaderApplicationWithoutExceptions)
 	SDL_DestroyWindow( hWindow );
         SDL_Quit( );
 }
-#endif

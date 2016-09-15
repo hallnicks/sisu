@@ -28,18 +28,19 @@ class memblock_UT : public context
 
 TEST(memblock_UT, memout)
 {
-	uint8_t * block = new uint8_t[ 300 ];
+#define BLOCK_SIZE 304
+	uint8_t * block = new uint8_t[ BLOCK_SIZE ];
 
 	unsigned int c;
 
-	for ( unsigned int i = 0; i < 300; ++i )
+	for ( unsigned int i = 0; i < BLOCK_SIZE; ++i )
 	{
 		c = std::clock( );
 
 		block[ i ] = rand( ) % 0xFF;
 	}
 
-	std::cout << memblock( block, 300 ) << std::endl;
+	std::cout << memblock( block, BLOCK_SIZE ) << std::endl;
 
 	delete[] block;
 }

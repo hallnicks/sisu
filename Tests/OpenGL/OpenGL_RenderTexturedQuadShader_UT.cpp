@@ -1,18 +1,14 @@
 #if 0
 #include "test.hpp"
-#include <string>
+#include <string> 
 #include <iostream>
 
-#ifndef __linux__
-#include <Windows.h>
+#ifndef __linux__ 
+#include <Windows.h> 
 #endif
 
 #include <SDL2/SDL.h>
 
-/*This source code copyrighted by Lazy Foo' Productions (2004-2015)
-and may not be redistributed without written permission.*/
-
-//Using SDL, SDL OpenGL, GLEW, standard IO, and strings
 #include <GL/glew.h>
 #include <SDL_opengl.h>
 #include <GL/glut.h>
@@ -21,22 +17,7 @@ and may not be redistributed without written permission.*/
 #include <iostream>
 #include <fstream>
 
-// Windows specific: Uncomment the following line to open a console window for debug output
-#if _DEBUG
-#pragma comment(linker, "/subsystem:\"console\" /entry:\"WinMainCRTStartup\"")
-#endif
-
-// Simple OpenGL GLM/SDL demo
-// Renders a rotating pyramid, showing 3 of 4 sides (allowing back faces to be seen)
-
-// Using the gl3.h header (from http://www.opengl.org/registry/) can limit code to the core profile only
-// GLEW is required on Windows but prob not on Linux or OSX Lion. On those platforms you should
-// uncomment the next two lines and then comment out the following line. 
-//#define GL3_PROTOTYPES 1
-//#include <GL3/gl3.h>
-#include <GL/glew.h>
-
-#include <SDL.h>
+#include <SDL2/SDL_opengl.H>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -53,315 +34,278 @@ class OpenGL_RenderTexturedQuadShader_UT : public context
 		void Down( ) { }
 };
 
+
+namespace {
+	char const * SAMPLE_NAME = "www.g-truc.net - OpenGL 3: Image Rectangle";	
+	GLint const SAMPLE_MAJOR = 3;
+	GLint const SAMPLE_MINOR = 1;
+	char const * VERTEX_SHADER_SOURCE = "resources/texture-rect.vert";
+	char const * FRAGMENT_SHADER_SOURCE = "resources/texture-rect.frag";
+	char const * TEXTURE_DIFFUSE = "resources/kueken640-rgb8.tga";
+
+	struct vertex
+	{
+		vertex
+		(
+			glm::vec2 const & Position,
+			glm::vec2 const & Texcoord
+		) :
+			Position(Position),
+			Texcoord(Texcoord)
+		{}
+
+		glm::vec2 Position;
+		glm::vec2 Texcoord;
+	};
+
+	GLsizei const VertexCount = 6;
+
+	GLsizeiptr const VertexSize = VertexCount * sizeof(vertex);
+
+	vertex const VertexData[VertexCount] =
+	{
+		vertex(glm::vec2(-2.0f,-1.5f), glm::vec2(0.0f, 480.0f)),
+		vertex(glm::vec2( 2.0f,-1.5f), glm::vec2(640.0f, 480.0f)),
+		vertex(glm::vec2( 2.0f, 1.5f), glm::vec2(640.0f, 0.0f)),
+		vertex(glm::vec2( 2.0f, 1.5f), glm::vec2(640.0f, 0.0f)),
+		vertex(glm::vec2(-2.0f, 1.5f), glm::vec2(0.0f, 0.0f)),
+		vertex(glm::vec2(-2.0f,-1.5f), glm::vec2(0.0f, 480.0f))
+	};
+
+
+	class sample : SDLTest
+	{
+	public:
+		sample(std::string const & Name, glm::ivec2 const & WindowSize);
+		virtual ~sample();
+	
+		bool check() const;
+	    	void begin(glm::ivec2 const & WindowSize);
+	    	void end();
+	    	void render();
+		virtual void run( ) {
+			render( ); 
+		}
+
+	
+	private:
+		void initProgram();
+		void initArrayBuffer();
+		void initTexture2D();
+
+		GLuint ProgramName;
+	
+		GLuint BufferName;
+		GLuint AttribPosition;
+		GLuint AttribTexcoord;
+		GLuint TextureRectName;
+
+		GLuint UniformMVP;
+		GLuint UniformDiffuse;
+	};
+
+
+
 } // namespace
 
-GLuint shaderprogram;
-GLuint vao, vbo[2]; 
-float r = 0;
+//**********************************
+// OpenGL 3: Image Rectangle
+// 28/08/2009
+//**********************************
+// Christophe Riccio
+// christophe.riccio@g-truc.net
+//**********************************
+// G-Truc Creation
+// www.g-truc.net
+//**********************************
 
-const char* loadFile(const char * fname)
+}
+
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+
+sample::sample( std::string const & Name, glm::ivec2 const & WindowSize )
 {
-	int size;
-	char * memblock;
+	;
+}
 
-	std::ifstream file( fname, std::ios::in | std::ios::binary | std::ios::ate );
+sample::~sample()
+{
+	;
+}
 
-	if ( file.is_open() )
-	{
-		size = (int) file.tellg(); // get location of file pointer i.e. file size
-		memblock = new char [size+1]; // create buffer with space for null char
-		file.seekg (0, std::ios::beg);
-		file.read (memblock, size);
-		file.close();
-		memblock[size] = 0;
-		std::cout << "file " << fname << " loaded" << std::endl;
-	}
-	else
-	{
-		std::cout << "Unable to open file " << fname << std::endl;
-		exit(-1);
-	}
-	return memblock;
+bool sample::check() const
+{
+	GLint MajorVersion = 0;
+	GLint MinorVersion = 0;
+	glGetIntegerv( GL_MAJOR_VERSION, &MajorVersion );
+	glGetIntegerv( GL_MINOR_VERSION, &MinorVersion );
+	bool Version = MajorVersion == SAMPLE_MAJOR && MinorVersion >= SAMPLE_MINOR;
+	return Version;
+}
+
+void sample::begin( glm::ivec2 const & WindowSize )
+{
+	// TODO: implement windowsize
+	initProgram( );
+	initArrayBuffer( );
+	initTexture2D( );
+}
+
+void sample::end( )
+{
+	glDeleteBuffers( 1, &BufferName );
+	glDeleteProgram( ProgramName );
+	glDeleteTextures( 1, &TextureRectName );
 }
 
 
-// Something went wrong - print SDL error message and quit
-void exitFatalError(const char * message)
+void sample::render()
 {
-    std::cout << message << " ";
-	std::cout << SDL_GetError();
-    SDL_Quit();
-    exit( -1 );
+	// Compute the MVP (Model View Projection matrix)
+	glm::mat4 Projection 	= glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+	glm::mat4 ViewTranslate = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+	glm::mat4 ViewRotateX 	= glm::rotate(ViewTranslate, 0.0f, glm::vec3(-1.f, 0.0f, 0.0f));
+	glm::mat4 View 		= glm::rotate(ViewRotateX, 0.0f, glm::vec3(0.f, 1.f, 0.f));
+	glm::mat4 Model 	= glm::mat4(1.0f);
+	glm::mat4 MVP 		= Projection * View * Model;
+
+	glViewport(0, 0, 640, 480);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	// Bind the program for use
+	glUseProgram(ProgramName);
+
+	glUniformMatrix4fv(UniformMVP, 1, GL_FALSE, &MVP[0][0]);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_RECTANGLE, TextureRectName);
+
+	glBindBuffer(GL_ARRAY_BUFFER, BufferName);
+	glVertexAttribPointer(AttribPosition, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), BUFFER_OFFSET(0));
+	glVertexAttribPointer(AttribTexcoord, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), BUFFER_OFFSET(sizeof(glm::vec2)));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glEnableVertexAttribArray(AttribPosition);
+	glEnableVertexAttribArray(AttribTexcoord);
+		glDrawArrays(GL_TRIANGLES, 0, VertexCount);
+	glDisableVertexAttribArray(AttribTexcoord);
+	glDisableVertexAttribArray(AttribPosition);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_RECTANGLE, 0);
 }
 
-
-// Set up rendering context
-void setupRC( SDL_Window * & window, SDL_GLContext &context)
+void sample::initProgram()
 {
-	if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) // Initialize video
-	{
-	        exitFatalError("Unable to initialize SDL"); 
-	}
+	// Compile a shader
+	GLuint VertexShaderName = 0;
 
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
- 
-        SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );  // double buffering on
+	std::string Source0 = ""; //glf::loadFile(VERTEX_SHADER_SOURCE);
+	char const * Source = Source0.c_str();
+	VertexShaderName = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(VertexShaderName, 1, &Source, NULL);
+	glCompileShader(VertexShaderName);
 
-	// Turn on x4 multisampling anti-aliasing (MSAA)
-	SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 1 );
-	SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 4 );
- 
-    	window = SDL_CreateWindow( "SDL VAO Shader Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-				   800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS );
-	if ( window == NULL ) 
-	{
-        	exitFatalError("Unable to create window");
-	}
- 
-	SDL_MaximizeWindow( window );
+	// Compile a shader
+	GLuint FragmentShaderName = 0;
 
-    	context = SDL_GL_CreateContext( window ); // Create opengl context and attach to window
- 
-   	SDL_GL_SetSwapInterval( 1 ); // set swap buffers to sync with monitor's vertical refresh rate
+	Source0 = ""; //TODO glf::loadFile(FRAGMENT_SHADER_SOURCE);
+	Source = Source0.c_str();
+	FragmentShaderName = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(FragmentShaderName, 1, &Source, NULL);
+	glCompileShader(FragmentShaderName);
 
-	if ( window == NULL ) 
-	{
-		std::cout <<" Why you do this? ლ(ಠ益ಠლ)" << std::endl;
-		exit( -1 );
-	} 
-	else
-	{
-		std::cout << "Window still not null." << std::endl;
-	}
-}
+	// Link a program
+	ProgramName = glCreateProgram();
+	glAttachShader(ProgramName, VertexShaderName);
+	glAttachShader(ProgramName, FragmentShaderName);
+	glDeleteShader(VertexShaderName);
+	glDeleteShader(FragmentShaderName);
+	glBindFragDataLocation(ProgramName, 0, "FragColor");
+	glLinkProgram(ProgramName);
 
-// printShaderError
-// Display (hopefully) useful error messages if shader fails to compile or link
-void printShaderError(GLint shader)
-{
-	int maxLength = 0;
-	int logLength = 0;
-	GLchar *logMessage;
-
-	// Find out how long the error message is
-	if (glIsShader(shader))
-		glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
-	else
-		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
-
-	if (maxLength > 0) // If message has length > 0
-	{
-		logMessage = new GLchar[maxLength];
-		if (glIsShader(shader))
-			glGetProgramInfoLog(shader, maxLength, &logLength, logMessage);
-		else
-			glGetShaderInfoLog(shader,maxLength, &logLength, logMessage);
-		std::cout << "Shader Info Log:" << std::endl << logMessage << std::endl;
-		delete [] logMessage;
-	}
-}
-
-
-GLuint initShaders(const char * vertFile, const char *fragFile)
-{
-	GLuint p, f, v;	// Handles for shader program & vertex and fragment shaders
-
-	v = glCreateShader(GL_VERTEX_SHADER); // Create vertex shader handle
-	f = glCreateShader(GL_FRAGMENT_SHADER);	// " fragment shader handle
-
-	const char *vertSource = loadFile(vertFile); // load vertex shader source
-	const char *fragSource = loadFile(fragFile);  // load frag shader source
+	UniformMVP = glGetUniformLocation(ProgramName, "MVP");
+	UniformDiffuse = glGetUniformLocation(ProgramName, "Diffuse");
+	AttribPosition = glGetAttribLocation(ProgramName, "Position");
+	AttribTexcoord = glGetAttribLocation(ProgramName, "Texcoord");
 	
-	// Send the shader source to the GPU
-	// Strings here are null terminated - a non-zero final parameter can be
-	// used to indicate the length of the shader source instead
-	glShaderSource(v, 1, &vertSource,0);
-	glShaderSource(f, 1, &fragSource,0);
-	
-	GLint compiled, linked; // return values for checking for compile & link errors
+	// Bind the program for use
+	glUseProgram(ProgramName);
 
-	// compile the vertex shader and test for errors
-	glCompileShader(v);
-	glGetShaderiv(v, GL_COMPILE_STATUS, &compiled);
-	if (!compiled)
+	// Set uniform value
+	glUniform1i(UniformDiffuse, 0);
+
+	// Unbind the program
+	glUseProgram(0);
+}
+
+void sample::initArrayBuffer()
+{
+	glGenBuffers( 1, &BufferName) ;
+	glBindBuffer( GL_ARRAY_BUFFER, BufferName );
+	glBufferData( GL_ARRAY_BUFFER, VertexSize, VertexData, GL_STATIC_DRAW );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+}
+
+void sample::initTexture2D()
+{
+	GLint TextureSize = 0;
+	glGetIntegerv(GL_MAX_RECTANGLE_TEXTURE_SIZE, &TextureSize);
+
+	glGenTextures(1, &TextureRectName);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_RECTANGLE, TextureRectName);
+
+	// Set filter
+	glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);	//Only: GL_CLAMP, GL_CLAMP_TO_EDGE, and CLAMP_TO_BORDER
+	glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);	//Only: GL_CLAMP, GL_CLAMP_TO_EDGE, and CLAMP_TO_BORDER
+
+	// Set image
+	//gli::image Image = gli::loadImage(TEXTURE_DIFFUSE);
+
+
+	for(std::size_t Level = 0; Level < 3/*Image.levels()*/; ++Level)
 	{
-		std::cout << "Vertex shader not compiled." << std::endl;
-		printShaderError(v);
-	} 
-
-	// compile the fragment shader and test for errors
-	glCompileShader(f);
-	glGetShaderiv(f, GL_COMPILE_STATUS, &compiled);
-	if (!compiled)
-	{
-		std::cout << "Fragment shader not compiled." << std::endl;
-		printShaderError(f);
-	} 
-	
-	p = glCreateProgram(); 	// create the handle for the shader program
-	glAttachShader(p,v); // attach vertex shader to program
-	glAttachShader(p,f); // attach fragment shader to program
-
-	glBindAttribLocation(p,0,"in_Position"); // bind position attribute to location 0
-	glBindAttribLocation(p,1,"in_Color"); // bind color attribute to location 0
-
-	glLinkProgram(p); // link the shader program and test for errors
-	glGetProgramiv(p, GL_LINK_STATUS, &linked);
-
-    	if(!linked)
-	{
-		std::cout << "Program not linked." << std::endl;
-		printShaderError(p);
+		glTexImage2D(
+			GL_TEXTURE_RECTANGLE, 
+			GLint(Level), 
+			GL_RGB, 
+			1,//GLsizei(Image[Level].width()), 
+			1,//GLsizei(Image[Level].height()), 
+			//GLsizei(1), //depth
+			0,  
+			GL_RGB, 
+			GL_UNSIGNED_BYTE, 
+			NULL//Image[Level].data()
+			);
 	}
-
-	glUseProgram(p);  // Make the shader program the current active program
-
-	delete [] vertSource; // Don't forget to free allocated memory
-	delete [] fragSource; // We allocated this in the loadFile function...
-
-	return p; // Return the shader program handle
-}
-
-void init( void )
-{
-	const GLfloat pyramid[15] = {     // a simple pyramid
-		0.0, 0.5, 0.0, // top
-		-1.0,  -0.5, 1.0, // front bottom left
-		1.0, -0.5, 1.0, // front bottom right
-		1.0,  -0.5, -1.0, // back bottom right
-		-1.0, -0.5, -1.0 }; // back bottom left
-	const GLfloat colors[15] = {
-		0.0,  0.0,  0.0, // black
-		1.0,  0.0,  0.0, // red
-		0.0,  1.0,  0.0, // green
-		0.0,  0.0,  1.0, // blue
-		1.0,  1.0,  0.0 }; // yellow
-
-
-	shaderprogram = initShaders( "simple.vert","simple.frag" ); // Create and start shader program
-	glGenVertexArrays( 1, &vao ); // allocate & assign a Vertex Array Object (VAO)
-	glBindVertexArray( vao ); // bind VAO as current object
-	glGenBuffers( 2, vbo ); // allocate two Vertex Buffer Objects (VBO)
-
-    	glBindBuffer( GL_ARRAY_BUFFER, vbo[0] ); // bind first VBO as active buffer object
-    	// Copy the vertex data from diamond to our VBO
-    	// 15 * sizeof(GLfloat) is the size of the pyramid array, since it contains 15 GLfloat values 
-    	glBufferData( GL_ARRAY_BUFFER, 15 * sizeof(GLfloat), pyramid, GL_STATIC_DRAW );
-	// Specify that position data is going into attribute index 0, and contains three floats per vertex
- 	glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-    	glEnableVertexAttribArray( 0 );     // Enable attribute index 0 (position)
- 
-	glBindBuffer( GL_ARRAY_BUFFER, vbo[1] ); // bind second VBO as active buffer object
-    	// Copy the color data from colors to our buffer
-    	// 15 * sizeof(GLfloat) is the size of the colors array, since it contains 15 GLfloat values
-   	glBufferData( GL_ARRAY_BUFFER, 15 * sizeof(GLfloat), colors, GL_STATIC_DRAW );
-	// Specify that our color data is going into attribute index 1, and contains three floats per vertex 
-	glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, 0, 0 );
-	glEnableVertexAttribArray( 1 );    // Enable attribute index 1 (color)
-
-	// OpenGL is state based - we normally need to keep references to shader, VAO, VBO, etc., to allow
-	// swapping between different ones. In this program there is only one shader program and one VAO
-
-	glEnable( GL_DEPTH_TEST ); // enable depth testing
-	glEnable( GL_CULL_FACE ); // enable back face culling - try this and see what happens!
-}
-
-
-void draw( SDL_Window * window )
-{
-	if ( window == NULL )
-	{
-		std::cout << "Window was null." << std::endl;
-		exit(-1);
-	}
-
-        glClearColor(1.0, 1.0, 1.0, 1.0); 
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ); 
-
-	// Create perspective projection matrix
-
-	glm::mat4 projection = glm::perspective(45.0f, 4.0f / 3.0f, 1.0f, 100.f);
-
-	// Apply model view transformations
-	glm::mat4 identity( 1.0 ); 
-	glm::mat4 translation = glm::translate( identity, glm::vec3( 0.0f, 0.0f, -4.0f ) );
-	glm::mat4 rotation = glm::rotate( translation, r, glm::vec3( 0.0f, 1.0f, 0.0f ) );
-	glm::mat4 MVP = projection * rotation;  // Calculate final MVP matrix
-
-	// pass MVP as uniform into shader
-	int mvpIndex = glGetUniformLocation( shaderprogram, "MVP" );
-	glUniformMatrix4fv( mvpIndex, 1, GL_FALSE, glm::value_ptr( MVP ) ); 
-
-        glDrawArrays( GL_TRIANGLE_FAN, 0, 5 ); // draw the pyramid
-
-	r+=0.5;
-
-        SDL_GL_SwapWindow( window ); // swap buffers
-}
-
-
-void cleanup( )
-{
-	glUseProgram( 0 );
-	glDisableVertexAttribArray( 0 );
-	glDisableVertexAttribArray( 1 );
-	glDeleteProgram( shaderprogram );
-	glDeleteBuffers( 2, vbo );
-	glDeleteVertexArrays( 1, &vao );
-	// TODO: detach shaders
 }
 
 
 // Program entry point - SDL manages the actual WinMain entry point for us
 TEST(OpenGL_RenderTexturedQuadShader_UT, CreateOpenGLShaderApplicationWithoutExceptions)
 {  
-	SDL_Window * hWindow;
-	SDL_GLContext glContext; 
- 
+	glm::ivec2 ScreenSize = glm::ivec2(640, 480);
 
-	setupRC( hWindow, glContext ); 
+	sample Sample(SAMPLE_NAME, ScreenSize);
 
-	if  ( hWindow == NULL ) 
+	if( Sample.check() )
 	{
-		std::cout << "Get down!! (╯°□°)–︻╦╤─ – – –" << std::endl;
-		exit(-1);
-	}
+		Sample.begin(ScreenSize);
+		while (1)
+		{
+			Sample.run();
+		}
 
-	GLenum err = glewInit( );
-
-	if ( GLEW_OK != err )
-	{
-		std::cout << "glewInit failed, aborting." << std::endl;
-		exit (1);
+		Sample.end();
 	}
 
 
 
-	if  ( hWindow == NULL ) 
-	{
-		std::cout << "Draw!! (╯°□°)–︻╦╤─ – – –" << std::endl;
-		exit(-1);
-	}
-
-	init( );
-
-	bool running = true; 
-	SDL_Event sdlEvent; 
-
-
-	for(int i = 0; i < 300; ++i)	
-	{
-
-		draw( hWindow ); 
-	}
-
-	cleanup( );
-
-    
-	SDL_GL_DeleteContext( glContext );
-	SDL_DestroyWindow( hWindow );
-        SDL_Quit( );
+	BLOCK_EXECUTION;
 }
-
 #endif

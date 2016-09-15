@@ -39,7 +39,7 @@ static void memout( uint8_t * xStart
                         {
                                 uint32_t xDP = xColumnWidth - print;
 
-                                if ( xDP != 0 ) { do { xOut << ".. "; } while( --xDP != 0 ); }
+                                if ( xDP != 0 ) { do { xOut << ". "; } while( --xDP != 0 ); }
 
                                 xOut << "  ";
 
@@ -47,14 +47,15 @@ static void memout( uint8_t * xStart
                                 {
                                         if ( k < xLength )
                                         {
-                                                uint8_t a = xStart[ k ];
+                                                uint8_t a = xStart[ k ] == '\n' ? '_' : xStart[ k ]; // TODO: Better replacement for newline char, ideally uinicode NL 
+
                                                 xOut    << space
-                                                        << static_cast<uint8_t>( a > 0x20 && a < 0x7F  ? a : period )
+                                                        << static_cast<uint8_t>( a > 0x20 && a < 0x7F ? a : period )
                                                         << space;
                                         }
                                         else
                                         {
-                                                xOut << " . ";
+                                                xOut << " ? ";
                                         }
 
                                 }

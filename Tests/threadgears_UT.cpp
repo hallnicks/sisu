@@ -52,7 +52,8 @@ int vanillaFunction(const char * xMessage) {
 
 	CREATESINK(int, const char *, sink);
 
-	typedef gear<int, const char *> MultithreadedCout;
+typedef gear<int32_t, const char *> MultithreadedCout;
+typedef gear<int32_t, uint8_t > screenfiller;
 
 TEST(tg_UT, MutexTrivial)
 {
@@ -61,10 +62,20 @@ TEST(tg_UT, MutexTrivial)
 	m.unlock( );
 }
 
-TEST(tg_UT, MutexLambdas)
-{
-	mutex m;
+TEST(tg_UT, InsaneLambda) 
+{ 
+	screenfiller( [&]( uint8_t const xChar ) -> int32_t
+						{ for (int i = 0; i < 5000; ++i) { std::cout << xChar; }
+							} )('a')('b')('c')('d')('e')('f')('g')
+					   ('h')('i')('j')('k')('l')('m')('n')
+					   ('o')('p')('q')('r')('s')('t')('u')
+					   ('v')('w')('x')('y')('z');
+}
 
+
+TEST(tg_UT, MutexLambdas) {
+
+	mutex m;
 	bool isDone = false;
 
 	std::vector<std::string> strings;
@@ -174,7 +185,7 @@ TEST(tg_UT, ThreadLambdaCute1)
 TEST(tg_UT, ThreadLambdaCute2)
 {
 	{
-		MultithreadedCout( [&](const char * xPtr ) -> int {  std::cout << "cute " << xPtr <<  std::endl; return 0; } )( "Hello, world." );
+		MultithreadedCout( [&](const char * xPtr ) -> int {  std::cout << "cute " << xPtr << std::endl; return 0; } )( "Hello, world." );
 	}
 	std::cout << "scope cleared." << std::endl;
 }
