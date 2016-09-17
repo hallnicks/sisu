@@ -11,13 +11,32 @@
 
 //    You should have received a copy of the GNU General Public License
 //    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
+#include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 
 namespace sisu {
+
+        inline GLfloat _randomGLfloat( )
+        {
+		return static_cast <GLfloat> ( rand( ) ) / static_cast <GLfloat> ( RAND_MAX );
+        }
+
+	void _printGLProgramLog( GLuint const xProgram );
+	void _printGLShaderLog( GLuint const xProgram );
+
+	struct OpenGLAttributes
+	{
+		uint8_t  const mMajorGLVersion;
+		uint8_t  const mMinorGLVersion;
+		uint32_t const mSwapInterval;
+		bool 	 const mDoubleBufferingEnabled;
+		bool 	 const mMultisampleBufferingEnabled;
+	};
+
         class SDLTestWindow
         {
-                void _setOpenGLAttributes( );
+                void _setOpenGLAttributes( OpenGLAttributes const & xAttributes ); 
 
                 static void _checkSDLError( );
 
@@ -25,12 +44,14 @@ namespace sisu {
 	                SDL_Window * mMainWindow;
 
 	                SDL_GLContext mMainContext;
+	
+			void _stealContext( );
 
                 public:
                         SDLTestWindow( );
                         ~SDLTestWindow( );
 
-                        virutal void initialize( int const xSwapInterval );
+                        virtual void initialize( OpenGLAttributes const & xAttributes );
 
         	        virtual void run() = 0;
 	}; // class

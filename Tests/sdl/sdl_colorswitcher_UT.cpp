@@ -17,31 +17,19 @@ using namespace sisu;
 namespace
 {
 
-class sdl_UT : public context
+class sdl_colorswitcher_UT : public context
 {
 	public:
-		sdl_UT( ) : context( ) { }
+		sdl_colorswitcher_UT( ) : context( ) { }
 		void Up( ) { }
 		void Down( ) { }
 };
 
 class SDLColorSwitcher : public SDLTestWindow
 {
-
-	        inline static GLfloat _randomGLfloat( )
-	        {
-	                return static_cast <GLfloat> (rand()) / static_cast <GLfloat> (RAND_MAX);
-	        }
-
-                GLfloat mR, mG, mB, mA;
-
 		public:
 			SDLColorSwitcher( )
 				: SDLTestWindow( )
-			        , mR( _randomGLfloat( ) )
-			        , mG( _randomGLfloat( ) )
-			        , mB( _randomGLfloat( ) )
-			        , mA( _randomGLfloat( ) )
 			{
 				;
 			}
@@ -72,14 +60,11 @@ class SDLColorSwitcher : public SDLTestWindow
 				                std::cout << "Failed to get window focus." << std::endl;
 				                exit( -1 );
 				        }
-								
 
-					mR = _randomGLfloat( );
-				        mG = _randomGLfloat( );
-					mB = _randomGLfloat( );
-					mA = _randomGLfloat( );
-
-					glClearColor( mR, mG, mB, mA );
+					glClearColor( _randomGLfloat( )
+						    , _randomGLfloat( )
+						    , _randomGLfloat( )
+						    , _randomGLfloat( ) );
 
 					glClear( GL_COLOR_BUFFER_BIT );
 
@@ -91,7 +76,7 @@ class SDLColorSwitcher : public SDLTestWindow
 } // namespace
 
 
-TEST(sdl_UT, CreateSDLWindowWithoutExceptions)
+TEST(sdl_colorswitcher_UT, CreateSDLWindowWithoutExceptions)
 {
 
 	SDLColorSwitcher test;

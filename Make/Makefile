@@ -13,14 +13,14 @@ TARGET_NAME  := sisu sisuTest
 TARGET_LIBS  += pthread # rt # for when renabled test
 
 #This is now windows specific. Need to test on linux again.
-TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp
+TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp png z
 
 # for SDL
 SDL_CONFIG   := sdl2-config --prefix=/usr
 CXXFLAGS     += $(shell $(SDL_CONFIG) --cflags)
 LDFLAGS      += $(shell $(SDL_CONFIG) --libs)
 
-#for freeglut
+#for freeglut (Again, note windows dependency.)
 FREEGLUT_FLAGS  := -Wl,--subsystem,windows
 CXXFLAGS 	+= $(FREEGLUT_FLAGS)
 LDFLAGS		+= $(FREEGLUT_FLAGS)
@@ -30,6 +30,9 @@ CXXFLAGS     += -I/usr/include
 
 # for GLM
 CXXFLAGS     += -I/usr/local/include
+
+# for libPNG
+LDFLAGS      += -L/usr/local/lib
 
 SOURCE_DIRS   := ../Source ../Tests
 
