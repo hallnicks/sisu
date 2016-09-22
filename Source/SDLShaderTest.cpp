@@ -32,7 +32,7 @@ void SDLShader::initialize( )
 
 		glGetShaderiv( shader, GL_COMPILE_STATUS, &shaderCompiled );
 
-		if ( shaderCompiled != GL_TRUE ) 
+		if ( shaderCompiled != GL_TRUE )
 		{
 			std::cout << "Failed to compile shader: " << std::endl << xSource << std::endl;
 
@@ -105,12 +105,12 @@ SDLShader::~SDLShader( )
 	glDeleteProgram( mProgramID );
 }
 
-SDLTestShaderWindow::~SDLTestShaderWindow( ) 
+SDLTestShaderWindow::~SDLTestShaderWindow( )
 {
 	;
 }
-	
-void SDLTestShaderWindow::render( ) 
+
+void SDLTestShaderWindow::render( )
 {
 	glClear( GL_COLOR_BUFFER_BIT );
 }
@@ -125,22 +125,20 @@ void SDLTestShaderWindow::run( )
 }
 
 SDLShader & SDLShader::operator( )( std::function<void(void)> xLambda )
-{ 
+{
 	glUseProgram( mProgramID );
 	xLambda( );
-	glUseProgram( 0 ); 
+	glUseProgram( 0 );
 	return *this;
-			
 }
 
 SDLTestShaderWindow & SDLTestShaderWindow::operator( )( std::function<void(void)> xLambda )
-{ 
+{
 	mShader( xLambda );
 	return *this;
-			
 }
 
-void SDLTestShaderWindow::initialize( OpenGLAttributes const & xOpenGLAttributes ) 
+void SDLTestShaderWindow::initialize( OpenGLAttributes const & xOpenGLAttributes )
 {
 	SDLTestWindow::initialize( xOpenGLAttributes );
 
@@ -149,7 +147,7 @@ void SDLTestShaderWindow::initialize( OpenGLAttributes const & xOpenGLAttributes
 	_checkForGLError( );
 }
 
-void SDLQuadShader::render( ) 
+void SDLQuadShader::render( )
 {
 	SDLTestShaderWindow::render( );
 	(*this)( [&] ( )
@@ -191,8 +189,9 @@ void SDLQuadShader::initialize( OpenGLAttributes const & xAttributes )
 
 	// TODO: Automate these procedural things so it can be used like a key.
 	// i.e myshaderProgram["LVertexPos2D"] = new value
+	// structure should be map<GLint, std::string> or similar
 	mVertexPos2DLocation = glGetAttribLocation( mShader.getProgramID( ), "LVertexPos2D" );
-	
+
         if( mVertexPos2DLocation == -1 )
     	{
 		std::cerr << "GLSL program variable LVertexPOS2D not found." << std::endl;

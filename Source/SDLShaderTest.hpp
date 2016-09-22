@@ -109,6 +109,143 @@ class SDLQuadShader : public SDLTestShaderWindow
 		virtual void initialize( OpenGLAttributes const & xAttributes );
 };
 
+class RedbookCh03Shader : public SDLTestShaderWindow
+{
+	float mAspect;
+
+	GLuint mVBO, mEBO, mVAO;
+
+	GLint mRenderModelMatrixLoc
+	    , mRenderProjectionMatrixLoc;
+
+	protected:
+		virtual void render( )
+		{
+			SDLTestShaderWindow::render( );
+
+			glm::mat4 model_matrix;
+
+			// Setup
+			glEnable(GL_CULL_FACE);
+			glDisable(GL_DEPTH_TEST);
+
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			// Activate simple shading program
+			mShader([&](){
+
+				// Set up the model and projection matrix
+				glm::mat4 projection_matrix(glm::frustum(-1.0f, 1.0f, -mAspect, mAspect, 1.0f, 500.0f));
+				glUniformMatrix4fv(mRenderProjectionMatrixLoc, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+
+				// Set up for a glDrawElements call
+				glBindVertexArray(mVAO);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
+
+				// Draw Arrays...
+				model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(-3.0f, 0.0f, -5.0f));
+				glUniformMatrix4fv(mRenderModelMatrixLoc, 1, GL_FALSE, glm::value_ptr(model_matrix));
+				glDrawArrays(GL_TRIANGLES, 0, 3);
+
+				// DrawElements
+				model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 0.0f, -5.0f));
+				glUniformMatrix4fv(mRenderModelMatrixLoc, 1, GL_FALSE, glm::value_ptr(model_matrix));
+				glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL);
+
+				// DrawElementsBaseVertex
+				model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(1.0f, 0.0f, -5.0f));
+				glUniformMatrix4fv(mRenderModelMatrixLoc, 1, GL_FALSE, glm::value_ptr(model_matrix));
+				glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL, 1);
+
+				// DrawArraysInstanced
+				model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(3.0f, 0.0f, -5.0f));
+				glUniformMatrix4fv(mRenderModelMatrixLoc, 1, GL_FALSE, glm::value_ptr(model_matrix));
+				glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
+			});
+		}
+	public:
+		RedbookCh03Shader( )
+			: SDLTestShaderWindow( ShaderPathPair("resources/primitive_restart.vs.glsl", "resources/primitive_restart.fs.glsl") )
+			, mAspect( 0.0f )
+			, mVBO( 0 )
+			, mVAO( 0 )
+			, mEBO( 0 )
+			, mRenderModelMatrixLoc( -1 )
+			, mRenderProjectionMatrixLoc( -1 )
+		{
+			;
+		}
+
+		virtual void initialize( OpenGLAttributes const & xAttributes )
+		{
+			SDLTestShaderWindow::initialize( xAttributes );
+
+			mShader([&](){
+
+				mRenderModelMatrixLoc = glGetUniformLocation( mShader.getProgramID( ), "model_matrix" );
+
+				mRenderProjectionMatrixLoc = glGetUniformLocation( mShader.getProgramID( ), "projection_matrix" );
+
+				// A single triangle
+				static const GLfloat vertex_positions[] = {
+									      -1.0f, -1.0f,  0.0f, 1.0f,
+									      1.0f, -1.0f,  0.0f, 1.0f,
+									      -1.0f,  1.0f,  0.0f, 1.0f,
+									      -1.0f, -1.0f,  0.0f, 1.0f,
+				  };
+
+				// Color for each vertex
+				static const GLfloat vertex_colors[] = {
+									      1.0f, 1.0f, 1.0f, 1.0f,
+									      1.0f, 1.0f, 0.0f, 1.0f,
+									      1.0f, 0.0f, 1.0f, 1.0f,
+									      0.0f, 1.0f, 1.0f, 1.0f
+				  };
+
+				// Indices for the triangle strips
+				static const GLushort vertex_indices[] = { 0, 1, 2 };
+
+				// Set up the element array buffer
+				glGenBuffers(1, &mEBO);
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertex_indices), vertex_indices, GL_STATIC_DRAW);
+
+				// Set up the vertex attributes
+				glGenVertexArrays(1, &mVAO);
+				glBindVertexArray(mVAO);
+
+				glGenBuffers(1, &mVBO);
+				glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+				glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_positions) + sizeof(vertex_colors), NULL, GL_STATIC_DRAW);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_positions), vertex_positions);
+				glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertex_positions), sizeof(vertex_colors), vertex_colors);
+
+				glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
+				glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid *)sizeof(vertex_positions));
+				glEnableVertexAttribArray(0);
+				glEnableVertexAttribArray(1);
+
+				glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+				// TODO: Should only do this on resize
+				glViewport(0, 0, mW, mH );
+				mAspect = float(mH)/float(mW);
+			});
+		}
+
+		virtual void run( )
+		{
+			for( int ii = 0; ii < 50000; ++ii )
+			{
+				render( );
+				SDL_GL_SwapWindow( mMainWindow );
+			}
+
+			_hide( );
+		}
+
+};
+
 #define IMPLEMENT_ME std::cerr << __PRETTY_FUNCTION__ << " is not implemented." << std::endl; exit( -1 );
 
 class ModelViewProjectionShader : public SDLShader

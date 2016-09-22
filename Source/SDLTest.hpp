@@ -50,6 +50,8 @@ namespace sisu {
 
 	                int32_t mW, mH;
 
+			void _hide( );
+
 			void _stealContext( );
 
 			virtual void render( ) = 0;

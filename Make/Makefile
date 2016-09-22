@@ -20,6 +20,9 @@ TARGET_LIBS  += png z freetype
 #This is now windows specific. Need to test on linux again. For example, winsock, opengl32, glew32, etc, linked differently.
 TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32
 
+#Extra's for fun (TODO: integrate)
+#TARGET_LIBS += curl twitcurl utp x264
+
 # for SDL
 SDL_CONFIG   := sdl2-config --prefix=/usr
 CXXFLAGS     += $(shell $(SDL_CONFIG) --cflags)

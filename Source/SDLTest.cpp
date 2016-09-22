@@ -10,7 +10,7 @@ void _printGLProgramLog( GLuint const xProgram )
 	if ( !glIsProgram( xProgram ) )
 	{
 		std::cerr << "Parameter was not a valid GL program." << std::endl;
-		exit( -1 ); 
+		exit( -1 );
 	}
 
 	int32_t logLength = 0, maxLength = 0;
@@ -18,14 +18,14 @@ void _printGLProgramLog( GLuint const xProgram )
 	glGetProgramiv( xProgram, GL_INFO_LOG_LENGTH, &maxLength );
 
         char * infoLog = new char[ maxLength ];
-        
+
         glGetProgramInfoLog( xProgram, maxLength, &logLength, infoLog );
 
         if( logLength > 0 )
         {
-		std::cout << infoLog << std::endl; 
+		std::cout << infoLog << std::endl;
         }
-        
+
         delete[] infoLog;
 }
 
@@ -34,7 +34,7 @@ void _printGLShaderLog( GLuint const xShader )
 	if ( !glIsShader( xShader ) )
 	{
 		std::cerr << "Parameter was not a valid GL shader." << std::endl;
-		exit( -1 ); 
+		exit( -1 );
 	}
 
 	int32_t logLength = 0, maxLength = 0;
@@ -42,54 +42,63 @@ void _printGLShaderLog( GLuint const xShader )
 	glGetShaderiv( xShader, GL_INFO_LOG_LENGTH, &maxLength );
 
         char * infoLog = new char[ maxLength ];
-        
+
         glGetShaderInfoLog( xShader, maxLength, &logLength, infoLog );
 
         if( logLength > 0 )
         {
-		std::cout << infoLog << std::endl; 
+		std::cout << infoLog << std::endl;
         }
-        
+
         delete[] infoLog;
 }
 
-void _checkForGLError( ) 
+void _checkForGLError( )
 {
 	GLenum const error = glGetError( );
-	if ( error != GL_NO_ERROR ) 
+	if ( error != GL_NO_ERROR )
 	{
 		std::cerr << "Error in OpenGL: " << error << std::endl;
-		exit( -1 ); 
+		exit( -1 );
 	}
 }
 
-void SDLTestWindow::_setOpenGLAttributes( OpenGLAttributes const & xAttributes )             
+void SDLTestWindow::_setOpenGLAttributes( OpenGLAttributes const & xAttributes )
 {
+	SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
+
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, xAttributes.mMajorGLVersion );
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, xAttributes.mMinorGLVersion );
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK , SDL_GL_CONTEXT_PROFILE_CORE );
 
-	if ( xAttributes.mDoubleBufferingEnabled ) 
+	if ( xAttributes.mDoubleBufferingEnabled )
 	{
 		std::cout << "Enabling double buffering." << std::endl;
 	        SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 	}
 
-	if ( xAttributes.mMultisampleBufferingEnabled ) 
+	if ( xAttributes.mMultisampleBufferingEnabled )
 	{
 		std::cout << "Enabling multisample buffering." << std::endl;
 	        SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 1 );
 	}
 
 	// TODO: add additional attributes as necessary.. eventually make configurable, etc
+	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+}
+
+void SDLTestWindow::_hide( )
+{
+	SDL_SetWindowSize( mMainWindow, 1, 1 );
+	SDL_MinimizeWindow( mMainWindow );
 }
 
 void SDLTestWindow::_stealContext( )
 {
-	if ( mMainWindow == NULL ) 
+	if ( mMainWindow == NULL )
 	{
 		std::cerr << "Cannot steal context because main window was null." << std::endl;
-		exit( -1 ); 
+		exit( -1 );
 	}
 
 	uint32_t const flags = SDL_GetWindowFlags( mMainWindow );
@@ -134,7 +143,6 @@ SDLTestWindow::SDLTestWindow( )
 
 SDLTestWindow::~SDLTestWindow( )
 {
-	SDL_MinimizeWindow( mMainWindow );
 	SDL_GL_DeleteContext( mMainContext );
         SDL_DestroyWindow( mMainWindow );
         SDL_Quit();
@@ -160,7 +168,6 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
                                         , SDL_WINDOW_OPENGL      | SDL_WINDOW_BORDERLESS    |
                                           SDL_WINDOW_SHOWN       | SDL_WINDOW_INPUT_GRABBED |
                                           SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
-                                
 	if( mMainWindow == NULL )
         {
         	std::cout << "SDL_CreateWindow() failed." << std::endl;
@@ -182,6 +189,8 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
 	// Initialize GLEW
 
+	glewExperimental = true;
+
 	GLenum err = glewInit( );
 
 	if ( err != GLEW_OK )
@@ -194,8 +203,7 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 	{
 		std::cerr << "Setup vsync failed." << std::endl;
 		exit( -1 );
-	}	
-
+	}
 }
 
 } // namespace SISU

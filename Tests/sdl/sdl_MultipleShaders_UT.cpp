@@ -38,7 +38,7 @@ TEST(sdl_MultipleShaders_UT, CreateSDLWindowWithoutExceptions)
 	{
 		SDLTexturedFontShader window;
 
-		window.initialize( { 3, 1, 1, false, false } );
+		window.initialize( { 3, 1, 1, true, true } );
 
 		window.run( );
 
