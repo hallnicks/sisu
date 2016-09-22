@@ -5,8 +5,8 @@ stripBaseFolder         = $(subst $(abspath $(PWD)/..)/,,$(abspath $(1)))
 coalesceFiles           = $(foreach dir,$(1),$(foreach ext,$(2),$(call getFiles,$(dir),$(ext))))
 
 coalesceObjects         = $(foreach srcfile,$(2), \
-				$(abspath $(1)/$(call stripBaseFolder,\
-							$(patsubst %.cpp,%.o,$(srcfile)))))
+					$(abspath $(1)/$(call stripBaseFolder,\
+						$(patsubst %.cpp,%.o,$(srcfile)))))
 			
 
 coalesceDirectory	= $(shell mkdir -p $(abspath $(1)) && echo $(abspath $(1)))
@@ -23,6 +23,8 @@ getObjectSource		= $(patsubst %.o,%.cpp,$(1))
 
 touchObjectSource	= $(shell touch $(call getObjectSource,$(1)))
 
-coalesceSources 	= $(foreach dir,$(1),\
+coalesceSources 	= ,$(foreach dir,$(1),\
 				$(foreach ext,$(2),\
 					$(call getFiles,$(dir),$(ext))))
+
+

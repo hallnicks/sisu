@@ -1,5 +1,7 @@
 #include "PNGImage.hpp"
 
+#include <stdio.h>
+
 #include <iostream>
 
 namespace sisu
@@ -28,7 +30,29 @@ void _png_flush_memory( png_structp xPngPointer )
 	p = new _memEncode( );
 }
 
-//unsigned char*, long long unsigned int
+void _png_read_memory( png_structp xPngPointer, png_bytep xData, png_size_t xLength )
+{
+	_memEncode * p = (_memEncode*)png_get_io_ptr( xPngPointer );
+
+	if ( p->buffer == NULL ) 
+	{
+		std::cerr << "_png_read_memory: Source buffer was NULL." << std::endl;
+		exit( -1 ); 
+	}
+
+	// Copy data from parameterized buffer into xData?
+	std::cout << "copy " << p->size << " bytes from " << std::hex << p->buffer 
+					<< " to " << std::hex << xData << std::endl;
+
+	if ( xData == NULL )
+	{ 
+		std::cerr << "Target buffer was NULL." << std::endl;
+		exit( -1 );
+	}
+
+	memcpy( xData, p->buffer, p->size );
+}
+
 void _png_write_memory( png_structp xPngPointer, png_bytep xData, png_size_t xLength )
 {
 	_memEncode * p = (_memEncode*)png_get_io_ptr( xPngPointer );
@@ -58,10 +82,10 @@ void _png_write_memory( png_structp xPngPointer, png_bytep xData, png_size_t xLe
 void PNGImage::_blitToOutputBuffer( )
 {
 	// Reset state of our output buffer
-	if ( mState != NULL )
+	if ( mWriteState != NULL )
 	{
-		delete mState;
-		mState = new _memEncode( );
+		delete mWriteState;
+		mWriteState = new _memEncode( );
 	}
 
 	if ( mPNGWrite == NULL ) 
@@ -105,75 +129,37 @@ void PNGImage::_blitToOutputBuffer( )
 			, PNG_FILTER_TYPE_DEFAULT );
 
 			
-	png_set_write_fn( mPNGWrite, mState, _png_write_memory, _png_flush_memory ); 
+	png_set_write_fn( mPNGWrite, mWriteState, _png_write_memory, _png_flush_memory ); 
 
 	png_write_info( mPNGWrite, mInfoWrite ); 
 
 	png_write_image( mPNGWrite, mRGBBuffer ); // Here we may check if mRGBBuffer changed.
 			
 	png_write_end( mPNGWrite, NULL );
+
+	if ( mPNGWrite != NULL ) 
+	{
+		png_destroy_write_struct( &mPNGWrite, (png_infopp)NULL );
+		mPNGWrite = NULL; 
+	}
+
 }
 
 void PNGImage::_writeDataToStream( std::ofstream & xOfs )
 {
 	_blitToOutputBuffer( ); 
 
-	if ( mState == NULL || mState->buffer == NULL ) 
+	if ( mWriteState == NULL || mWriteState->buffer == NULL ) 
 	{
 		std::cerr << "Buffer was NULL, cannot write." << std::endl;
 		exit( -1 );
 	}
 
-	xOfs.write( &mState->buffer[0], mState->size ); 
+	xOfs.write( &mWriteState->buffer[0], mWriteState->size ); 
 }
 
-PNGImage::PNGImage( const char * xPath ) 
-	: mWidth( 0 )
-	, mHeight( 0 )
-	, mColorType( 0 )
-	, mBitDepth( 0 )
-	, mRGBBuffer( NULL )
-	, mFilename( xPath )
-	, mPNGRead( NULL )
-	, mInfoRead( NULL )
-	, mPNGWrite( NULL )
-	, mInfoWrite( NULL )
-	, mState( new _memEncode( ) )
+void PNGImage::_populateReadStructures( )
 {
-	FILE * fp = fopen( xPath , "rb" );
-	
-	if ( fp == NULL ) 
-	{
-		std::cerr << "File " << xPath << " does not exist." << std::endl;
-		exit( -1 );
-	}
-
-	mPNGRead  = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL ); 
-
-	if ( mPNGRead == NULL ) 
-	{
-		std::cerr << "png_create_read_struct failed." << std::endl;
-		exit( -1 );
-	}
-
-	mInfoRead  = png_create_info_struct( mPNGRead );
-			
-	if ( mInfoRead == NULL ) 
-	{
-		std::cerr << "png_create_info_struct failed." << std::endl;
-		exit( -1 );
-	}
-
-	if ( setjmp( png_jmpbuf( mPNGRead ) ) )
-	{
-		std::cerr << "setjmp( png_jmpbuf( .. ) ) failed." << std::endl;
-		exit( -1 );
-	}
-
-	png_init_io( mPNGRead, fp );
-		
-	png_read_info( mPNGRead, mInfoRead );
-
 	mWidth      = png_get_image_width( mPNGRead, mInfoRead );
 
 	mHeight     = png_get_image_height( mPNGRead, mInfoRead );
@@ -211,19 +197,108 @@ PNGImage::PNGImage( const char * xPath )
 	{
 		png_set_gray_to_rgb( mPNGRead );
 	}
-	
+}
+
+void PNGImage::_initializeReadStructures( )
+{
+	mPNGRead  = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL ); 
+
+	if ( mPNGRead == NULL ) 
+	{
+		std::cerr << "png_create_read_struct failed." << std::endl;
+		exit( -1 );
+	}
+
+	mInfoRead  = png_create_info_struct( mPNGRead );
+			
+	if ( mInfoRead == NULL ) 
+	{
+		std::cerr << "png_create_info_struct failed." << std::endl;
+		exit( -1 );
+	}
+
+	if ( setjmp( png_jmpbuf( mPNGRead ) ) )
+	{
+		std::cerr << "setjmp( png_jmpbuf( .. ) ) failed." << std::endl;
+		exit( -1 );
+	}
+}
+
+void PNGImage::_initializeObject( FILE * xFile )
+{	
+	png_read_info( mPNGRead, mInfoRead );
+
+	_populateReadStructures( );
+
 	png_read_update_info( mPNGRead, mInfoRead );
 
+	_allocateRGBBuffer( png_get_rowbytes( mPNGRead, mInfoRead ) );
+
+	png_read_image( mPNGRead, mRGBBuffer );
+
+	if ( xFile != NULL )
+	{
+		fclose( xFile );
+	}
+}
+
+void PNGImage::_allocateRGBBuffer( png_uint_32 const xRowBytes )
+{
 	mRGBBuffer = ( png_bytep * ) malloc( getRowsSize( ) );
 
 	for( uint32_t y = 0; y < mHeight; y++ ) 
 	{
-		mRGBBuffer[ y ] = ( png_byte* )malloc( png_get_rowbytes( mPNGRead, mInfoRead ) );
+		mRGBBuffer[ y ] = ( png_byte* )malloc( xRowBytes );
+	}
+}
+
+#define CTOR_ARGS(xPath)\
+	: mWidth( 0 )\
+	, mHeight( 0 )\
+	, mColorType( 0 )\
+	, mBitDepth( 0 )\
+	, mRGBBuffer( NULL )\
+	, mFilename( xPath )\
+	, mPNGRead( NULL )\
+	, mInfoRead( NULL )\
+	, mPNGWrite( NULL )\
+	, mInfoWrite( NULL )\
+	, mWriteState( new _memEncode( ) )\
+	, mReadState( new _memEncode( ) )\
+
+PNGImage::PNGImage( _PNGImageDimensions const & xDimensions )
+	CTOR_ARGS("")
+{
+	mWidth  = xDimensions.w; 
+	mHeight = xDimensions.h;
+
+	_allocateRGBBuffer( xDimensions.w * 4 );
+
+	perPixel( [&]( PNGPixel xPixel )
+        {
+        	xPixel.data[0] = 
+                xPixel.data[1] = 
+                xPixel.data[2] =
+                xPixel.data[3] = 0;
+        });
+}
+
+PNGImage::PNGImage( const char * xPath ) 
+	CTOR_ARGS(xPath)
+{
+	FILE * fp = fopen( xPath , "rb" );
+	
+	if ( fp == NULL ) 
+	{
+		std::cerr << "File " << xPath << " does not exist." << std::endl;
+		exit( -1 );
 	}
 
-	png_read_image( mPNGRead, mRGBBuffer );
+	_initializeReadStructures( );
 
-	fclose( fp );
+	png_init_io( mPNGRead, fp );
+
+	_initializeObject( fp ); 
 }
 	
 PNGImage::~PNGImage( ) 
@@ -250,13 +325,8 @@ PNGImage::~PNGImage( )
 		mPNGRead = NULL; 
 	}
 
-	if ( mPNGWrite != NULL ) 
-	{
-		png_destroy_write_struct( &mPNGWrite, (png_infopp)NULL );
-		mPNGWrite = NULL; 
-	}
-
-	delete mState;
+	delete mWriteState;
+	delete mReadState;
 }
 
 PNGImage & PNGImage::operator( ) ( std::function< void( PNGImage & )> xLambda )

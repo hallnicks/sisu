@@ -1,10 +1,10 @@
-
+#if 0
 // This file is part of sisu.
 
-// sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by 
+// sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or // (at your option) any later version.
 
-// sisu is distributed in the hope that it will be useful, // but WITHOUT ANY WARRANTY; without even the implied warranty of // 
+// sisu is distributed in the hope that it will be useful, // but WITHOUT ANY WARRANTY; without even the implied warranty of //
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the // GNU General Public License for more details.
 
 //    You should have received a copy of the GNU General Public License
@@ -30,30 +30,15 @@ class tg_UT : public context
 };
 
 int vanillaFunction(const char * xMessage) {
-	std::cout << xMessage << std::endl; 
+	std::cout << xMessage << std::endl;
 	return 0;
 }
 
 } // namespace
 
 
-#define BLOCKMAIN while(1) { sleep::ms( 100 ) ; std::cout << "Main thread active. "<< std::endl;}
-#define CREATESINK(xReturnType, xParamType, xVarName)\
-	std::function< xReturnType ( xParamType ) > xVarName = []( xParamType xPtr ) -> xReturnType {\
-							std::cout << "In Lambda!" << std::endl;\
-							sleep::ms( 1000 + rand() % 10000 );\
-							std::cout << "Proceeding" << std::endl;\
-							MUSTNEQ(xPtr, NULL);\
-							static int count = 0;\
-							std::cout << static_cast< xParamType >( xPtr ) << ", " << ++count << std::endl;\
-							std::cout << "thread exiting." << std::endl;\
-							return 700;\
-						};
-
-	CREATESINK(int, const char *, sink);
-
-typedef gear<int32_t, const char *> MultithreadedCout;
-typedef gear<int32_t, uint8_t > screenfiller;
+typedef gear<int32_t, const char *>	MultithreadedCout;
+typedef gear<int32_t, uint8_t > 	screenfiller;
 
 TEST(tg_UT, MutexTrivial)
 {
@@ -62,16 +47,15 @@ TEST(tg_UT, MutexTrivial)
 	m.unlock( );
 }
 
-TEST(tg_UT, InsaneLambda) 
-{ 
+TEST(tg_UT, InsaneLambda)
+{
 	screenfiller( [&]( uint8_t const xChar ) -> int32_t
 						{ for (int i = 0; i < 5000; ++i) { std::cout << xChar; }
 							} )('a')('b')('c')('d')('e')('f')('g')
-					   ('h')('i')('j')('k')('l')('m')('n')
-					   ('o')('p')('q')('r')('s')('t')('u')
-					   ('v')('w')('x')('y')('z');
+							   ('h')('i')('j')('k')('l')('m')('n')
+							   ('o')('p')('q')('r')('s')('t')('u')
+							   ('v')('w')('x')('y')('z');
 }
-
 
 TEST(tg_UT, MutexLambdas) {
 
@@ -80,29 +64,30 @@ TEST(tg_UT, MutexLambdas) {
 
 	std::vector<std::string> strings;
 
-	MultithreadedCout g( [&](const char * xPtr ) -> int {  
-								while ( 1 ) 
+	MultithreadedCout g( [&](const char * xPtr ) -> int {
+								while ( 1 )
 								{
 									sleep::ms( 60 );
 
 									bool done = false;
 
-									m.run([&] { 
+									m.run([&] {
 
 										done = isDone;
 
 										std::string message = std::string("background thread" ) + xPtr;
 
 										std::stringstream oss;
+
 										oss << message << rand( ) % 50 << std::endl;
-				
+
 										strings.push_back( oss.str( ) );
-	
+
 									 	std::cout << ccolor( eTTYCGreen, eTTYCBlack, eModNone ) << " backgroound thread still alive !" << std::endl;
-	
+
 										} );
 
-									if ( done ) 
+									if ( done )
 									{
 										break;
 									}
@@ -110,20 +95,20 @@ TEST(tg_UT, MutexLambdas) {
 
 								std::cout << "Background thread exiting." << xPtr << std::endl;
 
-								return 0; 
+								return 0;
 							    } );
 
 	g("O")("D")("is")("great");
 
 	int count = 0;
 
-	while( 1 ) 
+	while( 1 )
 	{
 		sleep::ms(30);
 
-		m.run([&] 
+		m.run([&]( )
 			{
-				if ( strings.size( ) > 0 ) 
+				if ( strings.size( ) > 0 )
 				{
 					std::cout << ccolor( eTTYCYellow, eTTYCBlack, eModNone ) << strings.back( ) << std::endl;
 					strings.pop_back( );
@@ -132,7 +117,10 @@ TEST(tg_UT, MutexLambdas) {
 				{
 					std::cout << ccolor( eTTYCRed, eTTYCBlack, eModNone ) << " empty!" << std::endl;
 				}
-	
+
+			 	std::cout << ccolor( eTTYCRed, eTTYCBlack, eModBlink ) << " Foreground thread still alive !" << std::endl;
+
+
 
 				isDone = ++count > 30;
 			});
@@ -144,6 +132,29 @@ TEST(tg_UT, MutexLambdas) {
 	std::cout << "Mutex lambda test complete." << std::endl;
 }
 
+TEST(tg_UT, EventTrivial1)
+{
+	event e;
+
+	gear<uint8_t, const char*> g([&] ( const char * xLabel)
+	{
+		std::cout << xLabel << std::endl;
+		sleep::ms( 255 + rand( ) % 1000 );
+		e.set( );
+		return 0;
+	});
+
+	g("Main setter.");
+
+	do
+	{
+		std::cout << "Waiting for set." << std::endl;
+	} while (!e.isSet( ));
+
+	std::cout << "Set!" << std::endl;
+}
+
+
 TEST(tg_UT, LambdaTrivial)
 {
 	// establish some basic lambda functionality 
@@ -152,30 +163,63 @@ TEST(tg_UT, LambdaTrivial)
 }
 
 TEST(tg_UT, ThreadTrivial)
-{	
+{
 	// Make sure it works with vanilla functions
 	{
 		MultithreadedCout t1( &vanillaFunction );
 
 		t1( "Hello" );
-		t1( "There" ); 
-		t1( "This"  ); 
-		t1( "Hurts" ); 
-	
+		t1( "There" );
+		t1( "This"  );
+		t1( "Hurts" );
+
 		t1.join( );
-	
+
 		while( t1.size( ) > 0 ) {
 			std::cout << "Result= " << *t1 << std::endl; }
 	}
-	
+
 	std::cout << "Scope cleared " << std::endl;
+}
+
+TEST(tg_UT, ThreadCreatesThreads)
+{
+	{
+		mutex m;
+
+		static uint32_t results = 0;
+
+		MultithreadedCout g( [&](const char * xPtr ) -> int
+			{
+				m.lock( );
+				std::cout << "locked: " << xPtr <<  std::endl;
+				++results;
+				m.unlock( );
+				return results;
+			} );
+
+		g( "Hello, world."    )
+		 ( "Hello, user."     )
+		 ( "Hello, Children." )
+		 ( "Hello, Sun."      )
+		 ( "Hello, Moon."     );
+
+		g.join( );
+
+		MUSTEQ(g.size( ), 5);
+
+		while( g.size( ) > 0 )
+		{
+			std::cout << "Result= " << *g << std::endl;
+		}
+	}
 }
 
 TEST(tg_UT, ThreadLambdaCute1)
 {
 	MultithreadedCout g( [&](const char * xPtr ) -> int {  std::cout << "cute " << xPtr <<  std::endl; return 0; } );
 	g( "Hello, world." );
-	
+
 	g.join( );
 	while( g.size( ) > 0 ) {
 		std::cout << "Result= " << *g << std::endl; }
@@ -189,3 +233,4 @@ TEST(tg_UT, ThreadLambdaCute2)
 	}
 	std::cout << "scope cleared." << std::endl;
 }
+#endif

@@ -51,7 +51,16 @@ void _printGLShaderLog( GLuint const xShader )
         }
         
         delete[] infoLog;
+}
 
+void _checkForGLError( ) 
+{
+	GLenum const error = glGetError( );
+	if ( error != GL_NO_ERROR ) 
+	{
+		std::cerr << "Error in OpenGL: " << error << std::endl;
+		exit( -1 ); 
+	}
 }
 
 void SDLTestWindow::_setOpenGLAttributes( OpenGLAttributes const & xAttributes )             
@@ -104,11 +113,11 @@ void SDLTestWindow::_stealContext( )
 	       }
         }
 }
-                
+
 void SDLTestWindow::_checkSDLError( )
 {
 	std::string const error = SDL_GetError();
-	
+
 	if ( error != "" )
         {
         	std::cout << "SDL Error : " << error << std::endl;
@@ -123,12 +132,12 @@ SDLTestWindow::SDLTestWindow( )
 	;
 }
 
-                        
 SDLTestWindow::~SDLTestWindow( )
 {
+	SDL_MinimizeWindow( mMainWindow );
 	SDL_GL_DeleteContext( mMainContext );
         SDL_DestroyWindow( mMainWindow );
-        SDL_Quit();                        
+        SDL_Quit();
 }
 
 void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
@@ -160,6 +169,8 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 	}
 
 	_stealContext( ); 
+
+        SDL_GetWindowSize( mMainWindow, &mW, &mH );
 
         mMainContext = SDL_GL_CreateContext( mMainWindow );
 

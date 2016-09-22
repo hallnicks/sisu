@@ -14,6 +14,7 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
+#include <functional>
 
 namespace sisu {
 
@@ -24,6 +25,8 @@ namespace sisu {
 
 	void _printGLProgramLog( GLuint const xProgram );
 	void _printGLShaderLog( GLuint const xProgram );
+
+	void _checkForGLError( );
 
 	struct OpenGLAttributes
 	{
@@ -36,7 +39,7 @@ namespace sisu {
 
         class SDLTestWindow
         {
-                void _setOpenGLAttributes( OpenGLAttributes const & xAttributes ); 
+                void _setOpenGLAttributes( OpenGLAttributes const & xAttributes );
 
                 static void _checkSDLError( );
 
@@ -44,8 +47,12 @@ namespace sisu {
 	                SDL_Window * mMainWindow;
 
 	                SDL_GLContext mMainContext;
-	
+
+	                int32_t mW, mH;
+
 			void _stealContext( );
+
+			virtual void render( ) = 0;
 
                 public:
                         SDLTestWindow( );
@@ -53,7 +60,7 @@ namespace sisu {
 
                         virtual void initialize( OpenGLAttributes const & xAttributes );
 
-        	        virtual void run() = 0;
+        	        virtual void run( ) = 0;
 	}; // class
 }
 

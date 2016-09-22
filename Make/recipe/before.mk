@@ -5,6 +5,7 @@ include $(SISU)/goals.mk
 NIL           := /dev/null
 SOURCE_EXT    := cpp
 HEADER_EXT    := hpp
+DEP_EXT	      := dep
 OBJ_EXT       := o
 OBJ_META      := obj
 BIN_META      := bin
@@ -17,7 +18,7 @@ CXX_FILE_FLAG ?= -c
 CXXFLAGS      += -Werror -O3
 META_DIR      := $(BUILD_META)/$(OBJ_META)/
 BUILD_DIR     := $(call coalesceDirectory,../$(BUILD_META))
-OBJDIR        := $(call coalesceDirectory,$(BUILD_DIR)/$(OBJ_META))
+#OBJDIR        := $(call coalesceDirectory,$(BUILD_DIR)/$(OBJ_META)) #OBJ_DIR is no longer used since windows doesn't allow symlinks
 BIN_DIR       := $(call coalesceDirectory,$(BUILD_DIR)/$(BIN_META))
 LIB_DIR       := $(call coalesceDirectory,$(BUILD_DIR)/$(LIB_META))
 

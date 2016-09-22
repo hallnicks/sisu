@@ -27,6 +27,42 @@ class sdl_colorswitcher_UT : public context
 
 class SDLColorSwitcher : public SDLTestWindow
 {
+		protected:
+
+			virtual void render( ) 
+			{
+				SDL_Event event;
+
+				uint32_t const flags = SDL_GetWindowFlags( mMainWindow );
+
+				if ( ! ( flags & SDL_WINDOW_BORDERLESS ) )
+				{
+					std::cout << "Window wasn't borderless!" << std::endl;
+					exit(-1);
+				}
+
+				if ( ! ( flags & SDL_WINDOW_MAXIMIZED ) )
+				{
+				        SDL_MaximizeWindow( mMainWindow );
+				        SDL_RaiseWindow( mMainWindow );
+				        SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
+				}
+
+			        if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
+			        {
+			                std::cout << "Failed to get window focus." << std::endl;
+			                exit( -1 );
+			        }
+
+				glClearColor( _randomGLfloat( )
+					    , _randomGLfloat( )
+					    , _randomGLfloat( )
+					    , _randomGLfloat( ) );
+
+				glClear( GL_COLOR_BUFFER_BIT );
+
+				SDL_GL_SwapWindow( mMainWindow );
+			}
 		public:
 			SDLColorSwitcher( )
 				: SDLTestWindow( )
@@ -38,37 +74,7 @@ class SDLColorSwitcher : public SDLTestWindow
 			{
 				for ( int ii = 0; ii < 250; ++ii )
 				{
-					SDL_Event event;
-
-					uint32_t const flags = SDL_GetWindowFlags( mMainWindow );
-
-					if ( ! ( flags & SDL_WINDOW_BORDERLESS ) )
-					{
-						std::cout << "Window wasn't borderless!" << std::endl;
-						exit(-1);
-					}
-
-					if ( ! ( flags & SDL_WINDOW_MAXIMIZED ) )
-					{
-					        SDL_MaximizeWindow( mMainWindow );
-					        SDL_RaiseWindow( mMainWindow );
-					        SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
-					}
-
-				        if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
-				        {
-				                std::cout << "Failed to get window focus." << std::endl;
-				                exit( -1 );
-				        }
-
-					glClearColor( _randomGLfloat( )
-						    , _randomGLfloat( )
-						    , _randomGLfloat( )
-						    , _randomGLfloat( ) );
-
-					glClear( GL_COLOR_BUFFER_BIT );
-
-					SDL_GL_SwapWindow( mMainWindow );
+					render( );
 				}
 			}
 		}; // class
@@ -81,7 +87,7 @@ TEST(sdl_colorswitcher_UT, CreateSDLWindowWithoutExceptions)
 
 	SDLColorSwitcher test;
 
-	test.initialize( 1 );
+	test.initialize( { 3, 1, 1, false, false } );
 
 	test.run();
 }

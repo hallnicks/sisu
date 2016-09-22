@@ -1,0 +1,9 @@
+#version 120
+uniform mat4 LProjectionMatrix;
+uniform mat4 LModelViewMatrix;
+
+void main()
+{
+	// Process vertices
+	gl_Position = LProjectionMatrix * LModelViewMatrix * gl_Vertex;
+}

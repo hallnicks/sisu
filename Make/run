@@ -1,0 +1,2 @@
+#!/bin/bash
+cd ../build/bin/; ./sisuTest.exe && echo "Success!"

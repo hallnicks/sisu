@@ -1,0 +1,11 @@
+#ifndef VERTEX_POS_2D_72AF612D89CD46E3A135EE728641311A_HPP_
+#define VERTEX_POS_2D_72AF612D89CD46E3A135EE728641311A_HPP_
+
+#include <SDL2/SDL_opengl.h>
+
+namespace sisu {
+	struct VertexPos2D { GLfloat x, y; };
+} // namespace sisu
+
+#endif // VERTEX_POS_2D_72AF612D89CD46E3A135EE728641311A_HPP_
+

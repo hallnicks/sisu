@@ -25,20 +25,20 @@
 
 namespace sisu {
 
-namespace _initializers { 
+namespace _initializers {
 
-class _pthreadInitializer 
+class _pthreadInitializer
 {
 	static pthread_once_t const mOnce = PTHREAD_ONCE_INIT;
 };
 
 } // namespace _initializers
 
-class mutex 
-{ 
+class mutex
+{
 	pthread_mutex_t mMutex;
 
-	public: 
+	public:
 		mutex( const pthread_mutexattr_t * xAttributes = NULL );
 		~mutex( );
 
@@ -47,12 +47,45 @@ class mutex
 		void run( std::function<void(void)> xLambda );
 };
 
-class sleep 
-{
 
+class event
+{
+	mutex mM;
+	bool mSet;
+
+		public:
+			event( )
+				: mM( )
+				, mSet( false )
+			{
+				;
+			}
+
+		bool isSet( )
+		{
+			bool isSet = false;
+			mM.run([&](){ isSet = mSet; });
+			return isSet;
+		}
+
+		void set( )
+		{
+			mM.run([&](){ mSet = true; });
+		}
+
+		void reset( )
+		{
+			mM.run([&](){ mSet = false; });
+		}
+
+
+};
+
+class sleep
+{
 	static int _sleep( timespec * const xDuration );
 
-	public: 
+	public:
 		static void ms( int64_t const xMilliseconds );
 		static void ns( int64_t const xNanoseconds );
 
@@ -63,102 +96,132 @@ class gear
 {
 	struct _PThreadStatus
 	{
-		_PThreadStatus( ) 
+		_PThreadStatus( )
 		{
 
 		}
 
-		void join( ) 
+		void join( )
 		{
 			if ( mStatus != 0 )
 			{
-				std::cout << "Thread with status " << mStatus << "detected. " << std::endl;
+				std::cerr << "Thread with status " << mStatus << "detected. " << std::endl;
 			}
 
-		     	if ( pthread_join( mThread, NULL) != 0 )
+		     	if ( pthread_join( mThread, NULL ) != 0 )
 			{
 				std::cerr << "pthread_join() failed. " << std::endl;
 				exit(-1);
 			}
 		}
 
-		
 		pthread_t mThread;
 		int32_t mStatus;
 	};
 
-
-	struct _ThreadParameters
+	class _ThreadParameters
 	{
+		static XParameterType _dummy;
 
-		_ThreadParameters( gear * const xGear
-				  , XParameterType * xParameters )
-			: mGear( xGear )
-			, mParameters( xParameters ) 
-			, mID( 0 )
-		{ 
-			static uint32_t _threadIDCounter = 0;
-			mID = ++_threadIDCounter;
-		}
+		public:
+			_ThreadParameters( )
+				: mGear( NULL )
+				, mParameters( _dummy )
+				, mID( 0 )
+			{
+				;
+			}
 
-		gear * const mGear;
-		XParameterType * mParameters;
-		uint32_t mID;
+			_ThreadParameters( gear * xGear
+					  , XParameterType xParameters
+					  , uint32_t xID )
+				: mGear( xGear )
+				, mParameters( xParameters )
+				, mID( xID )
+			{
+				;
+			}
+
+			_ThreadParameters & operator=( const _ThreadParameters & xRhs )
+			{
+				mGear 	    = xRhs.mGear;
+				mParameters = xRhs.mParameters;
+				mID	    = xRhs.mID;
+			}
+
+			gear *		mGear;
+			XParameterType 	mParameters;
+			uint32_t 	mID;
 	};
 
-	std::function< XReturnType ( XParameterType ) >  mLambda;
+	std::function< XReturnType ( XParameterType const &) >  mLambda;
 
 	std::deque< XReturnType > mResults;
 
-	typedef 	 std::unordered_map< uint32_t, _ThreadParameters * > 		_ThreadParameterMap;
-	typedef typename std::unordered_map< uint32_t, _ThreadParameters * >::iterator 	_ThreadParameterMapIterator;
+	mutex mResultsMutex;
+
+	typedef 	 std::unordered_map< uint32_t, _ThreadParameters > 		_ThreadParameterMap;
+	typedef typename std::unordered_map< uint32_t, _ThreadParameters >::iterator 	_ThreadParameterMapIterator;
 
 	typedef		 std::vector< _PThreadStatus > 		 _ThreadVector;
 	typedef typename std::vector< _PThreadStatus >::iterator _ThreadVectorIterator;
 
 	_ThreadParameterMap mThreadParameters;
-	_ThreadVector mThreads;
+	_ThreadVector 	    mThreads;
+
 	bool mJoined;
 
-	inline static void * _actualPosixThreadSink( void * xParameter ) 
+	inline static uint32_t _nextThreadID( )
 	{
-		if (xParameter == NULL)		
+		static uint32_t _threadIDCounter = 1; // 0 is reserved.
+		return ++_threadIDCounter;
+	}
+
+	inline static void * _actualPosixThreadSink( void * xParameter )
+	{
+		void * result = NULL;
+
+		if (xParameter == NULL)
 		{
 			std::cerr << "Null gear passed to pthread sink." << std::endl;
-			exit( -1 ); 
-		} 
-
-		_ThreadParameters * g = static_cast< _ThreadParameters* >( xParameter );
-
-		if ( g == NULL || g->mGear == NULL ) 
-		{
-			std::cerr << "Could not find gear" << std::endl;
 			exit( -1 );
 		}
-		
-		void * result = g->mGear->_actualPosixThreadWork( g->mParameters );
 
-		_ThreadParameters * param = g->mGear->mThreadParameters[ g->mID ];
+		_ThreadParameters * p = static_cast< _ThreadParameters * > ( xParameter );
 
-		if ( param != NULL ) 
-		{
-			delete param;
-		} 
+		result = p->mGear->_actualPosixThreadWork(  p->mParameters );
+
+		p->mGear->_deleteThreadParameter( p->mID );
 
 		return result;
 	}
 
-	inline void * _actualPosixThreadWork( XParameterType * const xParameters )
+	inline void * _actualPosixThreadWork( XParameterType xParameters )
 	{
-		if ( xParameters == NULL ) 
+		void * returnValue = NULL;
+
+		mResultsMutex.lock( );
+
+		mResults.push_back( mLambda( xParameters ) );
+
+		returnValue = static_cast< void * >( &mResults.back( ) );
+
+		mResultsMutex.unlock( );
+
+		return returnValue;
+	}
+
+	void _deleteThreadParameter( uint32_t const xID )
+	{
+		_ThreadParameterMapIterator it = mThreadParameters.find( xID );
+
+		if ( it == mThreadParameters.end( ) )
 		{
-			std::cerr << "Thread parameters were NULL. Cannot dereference." << std::endl;
+			std::cerr << "Thread parameter object not found where expected." << std::endl;
 			exit( -1 );
 		}
 
-		mResults.push_back( mLambda( *xParameters ) );
-
-		return static_cast< void * >( &mResults.back( ) );
+		mThreadParameters.erase( it );
 	}
 
 	public:
@@ -169,7 +232,7 @@ class gear
 			, mThreads( )
 			, mJoined( false )
 		{
-
+			;
 		}
 
 		~gear( )
@@ -185,69 +248,83 @@ class gear
 				{
 					it->join();
 				}
-			}
 
-			mJoined = true;
+				mJoined = true;
+			}
 		}
+
 
 		gear< XReturnType, XParameterType > & operator( )( XParameterType xParams )
 		{
 			if ( mJoined )
 			{
-				std::cout << "Behavior of this operator is undefined after join( ) is called" << std::endl;
+				std::cerr << "Behavior of this operator is undefined after join( ) is called" << std::endl;
 				exit( -1 );
 			}
-	
+
+
 			mThreads.push_back( _PThreadStatus( ) );
 
-
 			_PThreadStatus & status = mThreads.back( );
-	
-			_ThreadParameters * params = new _ThreadParameters( this, &xParams );
-	
-			mThreadParameters[ params->mID ] = params;
+
+			uint32_t const nextThreadID = _nextThreadID( );
+
+			mThreadParameters[ nextThreadID ] = _ThreadParameters( this, xParams, nextThreadID );
+
+			_ThreadParameters  & pRef = mThreadParameters[ nextThreadID ];
 
 			if ( mThreads.back( ).mStatus = pthread_create( &status.mThread
 									, NULL
 									, _actualPosixThreadSink
-									, static_cast< void * >( params ) ) != 0 )
+									, ( void *)( &pRef ) ) != 0 )
 			{
 
 				std::cerr << "Failed to create thread. " << mThreads.back( ).mStatus << std::endl;
 				exit( -1 );
 			}
+
 			return *this; 
 		}
 
 
-		// NOT thread safe - call join() first before inspecting return values. 
+		// NOT thread safe - call join() first before inspecting return values.
 		XReturnType operator * ( )
 		{
-			if ( !mJoined ) 
+			if ( !mJoined )
 			{
 				std::cerr << "The behavior of this operator is undefined if the threads are not joined." << std::endl;
 				exit( -1 );
 			}
 
-			XReturnType copy = mResults.front( );
-
+			XReturnType copy;
+			mResultsMutex.lock( );
+			copy = mResults.front( );
 			mResults.pop_front( );
+			mResultsMutex.unlock( );
 
 			return copy;
 		}
 
-		int32_t size( ) const
+		int32_t size( )
 		{
-			if ( !mJoined ) 
+			if ( !mJoined )
 			{
 				std::cerr << "The behavior of size( ) is undefined if the threads are not joined." << std::endl;
 				exit( -1 );
 			}
- 
-			return mResults.size( ); 
+
+			int32_t size;
+
+			mResultsMutex.lock( );
+			size = mResults.size( );
+			mResultsMutex.unlock( );
+
+			return size;
 		}
 };
 
+template< typename XReturnType, typename XParameterType >
+XParameterType gear<XReturnType, XParameterType>::_ThreadParameters::_dummy;
+
 } // namespace sisu
 #endif // THREADGEARS_72F99E37_FA22_494C_BAC4_87EF12b6351A_HPP_
-
