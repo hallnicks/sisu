@@ -1,8 +1,8 @@
- #include "test.hpp"
+#if 0
+#include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"
 #include "ioassist.hpp"
-#include "VBM.hpp"
 
 #include <string>
 #include <iostream>
@@ -23,33 +23,24 @@ using namespace sisu;
 
 namespace {
 
-class sdl_sprite_UT : public context
+class sdl_StackOverflowGuerillaShader_UT : public context
 {
 	public:
-		sdl_sprite_UT( ) : context( ) { }
+		sdl_StackOverflowGuerillaShader_UT( ) : context( ) { }
 		void Up( ) { }
 		void Down( ) { }
 };
 
 } // namespace
 
-TEST(sdl_sprite_UT, CreateShaderWithoutExceptions)
-{
-	ShaderPathPair shaderPathPair( "resources/sprite.vs.txt", "resources/sprite.fs.txt" );
-
- 	SDLShader spriteShader( shaderPathPair );
-	//spriteShader.initialize( );
-}
-
-TEST(sdl_sprite_UT, CreateSDLWindowWithoutExceptions)
+TEST(sdl_StackOverflowGuerillaShader_UT, CreateSDLWindowWithoutExceptions)
 {
 	{
-		SpriteShader window;
+		StackOverflowGuerillaShader window;
 
 		window.initialize( { 4, 4, 1, false, false } );
 
 		window.run( );
 	}
-
-	BLOCK_EXECUTION;
 }
+#endif

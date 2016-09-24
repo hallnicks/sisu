@@ -1,0 +1,2 @@
+#!/bin/bash
+cd ../build/bin/; strace ./sisuTest.exe && echo "Success!"

@@ -1,0 +1,82 @@
+This project uses:
+
+*******************************************************************************
+Freeglut
+Copyright (c) 1999-2000 Pawel W. Olszta. All Rights Reserved.
+
+*******************************************************************************
+GLEW
+The OpenGL Extension Wrangler Library
+Copyright (C) 2002-2006, Milan Ikits <milan ikits[]ieee org>
+Copyright (C) 2002-2006, Marcelo E. Magallon <mmagallo[]debian org>
+Copyright (C) 2002, Lev Povalahev
+All rights reserved.
+
+*******************************************************************************
+FreeImage
+
+This software uses the FreeImage open source image library. 
+See http://freeimage.sourceforge.net for details.
+
+FreeImage is used under the GNU GPL, Version 2.0 or FIPL, Version 1.0
+
+ 
+*******************************************************************************
+LibJPEG 6b
+
+http://www.ijg.org/
+
+This software is copyright (C) 1991-1998, Thomas G. Lane. All Rights Reserved.
+
+*******************************************************************************
+LibPNG 1.2.12
+
+http://www.libpng.org/
+
+Libpng is OSI Certified Open Source Software. OSI Certified is a certification 
+mark of the Open Source Initiative. Copyright (c) 1998-2002 Glenn Randers-
+Pehrson. Version 0.96 Copyright (c) 1996, 1997 Andreas Dilger.
+Version 0.88 Copyright (c) 1995, 1996 Guy Eric Schalnat, Group 42, Inc.
+
+******************************************************************************* 
+LibTIFF 3.8.2
+
+http://www.remotesensing.org/libtiff/
+
+Copyright (c) 1988-1997 Sam Leffler
+Copyright (c) 1991-1997 Silicon Graphics, Inc.
+
+*******************************************************************************
+LibMNG 1.0.9
+
+http://www.libmng.com/
+
+Copyright (c) 2000-2003 Gerard Juyn (gerard@libmng.com).
+
+*******************************************************************************
+ZLib 1.2.3
+
+http://www.zlib.net/
+
+Copyright (C) 1995-2005 Jean-loup Gailly and Mark Adler.
+
+THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, EXPRESS, 
+IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF 
+MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+IN NO EVENT SHALL THE INITIAL DEVELOPER OR ANY OTHER CONTRIBUTOR BE LIABLE FOR 
+ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND, OR ANY 
+DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER OR NOT 
+ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF LIABILITY, ARISING 
+OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+Permission to use, copy and distribute this software and its documentation for 
+any purpose is hereby granted without fee, provided that the above copyright 
+notices and this permission notice appear in all copies of the software and 
+related documentation.
+
+*******************************************************************************
+CWC Tutorial Source Code
+Copyright (C) 2006-2007 by Martin Christen <christen<at>clockworkcoders.com>
+
+*******************************************************************************

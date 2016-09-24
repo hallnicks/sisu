@@ -1,6 +1,8 @@
 #ifndef IO_ASSIST74351C5C55AF4767BDEB912C3A472466_HPP_
 #define IO_ASSIST74351C5C55AF4767BDEB912C3A472466_HPP_
 
+#include "test.hpp" // TODO - delete this and clean up file. strictly for debugging.
+
 #include <string>
 #include <fstream>
 #include <streambuf>
@@ -12,6 +14,13 @@ namespace sisu {
 
 static inline std::string fileToString( const char * xPathToFile ) {
 	std::ifstream ifs( xPathToFile );
+
+	if ( !ifs.good( ) )
+	{
+		std::cerr << xPathToFile << " is not a path to a valid file." << std::endl;
+		exit( -1 );
+	}
+
 	return std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 }
 
@@ -39,8 +48,8 @@ static inline std::vector<XByte> fileToMemory( const char * xPathToFile )
 
 static inline bool filesAreEqual( const char * xLeft, const char * xRight )
 {
-	std::vector<char> left = fileToMemory<char>( xLeft );
-	std::vector<char> right = fileToMemory<char>( xRight );
+	std::vector<char> const left = fileToMemory<char>( xLeft );
+	std::vector<char> const right = fileToMemory<char>( xRight );
 
 	if ( left.size( ) != right.size( ) )
 	{

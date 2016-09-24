@@ -26,18 +26,42 @@ namespace {
 			void Down( ) { }
 	};
 
-	class MouseEvent
+	struct MouseEventInfo
 	{
-		uint32_t const mEvent;
-		public:
-			MouseEvent( uint32_t const xEvent )
-			: mEvent( xEvent )
-			{
-				;
-			}
+		uint32_t state;
+
+		int32_t x, y;
+
+		bool wheelMoved
+		   , wheelUp;
+
+		void operator=( MouseEventInfo const & xOther )
+		{
+			state 	   = xOther.state;
+			x     	   = xOther.x;
+			y     	   = xOther.y;
+			wheelMoved = xOther.wheelMoved;
+			wheelUp    = xOther.wheelUp;
+		}
+
+		bool isLeftClickPressed( )   const { return state & SDL_BUTTON(SDL_BUTTON_LEFT);   }
+		bool isMiddleClickPressed( ) const { return state & SDL_BUTTON(SDL_BUTTON_MIDDLE); }
+		bool isRightClickPressed( )  const { return state & SDL_BUTTON(SDL_BUTTON_RIGHT);  }
+
+		bool wheelHasMovedUp( )   const { return wheelMoved && wheelUp;   }
+		bool wheelHasMovedDown( ) const { return wheelMoved && !wheelUp;  }
 	};
 
-	typedef std::function<void(MouseEvent)> OnMouseEventCallback;
+	bool operator!=( MouseEventInfo & xLhs, MouseEventInfo const & xRhs )
+	{
+		return !( xLhs.state      == xRhs.state      &&
+		          xLhs.x          == xRhs.x          &&
+		          xLhs.y          == xRhs.y          &&
+		          xLhs.wheelMoved == xRhs.wheelMoved &&
+		          xLhs.wheelUp    == xRhs.wheelUp );
+	}
+
+	typedef std::function<void(MouseEventInfo)> OnMouseEventCallback;
 
 	class Mouse
 	{
@@ -46,7 +70,8 @@ namespace {
 		bool mInitialized;
 		gear<uint32_t, int64_t> mMouseListener;
 		event mQuit;
-		uint32_t  mLast;
+
+		MouseEventInfo mLast;
 		public:
 			Mouse( )
 				: mM( )
@@ -60,20 +85,34 @@ namespace {
 							sleep::ns( xSleepIntervalNs );
 						}
 
-						uint32_t const state = SDL_GetMouseState( NULL, NULL );
+						int32_t x, y;
 
-						if ( mLast != state )
+						uint32_t const state = SDL_GetMouseState( &x, &y );
+
+
+						// Ugly hack for mouse wheel.
+						SDL_Event pollEvent;
+						SDL_PollEvent( &pollEvent );
+
+						MouseEventInfo const current = { state
+									       , x
+									       , y
+									       , pollEvent.type == SDL_MOUSEWHEEL
+									       , pollEvent.wheel.y < 0 };
+
+						if ( mLast != current )
 						{
 							mM.run([&]( )
 							{
 								for ( auto callback : mCallbacks )
 								{
-									callback( MouseEvent( state ) );
+									callback( current );
 								}
 							});
 						}
 
-						mLast = state;
+						mLast = current;
+
 					}
 				})
 				, mQuit( )
@@ -96,8 +135,6 @@ namespace {
 				mQuit.set( );
 			}
 	};
-
-
 } // namespace
 
 TEST(mouse_UT, MouseHandlerCallback)
@@ -113,8 +150,8 @@ TEST(mouse_UT, MouseHandlerCallback)
 		SDL_Window * window = SDL_CreateWindow( "SDL2 OpenGL"
                                     			, SDL_WINDOWPOS_CENTERED
 		                                        , SDL_WINDOWPOS_CENTERED
-		                                        , 1
-		                                        , 1
+		                                        , 1920/2
+		                                        , 1080/2
 		                                        , SDL_WINDOW_OPENGL      | SDL_WINDOW_BORDERLESS    |
 		                                          SDL_WINDOW_SHOWN       | SDL_WINDOW_INPUT_GRABBED |
                 		                          SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
@@ -123,22 +160,39 @@ TEST(mouse_UT, MouseHandlerCallback)
 
 		SDL_GL_SetSwapInterval( 1 );
 
-		SDL_MaximizeWindow( window );
 		SDL_RaiseWindow( window );
 		SDL_SetWindowGrab( window, SDL_TRUE );
 
 		event quit;
 
-		OnMouseEventCallback  onMouseCharacter = [&] ( MouseEvent const & xEvent )
+		OnMouseEventCallback  onMouseCharacter = [&] ( MouseEventInfo const & xEvent )
 		{
-			std::cout << "Got mouse event!" <<std::endl;
-			/*
-			if ( xEvent.isPressed( eMouseButton_Left )
+			std::ios::fmtflags const f( std::cout.flags( ) );
+
+			std::cout << "[ Mouse: "
+				  << xEvent.x
+				  << ", "
+				  << xEvent.y
+				  << " "
+				  << std::hex
+				  << xEvent.state;
+
+			std::cout.flags( f );
+
+			std::cout << ( xEvent.isLeftClickPressed( )   ? ", left click "   : "" )
+				  << ( xEvent.isMiddleClickPressed( ) ? ", middle click " : "" )
+				  << ( xEvent.isRightClickPressed( )  ? ", right click "  : "" )
+				  << ( xEvent.wheelHasMovedUp( )      ? ", wheel up "     : "" )
+				  << ( xEvent.wheelHasMovedDown( )    ? ", wheel down "   : "" )
+				  << " ]"
+				  << std::endl;
+
+			if ( xEvent.isLeftClickPressed( ) && xEvent.isMiddleClickPressed( ) && xEvent.isRightClickPressed( ) )
 			{
-				std::cout << "Left click pressed. Exiting.." << std::endl;
+				std::cout << "All three buttons pressed. Exiting.." << std::endl;
 				quit.set( );
 			}
-			*/
+
 		};
 
 
@@ -161,5 +215,4 @@ TEST(mouse_UT, MouseHandlerCallback)
 
 	}
 }
-
 #endif

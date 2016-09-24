@@ -6,6 +6,9 @@
 #error Socket port is sorely needed.
 #endif
 
+// for select
+#include <fcntl.h>
+
 #include "test.hpp"
 
 
@@ -13,6 +16,7 @@
 
 #include "memblock.hpp"
 #include "ttyc.hpp"
+#include "ttycolor.hpp"
 #include "ioassist.hpp"
 
 #include "PNGImage.hpp"
@@ -211,7 +215,7 @@ namespace
 
 			virtual void connect( const char * xIPAddress, uint32_t const xPort )
 			{
-				
+
 			}
 
 			virtual void disconnect( )
@@ -245,8 +249,6 @@ typedef enum {
 } eSSLAction;
 
 
-
-
 static struct _WinsockInitializer
 {
 	WSADATA wsaData;
@@ -268,196 +270,773 @@ static struct _WinsockInitializer
 } sWinsockInitializer;
 
 
-template< uint32_t XBufferSize>
-class UDPSocketConnector
+template< uint32_t XBufferSize >
+struct SOCKET_INFORMATION
 {
-	enum _eUDPSocketConnectorRole
+   CHAR       Buffer[ XBufferSize ];
+   WSABUF     DataBuf;
+   SOCKET     Socket;
+   OVERLAPPED Overlapped;
+   DWORD      BytesSEND;
+   DWORD      BytesRECV;
+   sockaddr   sockaddr_info;
+   uint64_t   socketID;
+
+};
+
+template< uint32_t XBufferSize >
+struct SelectData
+{
+	SelectData( uint8_t * const xData
+		   , uint64_t const xSize
+		   , SOCKET_INFORMATION<XBufferSize> * xSocket )
+		: data( xData )
+		, size( xSize )
+		, socket( xSocket )
 	{
-		_eUDPSocketConnectorRole_Server,
-		_eUDPSocketConnectorRole_Client,
+		;
+	}
+
+	uint8_t * 			  data;
+	uint64_t  			  size;
+	SOCKET_INFORMATION<XBufferSize> * socket;
+};
+
+typedef gear<uint32_t, const char*> NamedThread;
+
+enum eSocketConnectionArchitecture
+{
+	eSocketConnectionArchitecture_Synchronous	= 0,
+	eSocketConnectionArchitecture_NonblockingSelect = 1,
+	eSocketConnectionArchitecture_Asynchronous	= 2,
+	eSocketConnectionArchitecture_Max		= 3
+};
+
+enum eDatagramProtocol
+{
+	eDatagramProtocol_UDP = 0,
+	eDatagramProtocol_TCP = 1,
+	eDatagramProtocol_MAx = 2,
+};
+
+template< uint32_t XBufferSize >
+class SocketConnector
+{
+	typedef std::function<void(SelectData<XBufferSize> const &)> OnReceiveSelectData;
+
+	SOCKET_INFORMATION<XBufferSize> * mSocketArray[ FD_SETSIZE ];
+
+	enum eSocketConnectorRole
+	{	eSocketConnectorRole_Server = 0,
+		eSocketConnectorRole_Client = 1,
 	} mRole;
 
-	enum _eUDPSocketConnectorArchitecture
-	{
-		_eUDPSocketConnectorRole_Synchronous,
-		_eUDPSocketConnectorRole_NonnblockingSelect,
-		_eUDPSocketConnectorRole_Asynchronous,
-	} mArch;
+	eSocketConnectionArchitecture mArch;
 
-	SOCKET mSocket;
-	struct sockaddr_in mSocketServer, mSocketOther;
+	SOCKET mListenSocket, mAcceptSocket;
+	struct sockaddr_in mListenSocketServer, mOtherSocketIP;
 	int32_t mSendLength, mReceiveLength;
+
 	char mBuffer[ XBufferSize ];
 	uint32_t const mPort;
 	bool mInitialized;
 
+	std::string const mIPAddress;
+	int32_t mNewSocketDescriptor;
+
+	// TODO: Support multiple clients in all three modes.
+	struct sockaddr_storage mNonBlockingLastConnected;
+	int32_t			mNonBlockingLastConnectedSize;
+
+	FD_SET mReadSet, mWriteSet;
+
+	uint64_t mTotalConnectedSockets;
+
+	event mQuit;
+
+	typedef std::vector<OnReceiveSelectData> OnReceiveSelectDataCallbacks;
+
+	OnReceiveSelectDataCallbacks mCallbacks;
+	mutex mCallbackMutex;
+	std::function<uint32_t(SocketConnector *)> mSelectFunction;
+
+	gear<uint32_t, SocketConnector *> mSelectThread;
+
+	eDatagramProtocol mProtocol;
+
+	void _registerSocket( SOCKET xSocket , sockaddr const & xAddressInfo )
+	{
+		SOCKET_INFORMATION<XBufferSize> * si = NULL;
+
+		if ( ( si = (SOCKET_INFORMATION<XBufferSize>*) GlobalAlloc( GPTR, sizeof( SOCKET_INFORMATION<XBufferSize> ) ) ) == NULL )
+		{
+			std::cerr << "GlobalAlloc( .. ) failed." << std::endl;
+			exit( -1 );
+		}
+
+		static uint64_t _SocketIDFactory = 0;
+
+		si->Socket        = xSocket;
+		si->BytesSEND     = 0;
+		si->BytesRECV     = 0;
+		si->sockaddr_info = xAddressInfo;
+		si->socketID 	  = ++_SocketIDFactory;
+
+		mSocketArray[ mTotalConnectedSockets ] = si;
+
+		++mTotalConnectedSockets;
+	}
+
+	void _unregisterSocket( uint32_t const xSocketIndex )
+	{
+		SOCKET_INFORMATION<XBufferSize> * si = mSocketArray[ xSocketIndex ];
+
+		closesocket( si->Socket );
+
+		GlobalFree( si );
+
+		for ( int32_t ii = 0; ii < mTotalConnectedSockets; ++ii )
+		{
+			mSocketArray[ ii ] = mSocketArray[ ii + 1 ];
+		}
+
+		--mTotalConnectedSockets;
+	}
+
+	uint32_t _select( )
+	{
+		uint32_t total = 0;
+		FD_ZERO( &mReadSet );
+		FD_ZERO( &mWriteSet );
+
+		FD_SET( mListenSocket, &mReadSet );
+
+		for ( int32_t ii = 0; ii < mTotalConnectedSockets; ++ii )
+		{
+			bool const receivesMore = mSocketArray[ ii ]->BytesRECV > mSocketArray[ ii ]->BytesSEND;
+
+			FD_SET( mSocketArray[ ii ]->Socket, receivesMore ? &mWriteSet : &mReadSet );
+		}
+
+		std::cout << "Listening for IO.." << std::endl;
+		if ( ( total = select( 0, &mReadSet, &mWriteSet, NULL, NULL ) ) == SOCKET_ERROR )
+		{
+			std::cerr << "select( .. ) failed." << std::endl;
+			exit( -1 );
+		}
+		std::cout << "IO activity found." << std::endl;
+
+
+		return total;
+	}
+
+	void _checkForWSAEWOULDBLOCK( )
+	{
+		int32_t const error = WSAGetLastError( );
+
+		if ( error != WSAEWOULDBLOCK && error != 0 )
+		{
+			std::cerr << "WSAGetLastError( .. ) failed." << WSAGetLastError( ) << std::endl;
+			exit( -1 );
+		}
+	}
+
+	void _onReceiveSelectData( uint8_t * xBuffer, DWORD const xReceiveBytes, SOCKET_INFORMATION<XBufferSize> * xSocketInformation )
+	{
+		mCallbackMutex.run([&]()
+		{
+			for ( auto && ii : mCallbacks )
+			{
+				ii( SelectData<XBufferSize>( xBuffer, ( uint64_t )xReceiveBytes, xSocketInformation ) );
+			}
+		});
+	}
+
+	void _readNonBlocking( SOCKET_INFORMATION<XBufferSize> * xSocketInformation, uint32_t const xIndex )
+	{
+		DWORD receiveBytes = 0, flags = 0;
+
+		xSocketInformation->DataBuf.buf = xSocketInformation->Buffer;
+		xSocketInformation->DataBuf.len = XBufferSize;
+
+		if  ( WSARecv( xSocketInformation->Socket, &(xSocketInformation->DataBuf), 1, &receiveBytes, &flags, NULL, NULL ) == SOCKET_ERROR)
+		{
+			_checkForWSAEWOULDBLOCK( );
+		}
+		else if ( ( xSocketInformation->BytesRECV = receiveBytes ) == 0 )
+		{
+			_unregisterSocket( xIndex );
+		}
+
+		_onReceiveSelectData( ( uint8_t* )xSocketInformation->DataBuf.buf, receiveBytes, xSocketInformation );
+	}
+
+	void _writeNonBlocking( SOCKET_INFORMATION<XBufferSize> * xSocketInformation, uint32_t const XIndex)
+	{
+		DWORD sendBytes = 0;
+
+		xSocketInformation->DataBuf.buf = xSocketInformation->Buffer    + xSocketInformation->BytesSEND;
+
+		if ( WSASend( xSocketInformation->Socket, &(xSocketInformation->DataBuf), 1, &sendBytes, 0, NULL, NULL ) == SOCKET_ERROR )
+		{
+			_checkForWSAEWOULDBLOCK( );
+		}
+		else if ( ( xSocketInformation->BytesSEND += sendBytes ) == xSocketInformation->BytesRECV )
+		{
+			xSocketInformation->BytesSEND =
+			xSocketInformation->BytesRECV = 0;
+		}
+	}
+
+	void _serviceSockets( )
+	{
+		std::cout << "Servicing " << mTotalConnectedSockets << " sockets." << std::endl;
+		for ( int32_t ii = 0; ii < mTotalConnectedSockets; ++ii )
+		{
+			std::cout << "Servicing socket # " << ii << std::endl;
+
+			SOCKET_INFORMATION<XBufferSize> * si = mSocketArray[ ii ];
+
+			if ( FD_ISSET( si->Socket, &mReadSet ) )
+			{
+				std::cout << "Found a read pending." << std::endl;
+				_readNonBlocking( si, ii );
+				continue;
+			}
+
+			if ( FD_ISSET( si->Socket, &mWriteSet ) )
+			{
+				std::cout << "Found a write pending." << std::endl;
+				_writeNonBlocking( si, ii );
+				continue;
+			}
+
+			std::cout << "No FD set for # " << ii << std::endl;
+		}
+	}
+
+	static uint32_t _selectFunction( SocketConnector * xConnector )
+	{
+		xConnector->_listen( );
+
+		while ( !xConnector->mQuit.isSet( ) )
+		{
+			for ( uint32_t ii = xConnector->_select( ); ii > 0; --ii)
+			{
+				if ( FD_ISSET( xConnector->mListenSocket, &xConnector->mReadSet ) )
+				{
+					std::cout << "Read was set for socket." << std::endl;
+
+					struct sockaddr sockaddr_info;
+					int32_t sockAddrInfoLength = sizeof( sockaddr_info );
+
+					// TODO: Put a sockaddr_info object into accept( ) and keep track of connected clients!
+					if ( ( xConnector->mAcceptSocket = accept( xConnector->mListenSocket, (struct sockaddr*)&sockaddr_info, &sockAddrInfoLength ) ) == INVALID_SOCKET )
+					{
+						std::cerr << "accept( .. ) failed in _selectFunction: " << WSAGetLastError( )<< std::endl;
+						exit( -1 );
+					}
+
+					std::cout << "Accepted connection. " << std::endl;
+
+					xConnector->_setSocketNonBlocking( xConnector->mAcceptSocket );
+
+					xConnector->_registerSocket( xConnector->mAcceptSocket, sockaddr_info );
+
+					xConnector->_checkForWSAEWOULDBLOCK( );
+				}
+
+				xConnector->_serviceSockets( );
+			}
+		}
+
+		return 0;
+	}
+
+	void _doRuntimeCheck( )
+	{
+
+#ifndef __linux__
+		if ( mArch == eSocketConnectionArchitecture_NonblockingSelect && mProtocol != eDatagramProtocol_TCP )
+		{
+			std::cerr << "Only TCP/IP supports non-blocking select on Windows." << std::endl;
+			exit( -1 );
+		}
+#endif
+	}
+
 	public:
-		UDPSocketConnector( uint32_t const xPort )
-			: mRole ( _eUDPSocketConnectorRole_Server )
-			, mSocket( )
-			, mSocketServer( )
-			, mSocketOther( )
-			, mSendLength( sizeof( mSocketOther ) )
+		SocketConnector( std::string const & xIPAddress
+				  , uint32_t const xPort
+				  , eDatagramProtocol const xProtocol = eDatagramProtocol_UDP
+				  , eSocketConnectionArchitecture const xArch = eSocketConnectionArchitecture_Synchronous )
+			: mSocketArray( )
+			, mRole ( eSocketConnectorRole_Client )
+			, mArch( xArch )
+			, mListenSocket( )
+			, mAcceptSocket( )
+			, mListenSocketServer( )
+			, mOtherSocketIP( )
+			, mSendLength( sizeof( mOtherSocketIP ) )
 			, mReceiveLength( 0 )
 			, mBuffer( )
 			, mPort( xPort )
 			, mInitialized( false )
-			, mArch( _eUDPSocketCOnnectionArchitecture_Synchronous )
+			, mIPAddress( xIPAddress )
+			, mNewSocketDescriptor( -1 )
+			, mNonBlockingLastConnected( )
+			, mNonBlockingLastConnectedSize( 0 )
+			, mReadSet( )
+			, mWriteSet( )
+			, mTotalConnectedSockets( 0 )
+			, mQuit( )
+			, mCallbacks( )
+			, mCallbackMutex( )
+			, mSelectFunction( [ & ] ( SocketConnector * ) ->uint32_t { return 0; } )
+			, mSelectThread( mSelectFunction )
+			, mProtocol( xProtocol )
+
 		{
-				;
+			_doRuntimeCheck( );
 		}
 
-		~UDPSocketConnector( )
+			SocketConnector( uint32_t const xPort
+  	 			      , eDatagramProtocol const xProtocol = eDatagramProtocol_UDP
+				      , eSocketConnectionArchitecture const xArch = eSocketConnectionArchitecture_Synchronous )
+			: mSocketArray( )
+			, mRole ( eSocketConnectorRole_Server )
+			, mArch( xArch )
+			, mListenSocket( )
+			, mAcceptSocket( )
+			, mListenSocketServer( )
+			, mOtherSocketIP( )
+			, mSendLength( sizeof( mOtherSocketIP ) )
+			, mReceiveLength( 0 )
+			, mBuffer( )
+			, mPort( xPort )
+			, mInitialized( false )
+			, mIPAddress( "127.0.0.1" )
+			, mNewSocketDescriptor( -1 )
+			, mReadSet( )
+			, mWriteSet( )
+			, mTotalConnectedSockets( 0 )
+			, mQuit( )
+			, mCallbacks( )
+			, mCallbackMutex( )
+			, mSelectFunction( _selectFunction )
+			, mSelectThread( mSelectFunction )
+			, mProtocol( xProtocol )
 		{
+			_doRuntimeCheck( );
+		}
+
+		~SocketConnector( )
+		{
+			disconnect( );
+		}
+
+
+		// TODO: Fix this. Will not work with multiple clients!!!!
+		// TODO: Iterate all socket options in https://msdn.microsoft.com/en-us/library/windows/desktop/ms740476(v=vs.85).aspx
+		sockaddr_in * getLastConnectedClientInfo( ) { return &mOtherSocketIP; }
+
+		void disconnect( )
+		{
+			mQuit.set( );
+
 			if ( mInitialized )
 			{
-				closesocket( mSocket );
+				closesocket( mListenSocket );
+				closesocket( mAcceptSocket );
 			}
+
+			mSelectThread.join( );
 		}
 
 		void initialize( )
 		{
 			if ( mInitialized )
 			{
-				std::cerr << "Behavior of UDPSocketConnector::initialize( .. ) is undefined when called twice." << std::endl;
+				std::cerr << "Behavior of SocketConnector::initialize( .. ) is undefined when called twice." << std::endl;
 				exit( -1 );
 			}
 
-			if ( ( mSocket = socket( AF_INET, SOCK_DGRAM, 0 ) ) == INVALID_SOCKET )
+			/*
+			if ( ( mListenSocket = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP ) ) == INVALID_SOCKET )
 			{
 				std::cerr << "socket( .. ) failed: " << WSAGetLastError( ) << std::endl;
 				exit( -1 );
 			}
+			*/
 
-			std::cout << "Server socket created." << std::endl;
+			bool const isUDP = mProtocol == eDatagramProtocol_UDP;
 
-			mSocketServer.sin_family 	= AF_INET;
-			mSocketServer.sin_addr.s_addr	= INADDR_ANY;
-			mSocketServer.sin_port 		= htons( mPort );
-
-			// Bind socket
-			if ( bind( mSocket, (struct sockaddr * ) &mSocketServer , sizeof( mSocketServer ) ) == SOCKET_ERROR)
+			if ( ( mListenSocket = WSASocket( AF_INET
+							, isUDP ? SOCK_DGRAM  : SOCK_STREAM
+							, isUDP ? IPPROTO_UDP : IPPROTO_TCP
+							, NULL
+							, 0
+							, WSA_FLAG_OVERLAPPED ) ) == INVALID_SOCKET )
 			{
-				std::cerr << "bind( .. ) failed: " << WSAGetLastError( ) << std::endl;
+				std::cerr << "WSAocket( .. ) failed: " << WSAGetLastError( ) << std::endl;
 				exit( -1 );
 			}
 
-			std::cout << "Server socket bound." << std::endl;
+			if ( mArch == eSocketConnectionArchitecture_NonblockingSelect )
+			{
+				bool yes = true;
+
+				if ( setsockopt( mListenSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&yes, sizeof(yes) ) == SOCKET_ERROR )
+				{
+					std::cerr << "setsockopt failed." <<std::endl;
+					exit( -1 );
+				}
+
+				unlink( mIPAddress.c_str( ) );
+			}
+
+			if ( mRole == eSocketConnectorRole_Server )
+			{
+				mListenSocketServer.sin_family 	= AF_INET;
+
+				mListenSocketServer.sin_port   	= htons( mPort );
+
+				/*
+				if ( ( mListenSocketServer.sin_addr.S_un.S_addr = inet_addr( mIPAddress.c_str( ) ) ) == INADDR_NONE )
+				{
+					hostent * host = gethostbyname( mIPAddress.c_str( ) );
+
+					CopyMemory( &mListenSocketServer.sin_addr.S_un.S_addr, host->h_addr_list[ 0 ], host->h_length );
+				}
+				*/
+				mListenSocketServer.sin_addr.s_addr = htonl( INADDR_ANY );
+
+				if ( bind( mListenSocket, (struct sockaddr * ) &mListenSocketServer , sizeof( mListenSocketServer ) ) == SOCKET_ERROR)
+				{
+					std::cerr << "bind( .. ) failed: " << WSAGetLastError( ) << std::endl;
+					exit( -1 );
+				}
+
+			}
+			else if ( mRole == eSocketConnectorRole_Client )
+			{
+				mOtherSocketIP.sin_family 	  = AF_INET;
+
+				mOtherSocketIP.sin_port    	  = htons( mPort );
+
+				if ( ( mOtherSocketIP.sin_addr.S_un.S_addr = inet_addr( mIPAddress.c_str( ) ) ) == INADDR_NONE )
+				{
+					hostent * host = gethostbyname( mIPAddress.c_str( ) );
+
+					CopyMemory( &mOtherSocketIP.sin_addr.S_un.S_addr, host->h_addr_list[ 0 ], host->h_length );
+				}
+
+				if ( connect( mListenSocket, (struct sockaddr*)&mOtherSocketIP, sizeof(mOtherSocketIP) ) == SOCKET_ERROR )
+				{
+					std::cerr << "connect( .. ) failed." << std::endl;
+					exit( -1 );
+				}
+			}
+
+			if ( mArch == eSocketConnectionArchitecture_NonblockingSelect &&
+			     mRole == eSocketConnectorRole_Server )
+			{
+				mSelectThread( this );
+			}
 
 			mInitialized = true;
 		}
 
-
-		void send( uint8_t * const xMemory, uint32_t const xSize)
+#ifndef __linux__
+		void _setSocketNonBlocking( SOCKET & xSocket )
 		{
-			if ( sendto( mSocket, (char*)xMemory, xSize, 0, (struct sockaddr*) &mSocketOther, sSendLength ) == SOCKET_ERROR )
+			ULONG mode = 1;
+			if ( ioctlsocket( xSocket, FIONBIO, &mode ) != 0 )
 			{
-				std::cerr << "sendto( .. ) failed: " << WSAGetLastError( ) << std::endl;
+				std::cerr << "ioctlsocket( .. ) failed." << std::endl;
 				exit( -1 );
+			}
+
+		}
+#endif
+
+		void registerSelectCallback( OnReceiveSelectData xLambda )
+		{
+			mCallbackMutex.run( [ & ] ( ) { mCallbacks.push_back( xLambda ); } );
+		}
+
+		void _listen( )
+		{
+			if ( listen ( mListenSocket, 5 ) < 0 )
+			{
+				std::cerr << "listen( .. ) failed: " << WSAGetLastError( ) << std::endl;
+				exit( -1 );
+			}
+
+#ifdef __linux__
+			int32_t flags = -1;
+
+			if ( ( flags = fcntl( fd, F_GETFL, 0 ) ) == -1 )
+			{
+					std::cerr << "fcntl( .. ) failed." << std::endl;
+					exit( -1 );
+			}
+
+			fcntl( mListenSocket, F_SETFL, flags | O_NONBLOCK );
+#else
+			_setSocketNonBlocking( mListenSocket );
+#endif
+		}
+
+		void send( uint8_t * const xMemory, DWORD xSize )
+		{
+			switch ( mArch )
+			{
+				case eSocketConnectionArchitecture_NonblockingSelect:
+					{
+						if ( mRole == eSocketConnectorRole_Client )
+						{
+							WSABUF dataBuf;
+							dataBuf.len = xSize;
+							dataBuf.buf = (char*)xMemory;
+							std::cout << "WSASend: " << xSize << " bytes." << std::endl;
+							if ( WSASend( mListenSocket, &dataBuf, 1, &xSize, 0, NULL, NULL ) == SOCKET_ERROR )
+							{
+								std::cerr << "WSASend( .. ) failed: " << WSAGetLastError( ) << std::endl;
+								exit( -1 );
+							}
+							std::cout << "WSASend completed: " << xSize << " bytes." << std::endl;
+						}
+						else
+						{
+							std::cerr << "Server side send not yet implemented." << std::endl;
+							exit( -1 );
+						}
+					}
+					break;
+				default:
+					if ( sendto( mListenSocket, (char*)xMemory, xSize, 0, (struct sockaddr*) &mOtherSocketIP, mSendLength ) == SOCKET_ERROR )
+					{
+						int32_t const error = WSAGetLastError( );
+
+					     	if( error != WSAEINTR && error != WSAENOTSOCK )// WSAENOTSOCK occurs when closesocket( .. ) has been called on mListenSocket.
+						{
+							std::cerr << "sendto( .. ) failed: " << WSAGetLastError( ) << std::endl;
+							exit( -1 );
+						}
+					}
+					break;
 			}
 		}
 
-
-		uin32_t receive(  uint8_t * & xMemoryOut )
+		uint32_t receive(  uint8_t * & xMemoryOut )
 		{
-			// clear buffer (eliminate step )
-			memset( mBuffer, '\0', XBufferSize );
-
-			if ( ( mReceiveLength = recvfrom( mSocket, mBuffer, XBufferSize, 0, (struct sockaddr *)&mSocketOther, &mSendLength) ) == SOCKET_ERROR )
+			switch ( mArch )
 			{
-				std::cerr << "recvfrom( .. ) failed: " << WSAGetLastError( ) << std::endl;
-				exit( -1 );
+				case eSocketConnectionArchitecture_NonblockingSelect:
+					{
+						if ( (mReceiveLength = recv( mListenSocket, mBuffer, XBufferSize, 0 )) == SOCKET_ERROR )
+						{
+							std::cerr << "recv( .. ) failed: " << WSAGetLastError( ) << std::endl;
+							exit( -1 );
+						}
+					}
+					break;
+				default:
+					{
+						if ( ( mReceiveLength = recvfrom( mListenSocket, mBuffer, XBufferSize, 0, (struct sockaddr *)&mOtherSocketIP, &mSendLength ) ) == SOCKET_ERROR )
+						{
+							int32_t const error = WSAGetLastError( );
+
+						     	if( error != WSAEINTR && error != WSAENOTSOCK )// WSAENOTSOCK occurs when closesocket( .. ) has been called on mListenSocket.
+							{
+								std::cerr << "recvfrom( .. ) failed: " << WSAGetLastError( ) << std::endl;
+								exit( -1 );
+							}
+
+							mReceiveLength = 0;
+						}
+
+					}
+					break;
 			}
 
 			xMemoryOut = (uint8_t*)mBuffer;
 
 			return mReceiveLength;
+
 		}
 };
 
+static uint32_t const sBufferSize = 512;
+static uint32_t const sPort	  = 8888;
+
 } // namespace
 
+TEST(libopenssl_UT, createConnectorObjectOnBackgroundThreadWithoutFaults)
+{
+	NamedThread( [ & ] ( const char * xThreadName ) -> uint32_t { SocketConnector<sBufferSize> winsockServer(sPort); })( "server" );
+}
 
-// Ensures writes are stateless ( at least for one iteration ) ..
-TEST(libopenssl_UT, runSynchronousBlockingServerAndCLient)
+TEST(libopenssl_UT, createConnectorObjectWithoutFaults)
+{
+	SocketConnector<sBufferSize> winsockServer(sPort);
+}
+
+TEST(libopenssl_UT, createOpenSSLCertificateProgramatically)
 {
 	OpenSSLCertificate<2048, RSA_F4> cert;
 	cert.initialize( );
 	cert.write("test");
+}
 
-
-	OpenSSLConnection server(true);
-	OpenSSLConnection client;
-
-	gear<uint32_t, OpenSSLConnection* > serverThread( [ & ] ( OpenSSLConnection * xSSLConnection ) -> uint32_t
-	{
+// Ensures writes are stateless ( at least for one iteration ) ..
 #if 0
-		static uint32_t const sBufferSize = 512;
-		static uint32_t const sPort	  = 888;
-		SOCKET sock;
-		struct sockaddr_in socketServer, socketOther;
-		int32_t sLen, recvLen;
-		char buff[ sBufferSize ]; // todo - make buff length configurable
+TEST(libopenssl_UT, runSynchronousBlockingSocketServerAndClient)
+{
+	{
+		event quit;
 
-		sLen = sizeof( socketOther);
+		SocketConnector<sBufferSize> winsockServer(sPort);
 
-		if ( ( sock = socket( AF_INET, SOCK_DGRAM, 0 ) ) == INVALID_SOCKET )
+		SocketConnector<sBufferSize> winsockClient( "127.0.0.1", sPort );
+
+		NamedThread serverThread( [ & ] ( const char * xThreadName ) -> uint32_t
 		{
-			std::cerr << "socket( .. ) failed: " << WSAGetLastError( ) << std::endl;
-			exit( -1 );
-		}
+			winsockServer.initialize( );
 
-		std::cout << "Server socket created." << std::endl;
-
-		socketServer.sin_family 	= AF_INET;
-		socketServer.sin_addr.s_addr	= INADDR_ANY;
-		socketServer.sin_port 		= htons( sPort );
-
-		// Bind socket
-		if ( bind( sock, (struct sockaddr * )&socketServer, sizeof(socketServer) ) == SOCKET_ERROR)
-		{
-			std::cerr << "bind( .. ) failed: " << WSAGetLastError( ) << std::endl;
-			exit( -1 );
-		}
-
-		std::cout << "Server socket bound." << std::endl;
-
-		while (1)
-		{
-			std::cout << std::flush;
-
-
-			if ( ( recvLen = recvfrom( sock, buff, sBufferSize, 0, (struct sockaddr *)&socketOther, &sLen) ) == SOCKET_ERROR )
+			while ( !quit.isSet( ) )
 			{
-				std::cerr << "recvfrom( .. ) failed: " << WSAGetLastError( ) << std::endl;
-				exit( -1 );
+				uint8_t * message = NULL;
+				std::cout << "Server: Waiting for data .. " << std::endl;
+				uint32_t const bytes = winsockServer.receive( message );
+				if ( bytes != 0 )
+				{
+					std::cout << "Server: received " << bytes << " bytes .." << std::endl;
+					if ( message == NULL )
+					{
+						std::cerr << "OpenUdpSocketConnector< .. >::receive failed( .. )." << std::endl;
+						exit( -1 );
+					}
+
+					sockaddr_in * info = winsockServer.getLastConnectedClientInfo( );
+
+					std::cout << "in -> " << inet_ntoa( info->sin_addr ) << ":" << ntohs( info->sin_port ) << std::endl;
+					std::cout << ccolor( eTTYCRed, eTTYCMagenta, eModNone ) << memblock( message, bytes ) << std::endl;
+
+					std::cout << "Server: sending " << bytes << " bytes .." << std::endl;
+					winsockServer.send( message, bytes );
+					std::cout << "Server: sent " << bytes << " bytes." << std::endl;
+				}
 			}
 
-			std::cout << "in -> " << inet_ntoa( socketOther.sin_addr ) << ":" << ntohs( socketOther.sin_port ) << std::endl;
-			std::cout << "[" << buff << "]" << std::endl;
+			std::cout << "Out thread " << xThreadName << std::endl;
 
-			// echo back to client.
-			if ( sendto( sock, buff, recvLen, 0, (struct sockaddr*) &socketOther, sLen ) == SOCKET_ERROR )
+			return 0;
+		});
+
+		NamedThread clientThread( [ & ] ( const char * xThreadName ) -> uint32_t
+		{
+			static const char * sJabberwocky[] = {  "And, as in uffish thought he stood, "
+							      , " The Jabberwock, with eyes of flame, "
+							      , "Came whiffling through the tulgey wood, "
+							      , " And burbled as it came!"
+							      , "One, two! One, two! And through and through "
+							      , "      The vorpal blade went snicker-snack! "
+							      , "He left it dead, and with its head "
+							      , "      He went galumphing back. "
+							      , "“And hast thou slain the Jabberwock? "
+							      , "      Come to my arms, my beamish boy! "
+							      , "O frabjous day! Callooh! Callay!” "
+							      , "      He chortled in his joy. " };
+
+			std::cout << "In thread " << xThreadName << std::endl;
+
+			winsockClient.initialize( );
+
+			uint8_t * buff = NULL;
+
+			uint8_t message[ sBufferSize ];
+
+			uint8_t index = 0;
+
+			while ( !quit.isSet( ) )
 			{
-				std::cerr << "sendto( .. ) failed: " << WSAGetLastError( ) << std::endl;
-				exit( -1 );
+				if ( ++index > ( sizeof( sJabberwocky ) / sizeof( const char * ) ) - 1 )
+				{
+					index = 0;
+				}
+
+				memcpy( message, sJabberwocky[ index ], strlen(sJabberwocky[ index ] ) + 1 );
+
+				winsockClient.send( message, strlen((char*)message));
+
+				uint32_t const bytes = winsockClient.receive( buff );
+
+				if ( bytes != 0 )
+				{
+
+					if ( buff == NULL )
+					{
+						//std::cerr << "SocketConnector< .. >::receive failed." << std::endl;
+						exit( -1 );
+					}
+
+					std::cout << memblock( buff, bytes ) << std::endl;;
+				}
 			}
 
-		}
+			std::cout << "Out thread " << xThreadName << std::endl;
+			return 0;
 
-		closesocket( sock );
+		});
+
+		serverThread( "server" );
+
+		clientThread( "client" );
+
+		sleep::ms( 3000 );
+
+		quit.set( );
+		winsockServer.disconnect( );
+		winsockClient.disconnect( );
+	}
+}
 #endif
 
-		OpenUDPSocketConnector<512> winsockServer(888);
+TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
+{
+	static uint32_t const sBufferSize = 512;
+	static uint32_t const sPort	  = 888;
+
+
+	event quit;
+
+	const char * reply = "Arrr!";
+
+
+	SocketConnector<sBufferSize> winsockServer( sPort
+					          , eDatagramProtocol_TCP
+						  , eSocketConnectionArchitecture_NonblockingSelect );
+
+	winsockServer.registerSelectCallback( [ & ] ( SelectData<sBufferSize> const & xSelectData )
+	{
+		std::cout << ccolor( eTTYCBlack, eTTYCMagenta, eModBold )
+			  << "Server received " << xSelectData.size <<  " bytes."
+			  //<< memblock( xSelectData.data, xSelectData.size )
+			  << " from socket # " << xSelectData.socket->socketID
+			  << " and did nothing with it."
+			  << std::endl;
+
+		//winsockServer.reply( xData, xSize );
 	});
 
-	serverThread( &server );
+	winsockServer.initialize( );
 
-	gear<uint32_t, OpenSSLConnection* > clientThread( [ & ] ( OpenSSLConnection * xSSLConnection ) -> uint32_t
+	// Server thread should now be running.
+
+	NamedThread clientThread( [ & ] ( const char * xName ) -> uint32_t
 	{
-		static uint32_t const sBufferSize = 512;
-		static uint32_t const sPort	  = 888;
-
 		static const char * sJabberwocky[] = {  "And, as in uffish thought he stood, "
 						      , " The Jabberwock, with eyes of flame, "
 						      , "Came whiffling through the tulgey wood, "
@@ -471,65 +1050,76 @@ TEST(libopenssl_UT, runSynchronousBlockingServerAndCLient)
 						      , "O frabjous day! Callooh! Callay!” "
 						      , "      He chortled in his joy. " };
 
-		struct sockaddr_in sockOther;
+		std::cout << "In thread " << xName << std::endl;
 
-		SOCKET sock;
+		SocketConnector<sBufferSize> winsockClient( "127.0.0.1"
+							      , sPort
+							      , eDatagramProtocol_TCP
+							      , eSocketConnectionArchitecture_NonblockingSelect );
 
-		int sLen = sizeof( sockOther );
+		winsockClient.initialize( );
 
-		char buff[ sBufferSize ], message[ sBufferSize ];
+		uint8_t * buff = NULL;
 
-		if ( ( sock = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP ) ) == SOCKET_ERROR )
-		{
-			std::cerr << "socket( .. ) failed: " << WSAGetLastError( ) << std::endl;
-			exit( -1 );
-		}
-
-		memset( ( char* )&sockOther, 0, sizeof(sockOther));
-
-		sockOther.sin_family 		= AF_INET;
-		sockOther.sin_port   		= htons( sPort );
-		sockOther.sin_addr.S_un.S_addr 	= inet_addr( "127.0.0.1" );
+		uint8_t message[ sBufferSize ];
 
 		uint8_t index = 0;
 
-		while ( 1 )
+		bool once = false;
+
+		while ( !quit.isSet( ) )
 		{
-			if ( ++index >= 10)
+			if ( ++index > ( sizeof( sJabberwocky ) / sizeof( const char * ) ) - 1 )
 			{
 				index = 0;
 			}
 
-			// Copy the message into the buffer
 			memcpy( message, sJabberwocky[ index ], strlen(sJabberwocky[ index ] ) + 1 );
-
-			if ( sendto( sock, message, strlen(message), 0, (struct sockaddr*)&sockOther, sLen ) == SOCKET_ERROR )
+			if (!once)
 			{
-				std::cerr << "sendto( .. ) failed: " << WSAGetLastError( ) << std::endl;
+				winsockClient.send( message, strlen((char*)message));
+
+				once = true;
+			}
+
+			//static int32_t times = 0;
+			//std::cout << "Client: sent " << ++times << std::endl;
+
+			uint32_t const bytes = winsockClient.receive( buff );
+
+			if ( buff == NULL )
+			{
+				std::cerr << "SocketConnector< .. >::receive failed." << std::endl;
 				exit( -1 );
 			}
 
-			memset( buff, '\0', sBufferSize );
-
-			if ( recvfrom( sock, buff, sBufferSize, 0, (struct sockaddr *)&sockOther, &sLen ) == SOCKET_ERROR )
+			if ( bytes == 0 )
 			{
-
-				std::cerr << "recvfrom( .. ) failed: " << WSAGetLastError( ) << std::endl;
-				exit( -1 );
+				continue;
 			}
 
-			//std::cout << buff;
+			std::cout << ccolor( eTTYCBlack, eTTYCYellow, eModBold )
+				   << "Client received " << bytes << std::endl;
+				   //<<memblock( buff, sBufferSize ) << std::endl;;
 		}
 
-		closesocket( sock );
+		winsockClient.disconnect( );
 
+		std::cout << "Out thread " << xName << std::endl;
 	});
 
-	clientThread( &client );
+	clientThread( "Client thread 01" );
+	//clientThread( "Client thread 02" );
+	//clientThread( "Client thread 03" );
+	sleep::ms( 10000 );
 
-	while(1) {
-		std::cout << "Main thread still active." << std::endl;
-		sleep::ms( 1000 );
-	};
+	std::cout << "Quiting from main thread." << std::endl;
+	quit.set( );
+
+	winsockServer.disconnect( );
+
+	std::cout << "Main thread is out, next is dtors." << std::endl;
+
+	BLOCK_EXECUTION;
 }
 #endif

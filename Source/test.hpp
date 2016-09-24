@@ -41,7 +41,6 @@ inline static void BREAK( )
 	std::cout << "Paused: " << f << ":" << l << ":" << fn << std::endl;
 	do { ; } while(c = std::cin.get() && c == 0);
 	std::cout << "Resuming: " << f << ":" << l << ":" << fn << std::endl;
-	for(int i = 0; i < 50; ++i) { std::cout << "😎" << std::endl; }
 }
 
 template < typename XType, size_t XSize >

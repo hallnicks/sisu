@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"
@@ -45,3 +46,4 @@ TEST(sdl_RedBookCh03_UT, CreateSDLWindowWithoutExceptions)
 
 	BLOCK_EXECUTION;
 }
+#endif

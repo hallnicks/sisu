@@ -14,6 +14,8 @@
 #include <SDL2/SDL.h>
 #include <SDL.h>
 
+#include "keyboard.hpp"
+
 using namespace sisu;
 
 namespace {
@@ -26,81 +28,51 @@ namespace {
 			void Down( ) { }
 	};
 
-	class KeyboardEvent
-	{
-		const Uint8 * mEvent;
-
-		public:
-			KeyboardEvent( const Uint8 * xEvent )
-			: mEvent( xEvent )
-			{
-				;
-			}
-
-			bool operator[]( uint16_t const xScanCode ) const
-			{
-				return mEvent[ xScanCode ];
-			}
-	};
-
-	typedef std::function<void(KeyboardEvent)> OnKeyboardEventCallback;
-
-	class Keyboard
-	{
-		mutex mM;
-		std::vector< OnKeyboardEventCallback > mCallbacks;
-		bool mInitialized;
-		gear<uint32_t, int64_t> mKeyboardListener;
-		event mQuit;
-
-		public:
-			Keyboard( )
-				: mM( )
-				, mCallbacks( )
-				, mKeyboardListener( [&]( int64_t xSleepIntervalNs )->uint32_t
-				{
-					while ( !mQuit.isSet( ) )
-					{
-						if ( xSleepIntervalNs > 0 )
-						{
-							sleep::ns( xSleepIntervalNs );
-						}
-
-						const Uint8 * state = SDL_GetKeyboardState( NULL );
-
-						mM.run([&]( )
-						{
-							for ( auto callback : mCallbacks )
-							{
-								callback( KeyboardEvent( state ) );
-							}
-						});
-					}
-				})
-				, mQuit( )
-			{
-				;
-			}
-
-
-			void listen( int64_t const xSleepInterval = 0 )
-			{
-				mKeyboardListener( xSleepInterval );
-			}
-
-			void registerCallback( OnKeyboardEventCallback xCallback )
-			{
-				mM.run([&]() { mCallbacks.push_back( xCallback ); });
-			}
-
-			void stopListening( )
-			{
-				mQuit.set( );
-			}
-	};
-
-
 } // namespace
+
+
+class Stopwatch
+{
+	LARGE_INTEGER mFrequency, mStart, mFinish;
+
+	void _queryPerformanceCounter( LARGE_INTEGER * & xTicks )
+	{
+	}
+
+	public:
+		Stopwatch( )
+			: mFrequency(  )
+			, mStart( )
+			, mFinish(  )
+		{
+			if ( QueryPerformanceCounter( &mFrequency ) == FALSE )
+			{
+				std::cerr << "QueryPerformanceCounter( .. ) failed." << std::endl;
+				exit( -1 );
+			}
+		}
+
+		double getInterval( ) const { return static_cast<double>( mFinish.QuadPart - mStart.QuadPart ) / mFrequency.QuadPart; }
+
+		void start( )
+		{
+			if ( QueryPerformanceCounter( &mStart ) == FALSE )
+			{
+				std::cerr << "QueryPerformanceCounter( .. ) failed." << std::endl;
+				exit( -1 );
+			}
+
+		}
+
+		void finish( )
+		{
+			if ( QueryPerformanceCounter( &mFinish ) == FALSE )
+			{
+				std::cerr << "QueryPerformanceCounter( .. ) failed." << std::endl;
+				exit( -1 );
+			}
+		}
+};
 
 TEST(keyboard_UT, KeyboardHandlerCallback)
 {
@@ -115,8 +87,8 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 		SDL_Window * window = SDL_CreateWindow( "SDL2 OpenGL"
                                     			, SDL_WINDOWPOS_CENTERED
 		                                        , SDL_WINDOWPOS_CENTERED
-		                                        , 1
-		                                        , 1
+		                                        , 1920 / 2
+		                                        , 1080 / 2
 		                                        , SDL_WINDOW_OPENGL      | SDL_WINDOW_BORDERLESS    |
 		                                          SDL_WINDOW_SHOWN       | SDL_WINDOW_INPUT_GRABBED |
                 		                          SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
@@ -125,17 +97,20 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 		SDL_GL_SetSwapInterval( 1 );
 
-		SDL_MaximizeWindow( window );
+		//SDL_MaximizeWindow( window );
 		SDL_RaiseWindow( window );
 		SDL_SetWindowGrab( window, SDL_TRUE );
 
 		event quit;
 
-		OnKeyboardEventCallback  onKeyboardCharacter = [&] ( KeyboardEvent const & xEvent )
+		OnKeyboardEventCallback onKeyboardCharacter = [&] ( KeyboardEvent const & xEvent )
 		{
-			if ( xEvent[SDL_SCANCODE_Q] )
+			std::cout << "[ Key " << ( xEvent.getKeyUp( ) ? "up " : "down " ) << ": "
+				  << std::hex << xEvent.getScanCode( ) << "]" << std::endl;
+
+			if ( xEvent.getScanCode( ) == SDL_SCANCODE_Q )
 			{
-				std::cout << "Q pressed. Exiting.." << std::endl;
+				std::cerr << "Q pressed. Exiting.. " << std::endl;
 				quit.set( );
 			}
 		};
@@ -146,10 +121,25 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 		kb.registerCallback(onKeyboardCharacter);
 		kb.listen( );
 
+		double accum = 0.0;
+
 		while ( !quit.isSet( ) )
 		{
+			Stopwatch t;
+
+			t.start( );
+
 			SDL_PumpEvents( );
+
 			SDL_GL_SwapWindow( window );
+
+			t.finish( );
+
+			if ( (accum += t.getInterval( )) > 3.0 )
+			{
+				std::cerr << "Timeout reached. Exiting.." << std::endl;
+				break;
+			}
 		}
 
 		kb.stopListening( );
@@ -160,5 +150,4 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 	}
 }
-
 #endif

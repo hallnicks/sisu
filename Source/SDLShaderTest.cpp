@@ -102,7 +102,10 @@ SDLTestShaderWindow::SDLTestShaderWindow( ShaderPathPair const & xShaderPaths )
 
 SDLShader::~SDLShader( ) 
 {
-	glDeleteProgram( mProgramID );
+	if ( mProgramID != 0 )
+	{
+		glDeleteProgram( mProgramID );
+	}
 }
 
 SDLTestShaderWindow::~SDLTestShaderWindow( )
