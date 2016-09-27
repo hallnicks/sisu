@@ -15,6 +15,8 @@
 #include <functional>
 #include <limits>
 
+#include <concurrentqueue.h>
+
 #ifndef __linux__
 #include <Windows.h>
 #endif
@@ -28,9 +30,12 @@
 
 #include <stdio.h>
 
+
 #include "TextureFactory.hpp"
 #include "Texture2D.hpp"
 #include "GLCharacterMap.hpp"
+#include "keyboard.hpp"
+#include "mouse.hpp"
 
 namespace sisu {
 
@@ -188,6 +193,8 @@ class SpriteShader : public SDLTestWindow
 
 	std::map<char, _TextureInstance * > mCharacters;
 
+	_TextureInstance * mCursor;
+
 	GLuint mVBO, mQuadVAO;
 
 	event mQuit;
@@ -199,6 +206,17 @@ class SpriteShader : public SDLTestWindow
 	uint64_t mSize;
 
 	GLCharacterMap mCharacterMap;
+
+	Mouse mMouse;
+	Keyboard mKB;
+
+	mutex mMouseMutex;
+
+	MouseEventInfo mCursorPosition;
+
+	moodycamel::ConcurrentQueue< char > mStdIn;
+
+	std::vector<char> mLineBuffer;
 
 	void _drawSprite( Texture2D & xTexture
 		        , glm::vec2 const xPosition
@@ -240,9 +258,11 @@ class SpriteShader : public SDLTestWindow
 		{
 			if ( !mPBOEnabled )
 			{
+#if 0
 				_fillRandomData( );
 				glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
 				glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
+#endif
 			}
 			else
 			{
@@ -304,7 +324,15 @@ class SpriteShader : public SDLTestWindow
 	        struct { uint8_t r, g, b, a; };
 	};
 
-	void _loadGLCharacter( GLCharacter * xGLChar )
+
+	void _loadCursor( )
+	{
+		_loadGLCharacter( mCharacterMap[ 'o' ] );
+
+		mCursor = mCharacters[ 'o' ];
+	}
+
+	_TextureInstance * _loadGLCharacter( GLCharacter * xGLChar )
 	{
 		if ( xGLChar == NULL )
 		{
@@ -312,26 +340,23 @@ class SpriteShader : public SDLTestWindow
 			exit( -1 );
 		}
 
-		std::cout << "checking for existing.. " << std::endl;
 		if ( mCharacters.find( xGLChar->getCharacter( ) ) != mCharacters.end( ) )
 		{
 			// character already loaded!
-			return;
+			return mCharacters[ xGLChar->getCharacter( ) ];
 		}
 
 		_TextureInstance * pT = new _TextureInstance( );
 
-		std::cout << "Allahu akbuffer" << std::endl;
 		pT->texData = xGLChar->allocGLBuffer( );
 
-		std::cout << "Initialize texture." <<std::endl;
 		pT->tex.initialize( ( pT->w = xGLChar->getWidth( )  )
 				  , ( pT->h = xGLChar->getHeight( ) )
 				  , ( uint8_t* )pT->texData );
 
-		std::cout << "Set to map." << std::endl;
-
 		mCharacters[ xGLChar->getCharacter( ) ] = pT;
+
+		return pT;
 	}
 
 	void _fillRandomData( )
@@ -340,32 +365,96 @@ class SpriteShader : public SDLTestWindow
 
 		for ( uint64_t ii = 0; ii < mW * mH; ii += 4 )
 		{
-			pixelData[ ii ].r = 255;
-			pixelData[ ii ].g = 0;
-			pixelData[ ii ].b = 0;
-			pixelData[ ii ].a = 255;
+			pixelData[ ii ].r = rand( ) % 255;
+			pixelData[ ii ].g = rand( ) % 255;
+			pixelData[ ii ].b = rand( ) % 255;
+			pixelData[ ii ].a = rand( ) % 255;
 		}
 	}
+
+	void _initializeMouse( )
+	{
+		mMouse.registerCallback( [ & ] ( MouseEventInfo xEvent )
+		{
+			mMouseMutex.run( [ & ] ( ) { mCursorPosition = xEvent; } );
+		});
+		mMouse.listen( );
+	}
+
+	void _initializeKeyboard( )
+	{
+		mKB.registerCallback( [&]( KeyboardEvent xEvent )
+		{
+			std::cout << "Key pressed." << std::endl;
+
+			if ( xEvent.getScanCode( ) == SDL_SCANCODE_Q )
+			{
+				mQuit.set( );
+			}
+
+			char const c = sSDLKeyboardScancodeMap[ xEvent.getScanCode( ) ];
+
+			std::cout << "enqueue : " << c << std::endl;
+
+			mStdIn.enqueue( c );
+		} );
+		mKB.listen( );
+	}
+
 
 	protected:
 		virtual void render( )
 		{
+
+			MouseEventInfo currentCursorPosition;
+			mMouseMutex.run([&]() { currentCursorPosition = mCursorPosition; } );
+
 			_drawSprite( mBackgroundTexture, glm::vec2( 0, 0 ), glm::vec2( mW, mH ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
 
-			GLuint offsetx = 0, offsety = 0;
+			_drawSprite( mCursor->tex
+				   , glm::vec2( currentCursorPosition.x, currentCursorPosition.y )
+				   , glm::vec2( mCursor->w, mCursor->h )
+				   , 0.0f
+			           , glm::vec3( 1.0f, 1.0f, 1.0f ) );
 
+			GLuint offsetx = 0;
+			GLuint offsety = 0;
+			/*
 			for ( auto && ii : mCharacters )
 			{
-
 				_drawSprite( ii.second->tex
 					   , glm::vec2( offsetx, offsety )
 					   , glm::vec2( ii.second->w, ii.second->h )
 					   , 0.0f
 					   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
-
 				offsetx += ii.second->w;
 				// TODO: do this every newline.
 				//offsety += ii.second->h;
+			}
+			*/
+
+			char c;
+
+			if ( mStdIn.try_dequeue( c ) )
+			{
+				mLineBuffer.push_back( c );
+			}
+
+			for ( auto && c : mLineBuffer )
+			{
+				_TextureInstance * pT = _loadGLCharacter( mCharacterMap[ c ] );
+
+				_drawSprite( pT->tex
+					   , glm::vec2( offsetx, offsety )
+					   , glm::vec2( pT->w, pT->h )
+					   , 0.0f
+					   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+				if ( ( offsetx += pT->w ) >= mW )
+				{
+					offsetx = 0;
+					offsety += pT->h;
+				}
 			}
 		}
 
@@ -385,6 +474,10 @@ class SpriteShader : public SDLTestWindow
 				       , 32
 				       , "" )
 			, mCharacters( )
+			, mMouse( )
+			, mKB( )
+			, mMouseMutex( )
+			, mCursor( NULL )
 		{
 			;
 		}
@@ -403,16 +496,21 @@ class SpriteShader : public SDLTestWindow
 			// TODO: delete quad vao and vbo (!)
 		}
 
-
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
 			SDLTestWindow::initialize( xAttributes );
 
+			_initializeMouse( );
+
+			_initializeKeyboard( );
+
+			// Load ASCII
 		        for ( char c = '!'; c < '~'; c++ )
 			{
-				std::cout << "Load GL character " << c << std::endl;
 				_loadGLCharacter( mCharacterMap[ c ] );
 			}
+
+			_loadCursor( );
 
 			if ( mPBOEnabled )
 			{

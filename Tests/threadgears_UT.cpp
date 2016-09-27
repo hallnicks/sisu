@@ -1,3 +1,4 @@
+#if 0
 // This file is part of sisu.
 
 // sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by
@@ -162,6 +163,7 @@ TEST(tg_UT, LambdaTrivial)
 	std::function< int (const char * )> func = []( const char * xPtr ) -> int { std::cout << xPtr << std::endl; return 0; };
 	std::cout << "func()=" << func("hello, world") << std::endl;
 }
+#if 0
 
 TEST(tg_UT, ThreadTrivial)
 {
@@ -182,6 +184,7 @@ TEST(tg_UT, ThreadTrivial)
 
 	std::cout << "Scope cleared " << std::endl;
 }
+#endif
 
 TEST(tg_UT, ThreadCreatesThreads)
 {
@@ -264,3 +267,4 @@ TEST(tg_UT, ThreadLambdaCute2)
 	}
 	std::cout << "scope cleared." << std::endl;
 }
+#endif

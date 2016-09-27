@@ -115,7 +115,7 @@ namespace sisu
 
 				for ( uint32_t ii = 0; ii < mHeight; ii++ )
 				{
-					memcpy( outData + ( rowBytes * ( mHeight - 1 - ii ) )
+					memcpy( outData + ( rowBytes * ii )
 					      , mRGBBuffer[ ii ]
 					      , rowBytes );
 				}
