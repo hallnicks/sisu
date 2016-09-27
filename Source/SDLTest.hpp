@@ -16,6 +16,8 @@
 #include <SDL2/SDL_opengl.h>
 #include <functional>
 
+#include "threadgears.hpp"
+
 namespace sisu {
 
         inline GLfloat _randomGLfloat( )
@@ -26,7 +28,7 @@ namespace sisu {
 	void _printGLProgramLog( GLuint const xProgram );
 	void _printGLShaderLog( GLuint const xProgram );
 
-	void _checkForGLError( );
+	void _checkForGLError( const char * xAddendum = NULL );
 
 	struct OpenGLAttributes
 	{
@@ -44,6 +46,8 @@ namespace sisu {
                 static void _checkSDLError( );
 
 		protected:
+			event mQuit;
+
 	                SDL_Window * mMainWindow;
 
 	                SDL_GLContext mMainContext;
@@ -63,6 +67,9 @@ namespace sisu {
                         virtual void initialize( OpenGLAttributes const & xAttributes );
 
         	        virtual void run( ) = 0;
+
+
+			virtual void stop ( ) { mQuit.set( ); }
 	}; // class
 }
 

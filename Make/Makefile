@@ -20,6 +20,8 @@ TARGET_LIBS  += png z freetype
 #This is now windows specific. Need to test on linux again. For example, winsock, opengl32, glew32, etc, linked differently.
 TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32
 
+TARGET_LIBS += tbb
+
 #Extra's for fun (TODO: integrate)
 #TARGET_LIBS += curl twitcurl utp x264
 

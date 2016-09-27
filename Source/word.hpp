@@ -68,7 +68,9 @@ class bit
 	size_t const mB;
 
 	public:
-		bit( XType & xV, size_t const xByteOffset, size_t const xBitOffset )
+		bit( XType & xV
+		   , size_t const xByteOffset
+		   , size_t const xBitOffset )
 			: mV( xV )
 			, mM ( mask( xByteOffset, xBitOffset ) )
 			, mB( xByteOffset )
@@ -84,12 +86,16 @@ class bit
 
 		bool operator [ ] ( size_t const xBitOffset )
 			{ return ( mV & mask( mB, xBitOffset ) ); }
- 
+
 		static XType mask( size_t const xByteOffset, size_t const xBitOffset )
-			{ return 1 << ( ( xByteOffset * CHAR_BIT ) + xBitOffset ); }
+		{
+			return 1 << (XType)( ( xByteOffset * (XType)CHAR_BIT ) + (XType)xBitOffset );
+		}
 
 		static void setBits( XType & xV, XType const xM, bool const xS = true )
-			{ xV = ( xV & ~xM ) | ( -( xS ? 1 : 0 ) & xM ); }
+		{
+			xV = ( xV & ~xM ) | ( -( xS ? 1L : 0L ) & xM );
+		}
 };
 
 template< typename XType >
@@ -97,12 +103,13 @@ class byte
 {
 	XType & mV;
 
-	size_t const mShift;
+	size_t const mShift, mIdx;
 
 	public:
 		byte( XType & xV, size_t const xIdx )
 			: mV( xV )
 			, mShift( std::min( xIdx, sizeof( XType ) ) * CHAR_BIT )
+			, mIdx( xIdx )
 		{
 			;
 		}
@@ -114,7 +121,7 @@ class byte
 		}
 
 		bit < XType > operator [ ] ( size_t const xIdx )
-			{ return bit< XType > ( mV, xIdx ); }
+			{ return bit< XType > ( mV, mIdx, xIdx ); }
 
 		static XType mask( size_t const xByteOffset )
 			{ return 0xFF << xByteOffset; }
@@ -169,6 +176,8 @@ class word : public accept_cout < word < XType > >
 
 		byte < XType > operator [ ] ( size_t const xIdx )
 			{ return byte < XType > ( mV, xIdx ); }
+
+		XType operator*( ) { return mV; }
 
 		ACCEPTOPS(word, mV)
 };

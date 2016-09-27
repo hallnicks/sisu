@@ -11,6 +11,8 @@
 #include <fstream>
 #include <math.h>
 
+#include <SDL2/SDL_opengl.h>
+
 namespace sisu
 {
 	struct _PNGImageDimensions
@@ -22,7 +24,7 @@ namespace sisu
 	class _PNGImageRow
 	{
 		png_bytep mRow;
-			
+
 		public:
 			_PNGImageRow( png_bytep xRow )
 				: mRow( xRow )
@@ -45,7 +47,7 @@ namespace sisu
 		_memEncode( );
 		~_memEncode( );
 
-		char * buffer;	
+		char * buffer;
 		png_size_t size;
 	};
 
@@ -61,10 +63,10 @@ namespace sisu
 		png_bytep data;
 	};
 
-	class PNGImage 
+	class PNGImage
 	{
 		uint32_t mWidth, mHeight;
-		
+
 		png_byte mColorType, mBitDepth;
 
 		png_bytep * mRGBBuffer;
@@ -72,7 +74,7 @@ namespace sisu
 		char const * const mFilename;
 
 		png_structp mPNGRead, mPNGWrite;
-		
+
 		png_infop mInfoRead, mInfoWrite;
 
 		_memEncode * mWriteState, * mReadState;
@@ -89,21 +91,38 @@ namespace sisu
 
 		public:
 			PNGImage( _PNGImageDimensions const & xDimensions );
-			PNGImage( const char * xPath );		
+			PNGImage( const char * xPath );
 			~PNGImage( );
 
 			PNGImage & operator( ) ( std::function< void( PNGImage & )> xLambda );
 
 			void perPixel( std::function< void( PNGPixel ) > xPixel );
-		
+
 			uint32_t    		getWidth( )     const;
 			uint32_t    		getHeight( )    const;
-			png_byte    		getColorType( ) const; 
+			png_byte    		getColorType( ) const;
 			png_byte    		getBitDepth( )  const;
 			png_bytep * 		getRGBBuffer( ) const;
 			char const * const 	getFilename( )  const;
 			size_t 			getRowsSize( )  const;
-			
+
+			// https://gist.github.com/mortennobel/5299151
+			GLubyte * toGLTextureBuffer( )
+			{
+				uint32_t const rowBytes = png_get_rowbytes( mPNGRead, mInfoRead );
+
+				GLubyte* outData = (GLubyte* )malloc( rowBytes * mHeight );
+
+				for ( uint32_t ii = 0; ii < mHeight; ii++ )
+				{
+					memcpy( outData + ( rowBytes * ( mHeight - 1 - ii ) )
+					      , mRGBBuffer[ ii ]
+					      , rowBytes );
+				}
+
+				return outData; // must be 'FREED by the caller some time.
+			}
+
 			friend std::ofstream & operator<<( std::ofstream& xOfs, PNGImage & xImage );
 			_PNGImageRow operator[]( size_t const xIndex )
 			{

@@ -7,24 +7,24 @@
 namespace sisu
 {
 
-_memEncode::_memEncode( ) 
+_memEncode::_memEncode( )
 	: buffer( NULL )
-	, size( 0 ) 
-{ 	
+	, size( 0 )
+{
 	;
 }
 
 _memEncode::~_memEncode( )
 {
-	if ( buffer != NULL ) 
+	if ( buffer != NULL )
 	{
-		free( buffer ); 
+		free( buffer );
 	}
 }
-	
+
 // stub for debugging and api compatibility
-void _png_flush_memory( png_structp xPngPointer ) 
-{ 
+void _png_flush_memory( png_structp xPngPointer )
+{
 	_memEncode * p = (_memEncode*)png_get_io_ptr( xPngPointer );
 	delete p;
 	p = new _memEncode( );
@@ -34,18 +34,14 @@ void _png_read_memory( png_structp xPngPointer, png_bytep xData, png_size_t xLen
 {
 	_memEncode * p = (_memEncode*)png_get_io_ptr( xPngPointer );
 
-	if ( p->buffer == NULL ) 
+	if ( p->buffer == NULL )
 	{
 		std::cerr << "_png_read_memory: Source buffer was NULL." << std::endl;
-		exit( -1 ); 
+		exit( -1 );
 	}
 
-	// Copy data from parameterized buffer into xData?
-	std::cout << "copy " << p->size << " bytes from " << std::hex << p->buffer 
-					<< " to " << std::hex << xData << std::endl;
-
 	if ( xData == NULL )
-	{ 
+	{
 		std::cerr << "Target buffer was NULL." << std::endl;
 		exit( -1 );
 	}
@@ -63,19 +59,19 @@ void _png_write_memory( png_structp xPngPointer, png_bytep xData, png_size_t xLe
 	{
 		p->buffer = ( char* )realloc( p->buffer, nsize );
 	}
-	else 
+	else
 	{
-		p->buffer = ( char* )malloc ( nsize ); 
+		p->buffer = ( char* )malloc ( nsize );
 	}
-	
-	if ( p->buffer == NULL ) 
+
+	if ( p->buffer == NULL )
 	{
 		std::cerr << "Memory allocation failure in _png_write_memory " << std::endl;
-		exit( -1 ); 
+		exit( -1 );
 	}
-	
+
 	memcpy( p->buffer + p->size, xData, xLength );
-	
+
 	p->size += xLength;
 }
 
@@ -88,23 +84,23 @@ void PNGImage::_blitToOutputBuffer( )
 		mWriteState = new _memEncode( );
 	}
 
-	if ( mPNGWrite == NULL ) 
+	if ( mPNGWrite == NULL )
 	{
-		mPNGWrite = png_create_write_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL ); 
+		mPNGWrite = png_create_write_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
 	}
 
-	if ( mPNGWrite == NULL ) 
+	if ( mPNGWrite == NULL )
 	{
 		std::cerr << "png_create_write_struct failed." << std::endl;
 		exit( -1 );
 	}
 
-	if ( mInfoWrite == NULL ) 
+	if ( mInfoWrite == NULL )
 	{
 		mInfoWrite = png_create_info_struct( mPNGWrite );
 	}
 
-	if ( mInfoWrite == NULL ) 
+	if ( mInfoWrite == NULL )
 	{
 		std::cerr << "png_create_info_struct failed." << std::endl;
 		exit( -1 );
@@ -128,34 +124,34 @@ void PNGImage::_blitToOutputBuffer( )
 			, PNG_COMPRESSION_TYPE_DEFAULT
 			, PNG_FILTER_TYPE_DEFAULT );
 
-			
-	png_set_write_fn( mPNGWrite, mWriteState, _png_write_memory, _png_flush_memory ); 
 
-	png_write_info( mPNGWrite, mInfoWrite ); 
+	png_set_write_fn( mPNGWrite, mWriteState, _png_write_memory, _png_flush_memory );
+
+	png_write_info( mPNGWrite, mInfoWrite );
 
 	png_write_image( mPNGWrite, mRGBBuffer ); // Here we may check if mRGBBuffer changed.
-			
+
 	png_write_end( mPNGWrite, NULL );
 
-	if ( mPNGWrite != NULL ) 
+	if ( mPNGWrite != NULL )
 	{
 		png_destroy_write_struct( &mPNGWrite, (png_infopp)NULL );
-		mPNGWrite = NULL; 
+		mPNGWrite = NULL;
 	}
 
 }
 
 void PNGImage::_writeDataToStream( std::ofstream & xOfs )
 {
-	_blitToOutputBuffer( ); 
+	_blitToOutputBuffer( );
 
-	if ( mWriteState == NULL || mWriteState->buffer == NULL ) 
+	if ( mWriteState == NULL || mWriteState->buffer == NULL )
 	{
 		std::cerr << "Buffer was NULL, cannot write." << std::endl;
 		exit( -1 );
 	}
 
-	xOfs.write( &mWriteState->buffer[0], mWriteState->size ); 
+	xOfs.write( &mWriteState->buffer[0], mWriteState->size );
 }
 
 void PNGImage::_populateReadStructures( )
@@ -166,7 +162,7 @@ void PNGImage::_populateReadStructures( )
 
 	if ( ( mBitDepth = png_get_bit_depth( mPNGRead, mInfoRead ) ) == 16 )
 	{
-		png_set_strip_16( mPNGRead ); 
+		png_set_strip_16( mPNGRead );
 	}
 
 	mColorType  = png_get_color_type( mPNGRead, mInfoRead );
@@ -183,8 +179,8 @@ void PNGImage::_populateReadStructures( )
 	if ( png_get_valid( mPNGRead, mInfoRead, PNG_INFO_tRNS ) )
 	{
 		png_set_tRNS_to_alpha( mPNGRead );
-	}				
-				
+	}
+
 	if( mColorType == PNG_COLOR_TYPE_RGB  ||
 	    mColorType == PNG_COLOR_TYPE_GRAY ||
      	    mColorType == PNG_COLOR_TYPE_PALETTE )
@@ -201,17 +197,17 @@ void PNGImage::_populateReadStructures( )
 
 void PNGImage::_initializeReadStructures( )
 {
-	mPNGRead  = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL ); 
+	mPNGRead  = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL, NULL, NULL );
 
-	if ( mPNGRead == NULL ) 
+	if ( mPNGRead == NULL )
 	{
 		std::cerr << "png_create_read_struct failed." << std::endl;
 		exit( -1 );
 	}
 
 	mInfoRead  = png_create_info_struct( mPNGRead );
-			
-	if ( mInfoRead == NULL ) 
+
+	if ( mInfoRead == NULL )
 	{
 		std::cerr << "png_create_info_struct failed." << std::endl;
 		exit( -1 );
@@ -225,7 +221,7 @@ void PNGImage::_initializeReadStructures( )
 }
 
 void PNGImage::_initializeObject( FILE * xFile )
-{	
+{
 	png_read_info( mPNGRead, mInfoRead );
 
 	_populateReadStructures( );
@@ -246,7 +242,7 @@ void PNGImage::_allocateRGBBuffer( png_uint_32 const xRowBytes )
 {
 	mRGBBuffer = ( png_bytep * ) malloc( getRowsSize( ) );
 
-	for( uint32_t y = 0; y < mHeight; y++ ) 
+	for( uint32_t y = 0; y < mHeight; y++ )
 	{
 		mRGBBuffer[ y ] = ( png_byte* )malloc( xRowBytes );
 	}
@@ -269,26 +265,26 @@ void PNGImage::_allocateRGBBuffer( png_uint_32 const xRowBytes )
 PNGImage::PNGImage( _PNGImageDimensions const & xDimensions )
 	CTOR_ARGS("")
 {
-	mWidth  = xDimensions.w; 
+	mWidth  = xDimensions.w;
 	mHeight = xDimensions.h;
 
 	_allocateRGBBuffer( xDimensions.w * 4 );
 
 	perPixel( [&]( PNGPixel xPixel )
         {
-        	xPixel.data[0] = 
-                xPixel.data[1] = 
+        	xPixel.data[0] =
+                xPixel.data[1] =
                 xPixel.data[2] =
                 xPixel.data[3] = 0;
         });
 }
 
-PNGImage::PNGImage( const char * xPath ) 
+PNGImage::PNGImage( const char * xPath )
 	CTOR_ARGS(xPath)
 {
 	FILE * fp = fopen( xPath , "rb" );
-	
-	if ( fp == NULL ) 
+
+	if ( fp == NULL )
 	{
 		std::cerr << "File " << xPath << " does not exist." << std::endl;
 		exit( -1 );
@@ -298,12 +294,12 @@ PNGImage::PNGImage( const char * xPath )
 
 	png_init_io( mPNGRead, fp );
 
-	_initializeObject( fp ); 
+	_initializeObject( fp );
 }
-	
-PNGImage::~PNGImage( ) 
+
+PNGImage::~PNGImage( )
 {
-	if ( mRGBBuffer != NULL ) 
+	if ( mRGBBuffer != NULL )
 	{
 		for ( uint32_t y = 0; y < mHeight; y++ )
 		{
@@ -311,18 +307,18 @@ PNGImage::~PNGImage( )
 		}
 
 		free( mRGBBuffer );
-		
+
 		mRGBBuffer = NULL;
 	}
-		
-	// TODO: fix leak! :( 
+
+	// TODO: fix leak! :(
 	//png_destroy_info_struct( &mInfo, (png_infopp)NULL );
-		
+
 	// destroy structs as they are no longer needed
-	if ( mPNGRead != NULL ) 
+	if ( mPNGRead != NULL )
 	{
 		png_destroy_read_struct( &mPNGRead, (png_infopp)NULL, (png_infopp)NULL );
-		mPNGRead = NULL; 
+		mPNGRead = NULL;
 	}
 
 	delete mWriteState;
@@ -337,21 +333,21 @@ PNGImage & PNGImage::operator( ) ( std::function< void( PNGImage & )> xLambda )
 
 void PNGImage::perPixel( std::function< void( PNGPixel ) > xPixel )
 {
-	for( uint32_t y = 0; y < mHeight; y++ ) 
+	for( uint32_t y = 0; y < mHeight; y++ )
 	{
   		png_bytep row = mRGBBuffer[ y ];
-					
-		for( uint32_t x = 0; x < mWidth; x++ ) 
+
+		for( uint32_t x = 0; x < mWidth; x++ )
 		{
 			png_bytep px = &( row[ x * 4 ] );
-			xPixel( { x, y, px } ); 
+			xPixel( { x, y, px } );
 		}
 	}
 }
-		
-uint32_t    		PNGImage::getWidth( )     const { return mWidth;     } 
+
+uint32_t    		PNGImage::getWidth( )     const { return mWidth;     }
 uint32_t    		PNGImage::getHeight( )    const { return mHeight;    }
-png_byte    		PNGImage::getColorType( ) const { return mColorType; } 
+png_byte    		PNGImage::getColorType( ) const { return mColorType; }
 png_byte    		PNGImage::getBitDepth( )  const { return mBitDepth;  }
 png_bytep * 		PNGImage::getRGBBuffer( ) const { return &mRGBBuffer[0]; }
 char const * const 	PNGImage::getFilename( )  const { return mFilename;  }

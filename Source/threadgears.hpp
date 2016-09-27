@@ -88,8 +88,37 @@ class sleep
 	public:
 		static void ms( int64_t const xMilliseconds );
 		static void ns( int64_t const xNanoseconds );
-
 };
+
+
+template<class XGear, typename XIncrementer>
+class tooth
+{
+	static XIncrementer sInternalIncrementer;
+
+	static mutex sIncrementMutex;
+
+	public:
+		XIncrementer operator++( )
+		{
+			XIncrementer ret;
+			sIncrementMutex.run([&]() { ret = sInternalIncrementer++; } );
+			return ret;
+		}
+
+		XIncrementer operator++( int )
+		{
+			XIncrementer ret;
+			sIncrementMutex.run([&]() { ret = ++sInternalIncrementer; } );
+			return ret;
+		}
+};
+
+template<class XGear, typename XIncrementer>
+mutex tooth<XGear, XIncrementer>::sIncrementMutex;
+
+template<class XGear, typename XIncrementer>
+XIncrementer tooth<XGear, XIncrementer>::sInternalIncrementer = 0;
 
 template< typename XReturnType, typename XParameterType >
 class gear
@@ -158,7 +187,7 @@ class gear
 
 	std::deque< XReturnType > mResults;
 
-	mutex mResultsMutex;
+	mutex mThreadParametersMutex;
 
 	typedef 	 std::unordered_map< uint32_t, _ThreadParameters > 		_ThreadParameterMap;
 	typedef typename std::unordered_map< uint32_t, _ThreadParameters >::iterator 	_ThreadParameterMapIterator;
@@ -179,6 +208,7 @@ class gear
 
 	inline static void * _actualPosixThreadSink( void * xParameter )
 	{
+
 		void * result = NULL;
 
 		if (xParameter == NULL)
@@ -200,33 +230,33 @@ class gear
 	{
 		void * returnValue = NULL;
 
-		mResultsMutex.lock( );
-
 		mResults.push_back( mLambda( xParameters ) );
 
 		returnValue = static_cast< void * >( &mResults.back( ) );
-
-		mResultsMutex.unlock( );
 
 		return returnValue;
 	}
 
 	void _deleteThreadParameter( uint32_t const xID )
 	{
-		_ThreadParameterMapIterator it = mThreadParameters.find( xID );
-
-		if ( it == mThreadParameters.end( ) )
+		mThreadParametersMutex.run( [ & ] ( )
 		{
-			std::cerr << "Thread parameter object not found where expected." << std::endl;
-			exit( -1 );
-		}
+			_ThreadParameterMapIterator it = mThreadParameters.find( xID );
 
-		mThreadParameters.erase( it );
+			if ( it == mThreadParameters.end( ) )
+			{
+				std::cerr << "Thread parameter object not found where expected: " << xID << std::endl;
+				exit( -1 );
+			}
+
+			mThreadParameters.erase( it );
+		});
 	}
 
 	public:
 		gear( std::function< XReturnType ( XParameterType ) > xLambda )
 			: mLambda( xLambda )
+			, mThreadParametersMutex( )
 			, mResults( )
 			, mThreadParameters( )
 			, mThreads( )
@@ -262,28 +292,32 @@ class gear
 				exit( -1 );
 			}
 
-
 			mThreads.push_back( _PThreadStatus( ) );
 
 			_PThreadStatus & status = mThreads.back( );
 
-			uint32_t const nextThreadID = _nextThreadID( );
+			_ThreadParameters * pointer = NULL;
 
-			mThreadParameters[ nextThreadID ] = _ThreadParameters( this, xParams, nextThreadID );
+			mThreadParametersMutex.run( [ & ] ( )
+			{
+				uint32_t const nextThreadID = _nextThreadID( );
 
-			_ThreadParameters  & pRef = mThreadParameters[ nextThreadID ];
+				mThreadParameters[ nextThreadID ] = _ThreadParameters( this, xParams, nextThreadID );
+
+				pointer = &mThreadParameters[ nextThreadID ];
+			});
 
 			if ( mThreads.back( ).mStatus = pthread_create( &status.mThread
 									, NULL
 									, _actualPosixThreadSink
-									, ( void *)( &pRef ) ) != 0 )
+									, ( void *)( pointer ) ) != 0 )
 			{
 
 				std::cerr << "Failed to create thread. " << mThreads.back( ).mStatus << std::endl;
 				exit( -1 );
 			}
 
-			return *this; 
+			return *this;
 		}
 
 
@@ -296,13 +330,7 @@ class gear
 				exit( -1 );
 			}
 
-			XReturnType copy;
-			mResultsMutex.lock( );
-			copy = mResults.front( );
-			mResults.pop_front( );
-			mResultsMutex.unlock( );
-
-			return copy;
+			return mResults.front( );
 		}
 
 		int32_t size( )
@@ -313,13 +341,7 @@ class gear
 				exit( -1 );
 			}
 
-			int32_t size;
-
-			mResultsMutex.lock( );
-			size = mResults.size( );
-			mResultsMutex.unlock( );
-
-			return size;
+			return mResults.size( );
 		}
 };
 

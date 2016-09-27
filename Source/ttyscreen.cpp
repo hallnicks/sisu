@@ -34,6 +34,7 @@ TerminalScreen::TerminalScreen( )
 {
 #ifndef __linux__
 
+#if 0
 	mStdOut = CreateConsoleScreenBuffer( GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL );
 
 	if ( mStdOut == INVALID_HANDLE_VALUE )
@@ -59,6 +60,7 @@ TerminalScreen::TerminalScreen( )
 		cout << "SetConsoleTitle() failed." << GetLastError() << endl;
 		exit(-1);
 	}
+#endif
 
 #endif
 
@@ -124,7 +126,7 @@ void TerminalScreen::blitPixel( uint8_t const xX, uint8_t const xY )
 	{
 		TTYCTransform c( scanLine( xY )[ xX ] );
 //#warning Use console functions here on windows TODO
-#ifdef __linux__
+#if 1 //__linux__
 		setPosition( xX, xY );
 
 		cout << ccolor( c.getFG( )
@@ -135,6 +137,7 @@ void TerminalScreen::blitPixel( uint8_t const xX, uint8_t const xY )
 
 			<< std::flush;
 #else
+
 		DWORD written;
 		TCHAR const ascii = c.getChar();
 		if ( FillConsoleOutputCharacter( mStdOut, ascii, 1, { xX, xY }, &written) == FALSE )
@@ -165,6 +168,7 @@ void TerminalScreen::setPosition( uint8_t const xX, uint8_t const xY )
 #else
 	COORD const position = { xX > mW ? mW : xX, xY > mH ? mH : xY };
 
+#if 0
 	if (mStdOut == INVALID_HANDLE_VALUE) 
 	{
 		cout << "Invalid handle!" << endl;
@@ -178,6 +182,8 @@ void TerminalScreen::setPosition( uint8_t const xX, uint8_t const xY )
 		// TODO: throw exception
 		exit(-1 );
         }
+#endif
+
 #endif
 }
 

@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 
@@ -33,44 +32,47 @@ namespace {
 
 class Stopwatch
 {
-	LARGE_INTEGER mFrequency, mStart, mFinish;
+	double mFrequency;
+	__int64 mStart;
 
-	void _queryPerformanceCounter( LARGE_INTEGER * & xTicks )
+	void _queryPerformanceCounter( LARGE_INTEGER * xTicks )
 	{
+		if ( QueryPerformanceCounter( xTicks ) == FALSE )
+		{
+			std::cerr << "QueryPerformanceCounter( .. ) failed." << std::endl;
+			exit( -1 );
+		}
 	}
+
 
 	public:
 		Stopwatch( )
-			: mFrequency(  )
-			, mStart( )
-			, mFinish(  )
+			: mFrequency( 0.0 )
+			, mStart( 0 )
 		{
-			if ( QueryPerformanceCounter( &mFrequency ) == FALSE )
-			{
-				std::cerr << "QueryPerformanceCounter( .. ) failed." << std::endl;
-				exit( -1 );
-			}
 		}
 
-		double getInterval( ) const { return static_cast<double>( mFinish.QuadPart - mStart.QuadPart ) / mFrequency.QuadPart; }
 
 		void start( )
 		{
-			if ( QueryPerformanceCounter( &mStart ) == FALSE )
-			{
-				std::cerr << "QueryPerformanceCounter( .. ) failed." << std::endl;
-				exit( -1 );
-			}
+			LARGE_INTEGER li;
 
+			_queryPerformanceCounter( &li );
+
+			mFrequency = double( li.QuadPart );
+
+			_queryPerformanceCounter( &li );
+
+			mStart = li.QuadPart;
 		}
 
-		void finish( )
+		double finish( )
 		{
-			if ( QueryPerformanceCounter( &mFinish ) == FALSE )
-			{
-				std::cerr << "QueryPerformanceCounter( .. ) failed." << std::endl;
-				exit( -1 );
-			}
+			LARGE_INTEGER li;
+
+			_queryPerformanceCounter( &li );
+
+			return double( li.QuadPart - mStart ) / mFrequency;
 		}
 };
 
@@ -120,22 +122,28 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 		kb.registerCallback(onKeyboardCharacter);
 		kb.listen( );
+		Stopwatch test;
+
+		test.start( );
+		sleep::ms( 3000 );
+		std::cout << "slept for " << test.finish( ) << " seconds." << std::endl;
+
+
+
 
 		double accum = 0.0;
 
+		Stopwatch t;
+
 		while ( !quit.isSet( ) )
 		{
-			Stopwatch t;
-
 			t.start( );
 
 			SDL_PumpEvents( );
 
 			SDL_GL_SwapWindow( window );
 
-			t.finish( );
-
-			if ( (accum += t.getInterval( )) > 3.0 )
+			if ( ( accum += t.finish( ) ) > 3.0 )
 			{
 				std::cerr << "Timeout reached. Exiting.." << std::endl;
 				break;
@@ -150,4 +158,3 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 	}
 }
-#endif

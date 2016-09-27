@@ -1,13 +1,28 @@
 #ifndef FONT_EAF969A3C426403DA705D9614D79046D_HPP_
 #define FONT_EAF969A3C426403DA705D9614D79046D_HPP_
 
-#include "Sprite.hpp"
+// C style IO is necessary to talk to libpng. This could be seen as a wrapper between stl-style c++ and libpng
+#include <stdlib.h>
+#include <stdio.h>
+#include <functional>
+#include <algorithm>
+#include <fstream>
+#include <math.h>
+#include "memblock.hpp"
+#include "ttyc.hpp"
+#include "ioassist.hpp"
+
+#include "PNGImage.hpp"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_STROKER_H
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+  #define SISU_BIG_ENDIAN
+#endif
+
 
 namespace sisu
 {
@@ -47,488 +62,376 @@ static struct _initializeFreeType
                 }
 } sFT2;
 
-class Font : public Sprite
+
+union _FontPixel32
 {
-	GLfloat mSpace, mLineHeight, mNewLine;
-
-	GLfloat _subStringWidth( const char* xSubString )
+	_FontPixel32( )
+		  : integer( 0 )
 	{
-		GLfloat subWidth = 0.0f; 
-
-		for ( int32_t ii = 0; ii < xSubString[ ii ] != '\0' && xSubString[ ii ] != '\n'; ++ii )
-		{
-			if ( xSubString[ ii ] == ' ' )
-			{
-				subWidth += mSpace;
-			}
-			else
-			{
-				GLuint const ascii = (unsigned char)xSubString[ ii ];
-				subWidth += mClips[ ascii ].w;
-			}
-		}
-
-		return subWidth;
+		;
 	}
 
-	GLfloat _stringHeight( const char* xString )
+	_FontPixel32( uint8_t const xB
+		    , uint8_t const xG
+		    , uint8_t const xR
+		    , uint8_t xA = 255 )
 	{
-		GLfloat height = mLineHeight;
-
-		for ( int32_t ii = 0; xString[ ii ] != '\0'; ++ii )
-		{
-			if ( xString[ ii ] == '\n' )
-			{
-				height += mLineHeight;
-			}
-		}
-
-		return height;
+	   	b = xB;
+	    	g = xG;
+	    	r = xR;
+		a = xA;
 	}
 
-	protected:
-		virtual void _freeFont( )
-		{
-			Sprite::_freeTexture( );
-		}
+	uint32_t integer;
 
-	public:
-		Font( ) 
-			: Sprite( ) 
-			, mSpace( 0.0f )
-			, mLineHeight( 0.0f )
-			, mNewLine( 0.0f )
+	struct
+	{
+#ifdef SISU_BIG_ENDIAN
+	    uint8_t a, r, g, b;
+#else // SISU_BIG_ENDIAN
+	    uint8_t b, g, r, a;
+#endif // SISU_BIG_ENDIAN
+	};
+};
+
+class FTFont
+{
+	struct Span
+	{
+		Span( ) { }
+		Span( int32_t const xX
+			, int32_t const xY
+			, int32_t const xWidth
+			, int32_t const xCoverage )
+			: x( xX )
+			, y( xY )
+			, width( xWidth )
+			, coverage( xCoverage )
 		{
 			;
 		}
 
-		~Font( )
+		int x, y, width, coverage;
+	};
+
+	struct _FontVec2
+	{
+		_FontVec2( ) { }
+		_FontVec2( float const xX, float const xY )
+			: x( xX )
+			, y( xY )
 		{
-			_freeFont( );
+			;
 		}
 
-		template< typename XRenderer >
-		void render( GLfloat const xX
-			   , GLfloat const xY
-			   , std::string const & xText
-			   , XRenderer * const xShaderProgram
-			   , Rect * xArea = NULL
-			   , int32_t xAlignFlags = eFontTextAlignment_Left )
+		float x, y;
+	};
+
+	struct _FontRect
+	{
+		float xMin, xMax, yMin, yMax;
+
+		_FontRect( float const xLeft
+			 , float const xTop
+			 , float const xRight
+			 , float const xBottom )
+			: xMin( xLeft )
+			, xMax( xRight )
+			, yMin( xTop )
+			, yMax( xBottom )
 		{
-			
-			if ( getTextureID( ) == 0 )
+			;
+		}
+
+		void include( _FontVec2 const & xR )
+		{
+			xMin = std::min( xMin, xR.x );
+			xMax = std::max( xMax, xR.x );
+			yMin = std::min( yMin, xR.y );
+			yMax = std::max( yMax, xR.y );
+		}
+	};
+
+	FT_Face mFace;
+
+	typedef std::vector<Span> Spans;
+
+	Spans mSpans, mOutlineSpans;
+	double mDPI;
+
+	int32_t mSize;
+
+	static void _RasterCallback( int32_t const xY
+				   , int32_t const xCount
+				   , FT_Span const * const xSpans
+				   , void *  const xUser )
+	{
+		Spans * spansPointer = (Spans *) xUser;
+
+		for ( int32_t ii = 0; ii < xCount; ++ii )
+		{
+			spansPointer->push_back( Span( xSpans[ ii ].x, xY, xSpans[ ii ].len, xSpans[ ii ].coverage ) );
+		}
+	}
+
+	public:
+		FTFont( const FT_Byte * xFontData
+		      , std::streamsize const xSize
+                      , double const xDPI = 96.0  )
+			: mDPI( xDPI )
+			, mSize( 0 )
+		{
+
+			FT_Error const error = FT_New_Memory_Face( sFT2.mLibrary
+								 , xFontData
+								 , xSize
+								 , 0
+								 , &mFace );
+
+			if ( error == FT_Err_Unknown_File_Format )
 			{
-				std::cerr << "font texture was not found. Cannot render." << std::endl;
+				std::cerr << "Failed to load font from memory." << std::endl;
+				exit( -1 );
+			}
+			else if ( error )
+			{
+				std::cerr << "Error loading font : " << error << std::endl;
+				exit( -1 );
+			}
+		}
+
+		FTFont( const char * xFontPath
+                      , double const xDPI = 72.0  )
+			: mDPI( xDPI )
+			, mSize( 0 )
+		{
+			FT_Error const error = FT_New_Face( sFT2.mLibrary, xFontPath, 0, &mFace );
+
+			if ( error == FT_Err_Unknown_File_Format )
+			{
+				std::cerr << "Failed to load font " << xFontPath << std::endl;
+				exit( -1 );
+			}
+			else if ( error )
+			{
+				std::cerr << "Error loading font " << xFontPath << ": " << error << std::endl;
+				exit( -1 );
+			}
+		}
+
+		~FTFont( )
+		{
+			FT_Error const error = FT_Done_Face( mFace );
+
+			if ( error )
+			{
+				std::cerr << "Error destroying font : " << error << std::endl;
 				exit( -1 );
 			}
 
-			GLfloat dx = xX;
-			GLfloat dy = xY;
-			
-			if ( xArea != NULL ) 
-			{
-				if ( xAlignFlags == 0 )
-				{
-					xAlignFlags = eFontTextAlignment_Left | eFontTextAlignment_Top;
-				}	
-	
-				// horizonal alignment
-				if ( xAlignFlags & eFontTextAlignment_Left )
-				{
-					dx = xArea->x;
-				}
-				else if( xAlignFlags & eFontTextAlignment_Centered_H )
-				{
-					dx = xArea->x + ( xArea->w + _subStringWidth( xText.c_str( ) ) ) / 2.0f;
-				}
-				else if ( xAlignFlags & eFontTextAlignment_Right )
-				{
-					dx = xArea->x + ( xArea->w - _subStringWidth( xText.c_str( ) ) );
-				}
+		}
 
-				// vertical alignment
-				if ( xAlignFlags & eFontTextAlignment_Top )
-				{
-					dy = xArea->y;
-				} 
-				else if ( xAlignFlags & eFontTextAlignment_Centered_V )
-				{
-					dy = xArea->y + ( xArea->h - _stringHeight( xText.c_str( ) ) ) / 2.0f;
-				}
-				else if ( xAlignFlags & eFontTextAlignment_Bottom ) 
-				{
-					dy = xArea->y + ( xArea->h - _stringHeight( xText.c_str( ) ) );
-				}
+		void setFontSize( int32_t const xSize )
+		{
+			if ( FT_Set_Char_Size( mFace, xSize << 6, xSize << 6, 90, 90 ) != 0 )
+			{
+				std::cerr << "FT_Set_Char_Size( .. ) failed." << std::endl;
+				exit( -1 );
 			}
 
-			xShaderProgram->leftMultModelView( glm::translate<GLfloat>( glm::mat4( ), glm::vec3( dx, dy, 0.0f ) ) );
+			mSize = xSize;
+			// Compute other variables. Assume 72 DPI for now. 
+			// TODO: Support 96 DPI later when you can test it.
+		}
 
-			glBindTexture( GL_TEXTURE_2D, getTextureID( ) );
+		void loadGlyph( FT_ULong const xCharCode, float const xOutlineWidth )
+		{
+			mSpans.clear( );
+			mOutlineSpans.clear( );
 
-			xShaderProgram->enableVertexPointer( );
-			xShaderProgram->enableTexCoordPointer( );
+			FT_UInt const index = FT_Get_Char_Index( mFace, xCharCode );
 
-			glBindBuffer( GL_ARRAY_BUFFER, mVertexDataBuffer );
+			FT_Error error = FT_Load_Glyph( mFace, index, FT_LOAD_NO_BITMAP );
 
-			xShaderProgram->setTexCoordPointer( sizeof(TexturedVertex2D), (GLvoid*)offsetof(TexturedVertex2D, texCoord ) );
-			xShaderProgram->setVertexPointer( sizeof(TexturedVertex2D), (GLvoid*)offsetof(TexturedVertex2D, position) );
-
-			for ( uint32_t i = 0; i < xText.length( ); ++i ) 
+			if ( error != 0)
 			{
-				if ( xText[ i ] == ' ' )
-				{
-					xShaderProgram->leftMultModelView( glm::translate<GLfloat>( glm::mat4( )
-												   , glm::vec3( mSpace, 0.0f, 0.0f ) ) );
-					xShaderProgram->updateModelView( );
+				std::cerr << "FT_Load_Glyph( .. ) failed: " << error << std::endl;
+				exit( -1 );
+			}
 
-					dx += mSpace;
-				}
-				else if ( xText[ i ] == '\n' )
-				{
-					GLfloat targetX = xX; 
-					if ( xArea != NULL )
+			if ( mFace->glyph->format != FT_GLYPH_FORMAT_OUTLINE )
+			{
+				// TODO: Fix ..
+				std::cerr << "Glyphs without outlines are unsupported at this time." << std::endl;
+				exit( -1 );
+			}
+
+			auto renderSpans = [ & ]( Spans * xSpans, FT_Outline * xO )
+			{
+				FT_Raster_Params params;
+
+				memset( &params, 0, sizeof( params ) );
+
+				params.flags 	  = FT_RASTER_FLAG_AA | FT_RASTER_FLAG_DIRECT;
+				params.gray_spans = _RasterCallback;
+				params.user	  = xSpans;
+
+				FT_Outline_Render( sFT2.mLibrary, xO, &params);
+			};
+
+			renderSpans( &mSpans , &mFace->glyph->outline );
+
+			class Stroker
+			{
+				FT_Stroker mStroker;
+
+				public:
+					Stroker( float const xOutlineWidth )
 					{
-						if ( xAlignFlags & eFontTextAlignment_Left )
+						if ( FT_Stroker_New( sFT2.mLibrary, &mStroker ) != 0 )
 						{
-							targetX = xArea->x;
-						} 
-						else if ( xAlignFlags & eFontTextAlignment_Centered_H )
-						{
-							targetX = xArea->x + ( xArea->w - _subStringWidth( &xText.c_str()[ i + 1 ] ) ) / 2.f;
+							std::cerr << "FT_Stroker_New( .. ) failed." << std::endl;
+							exit( -1 );
 						}
-						else if ( xAlignFlags & eFontTextAlignment_Right )
-						{
-							targetX = xArea->x + ( xArea->w - _subStringWidth( &xText.c_str()[ i + 1 ] ) );
-						}
+
+						FT_Stroker_Set( mStroker
+							      , (int32_t)( xOutlineWidth * 64 )
+							      , FT_STROKER_LINECAP_ROUND
+							      , FT_STROKER_LINEJOIN_ROUND
+							      , 0 );
+
 					}
 
-					xShaderProgram->leftMultModelView( glm::translate<GLfloat>( glm::mat4( ), glm::vec3( targetX - dx, mNewLine, 0.0f ) ) );
-					xShaderProgram->updateModelView( );
+					~Stroker( )
+					{
+						FT_Stroker_Done( mStroker );
+					}
 
-					dy += mNewLine;
-					dx += targetX - dx;
-				}
-				else
-				{
-					// TODO: Add unicode support...
-					GLuint ascii = (unsigned char)xText[ i ];
+					void stroke( FT_Glyph & xGlyph )
+					{
+						FT_Glyph_StrokeBorder( &xGlyph, mStroker, 0, 1 );
 
-					xShaderProgram->updateModelView( );
+					}
+			} stroker( xOutlineWidth );
 
-					glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mIndexBuffers[ ascii ] );
-		
-					glDrawElements( GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, NULL );
+			FT_Glyph glyph;
 
-					xShaderProgram->leftMultModelView( glm::translate<GLfloat>( glm::mat4(), glm::vec3( mClips[ ascii ].w, 0.f, 0.f ) ) );
-					
-					xShaderProgram->updateModelView( );
-
-					dx += mClips[ ascii ].w;
-				}
-				
-			}
-			
-			xShaderProgram->disableVertexPointer( );
-
-			xShaderProgram->disableTexCoordPointer( );
-		}
-
-		void loadBitmap( std::string  const & xPath )
-		{
-			GLubyte const BLACK_PIXEL = 0x00;
-
-			_freeFont( );
-
-			Texture::fromFileRGBA8( xPath );
-		
-			GLfloat cellW = getImageWidth( );
-			GLfloat cellH = getImageHeight( );
-
-			GLuint top     = cellH;
-			GLuint bottom  = 0;
-			GLuint aBottom = 0;
-
-			int pX = 0;
-			int pY = 0;
-			
-			int bX = 0;
-			int bY = 0;
-
-			GLuint currentChar = 0;
-
-			Rect nextClip( 0.0f, 0.0f, (GLfloat)cellW, (GLfloat)cellH);			
-
-			for ( uint32_t rows = 0; rows < 16; ++rows )
+			if ( FT_Get_Glyph( mFace->glyph, &glyph ) != 0 )
 			{
-				for ( uint32_t cols = 0; cols < 16; ++cols )
-				{
-					bX = cellW * cols;
-					bY = cellH * rows;
-
-					 //Initialize clip
-	                                nextClip.x = cellW * cols;
-	                                nextClip.y = cellH * rows;
-
-	                                nextClip.w = cellW;
-	                                nextClip.h = cellH;
-
-	                                //Find left side of character
-	                                for( int pCol = 0; pCol < cellW; ++pCol )
-	                                {
-	                                        for( int pRow = 0; pRow < cellH; ++pRow )
-	                                        {
-        	                                    //Set pixel offset
-                	                                pX = bX + pCol;
-	                                                pY = bY + pRow;
-		
-        	                                        //Non-background pixel found
-        		                               if( getPixel8( pX, pY ) != BLACK_PIXEL )
-                         	                       {
-                                	                    //Set sprite's x offset
-                                        	                nextClip.x = pX;
-
-                                                	        //Break the loops
-                                                        	pCol = cellW;
-	                                                        pRow = cellH;
-	                                                }
-	                                        }
-	                                }
-
-
-
-	                                //Right side
-	                                for( int pCol_w = cellW - 1; pCol_w >= 0; pCol_w-- )
-	                                {
-	                                        for( int pRow_w = 0; pRow_w < cellH; pRow_w++ )
-	                                        {
-	                                            //Set pixel offset
-	                                                pX = bX + pCol_w;
-	                                                pY = bY + pRow_w;
-	
-	                                                //Non-background pixel found
-	                                                if( getPixel8( pX, pY ) != BLACK_PIXEL )
-        	                                        {
-                	                                    //Set sprite's width
-                        	                                nextClip.w = ( pX - nextClip.x ) + 1;
-
-                                	                        //Break the loops
-                                        	                pCol_w = -1;
-                                                	        pRow_w = cellH;
-	                                                }
-	                                        }
-	                                }
-
-
-	                                //Find Top
-	                                for( int pRow = 0; pRow < cellH; ++pRow )
-	                                {
-	                                        for( int pCol = 0; pCol < cellW; ++pCol )
-	                                        {
-	                                            //Set pixel offset
-	                                                pX = bX + pCol;
-	                                                pY = bY + pRow;
-	
-	                                                //Non-background pixel found
-	                                                if( getPixel8( pX, pY ) != BLACK_PIXEL )
-	                                                {
-	                                                        //New Top Found
-	                                                        if( pRow < top )
-	                                                        {
-	                                                                top = pRow;
-	                                                        }
-	
-	                                                        //Break the loops
-	                                                        pCol = cellW;
-	                                                        pRow = cellH;
-	                                                }
-        	                                }
-	                                }
-
-
-
-					//Find Bottom
-	                                for( int pRow_b = cellH - 1; pRow_b >= 0; --pRow_b )
-        	                        {
-                	                        for( int pCol_b = 0; pCol_b < cellW; ++pCol_b )
-                        	                {
-                                	            //Set pixel offset
-                                        	        pX = bX + pCol_b;
-                                                	pY = bY + pRow_b;
-	
-        	                                        //Non-background pixel found
-                	                                if( getPixel8( pX, pY ) != BLACK_PIXEL )
-                        	                        {
-                                	                        //Set BaseLine
-                                        	                if( currentChar == 'A' )
-                                                	        {
-                                                        	        aBottom = pRow_b;
-        	                                                }	
-	
-                	                                        //New bottom Found
-                        	                                if( pRow_b > bottom )
-                                	                        {
-                                        	                        bottom = pRow_b;
-                                                	        }
-
-                                                        	//Break the loops
-	                                                        pCol_b = cellW;
-	                                                        pRow_b = -1;
-	                                                }
-	                                        }
-	                                }
-
-		                       mClips.push_back( nextClip );
-        	                       ++currentChar;
-
-
-				}
-
-			}
-
-			// set top
-			for ( int t = 0; t < 256; ++t )
-			{
-				mClips[ t ].y += top;
-				mClips[ t ].h -= top;
-			}
-
-			loadTextureFromPixels8( );
-
-			Sprite::generateDataBuffer( eSpriteOrigin_TopLeft );
-			
-			glBindTexture( GL_TEXTURE_2D, getTextureID( ) );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-
-			mSpace 	    = cellW / 2;
-			mNewLine    = aBottom - top;
-			mLineHeight = bottom - top;
-		}
-
-		void loadFreeType( std::string const & xPath, GLuint const xPixelSize )
-		{
-			FT_Error error = 0;
-
-			GLuint cellW = 0
-			     , cellH = 0;
-
-			int maxBearing = 0
-			  , minHang    = 0;
-
-		
-			static uint32_t const sBitmaps = 256;
-			Texture bitmaps[ sBitmaps ];
-
-			FT_Glyph_Metrics metrics[ sBitmaps ];
-	
-			FT_Face face = NULL;
-
-			std::cout << "Loading font " << xPath.c_str( ) << std::endl;
-			if ( ( error = FT_New_Face( sFT2.mLibrary, xPath.c_str( ), 0, &face ) ) )
-			{
-				std::cerr << "FT_New_Face( .. ) failed: " << error << std::endl;
+				std::cerr << "FT_Get_Glyph( .. ) failed." << std::endl;
 				exit( -1 );
 			}
 
-			if ( ( error = FT_Set_Pixel_Sizes( face, 0, xPixelSize ) ) )
+
+			stroker.stroke( glyph );
+
+			if ( glyph->format != FT_GLYPH_FORMAT_OUTLINE )
 			{
-				std::cerr << "FT_Set_Pixel_Sizes( .. ) failed: " << error << std::endl;
+				std::cerr << "Glyph format was not FT_GLYPH_FORMAT_OUTLINE." << std::endl;
 				exit( -1 );
 			}
 
-			for ( uint32_t ii = 0; ii < sBitmaps; ++ii )
+			FT_Outline * outline = &reinterpret_cast<FT_OutlineGlyph>(glyph)->outline;
+
+			renderSpans( &mOutlineSpans, outline );
+
+			FT_Done_Glyph( glyph );
+
+		}
+
+		template < class XImageType >
+		void printSpans( XImageType & xImage
+			       , _FontPixel32 const & xFontColor
+			       , _FontPixel32 const & xOutlineColor
+			       , uint32_t const xOffset = 0
+			       , uint32_t const yOffset = 0 )
+
+		{
+			if ( mSpans.empty( ) )
 			{
-				if ( ( error = FT_Load_Char( face, ii, FT_LOAD_RENDER ) ) )
-				{
-					std::cerr << "FT_Load_Char( .. ) failed: " << error << std::endl;
-					exit( -1 );
-				}
-
-				metrics[ ii ] = face->glyph->metrics;
-
-				bitmaps[ ii ].copyPixels8( face->glyph->bitmap.buffer, face->glyph->bitmap.width, face->glyph->bitmap.rows );
-
-				if ( metrics[ ii ].horiBearingY / 64 > maxBearing )
-				{
-					maxBearing = metrics[ ii ].horiBearingY / 64;
-				}
-
-				if ( metrics[ ii ].width / 64 > cellW )
-				{
-					cellW = metrics[ ii ].width / 64;
-				}
-
-				int glyphHang = ( metrics[ ii ].horiBearingY - metrics[ ii ].height ) / 64;
-				
-				if ( glyphHang < minHang )
-				{
-					minHang = glyphHang;
-				}
+				std::cerr << "No spans found!" << std::endl;
+				exit( -1 );
 			}
-		
-			cellH = maxBearing - minHang;
-			createPixels8( cellW * 16, cellH * 16 );
 
-			GLuint currentChar = 0;
-			Rect nextClip ( 0.0f, 0.0f, (GLfloat) cellW, (GLfloat) cellH );
-			
-			int  bx = 0
-			   , by = 0;
+			_FontRect rect( mSpans.front( ).x
+			   	      , mSpans.front( ).y
+				      , mSpans.front( ).x
+				      , mSpans.front( ).y );
 
-			
-			for ( unsigned int rows = 0; rows < 16; ++rows )
+			for ( Spans::iterator s = mSpans.begin( ); s != mSpans.end( ); ++s )
 			{
-				for ( unsigned int cols = 0; cols < 16; ++cols )
+				rect.include( _FontVec2( s->x, 		 s->y ) );
+				rect.include( _FontVec2( s->x + s->width - 1, s->y ) );
+			}
+
+			for ( Spans::iterator s = mOutlineSpans.begin( ); s != mOutlineSpans.end( ); ++s )
+			{
+				rect.include( _FontVec2( s->x,               s->y ) );
+				rect.include( _FontVec2( s->x + s->width -1, s->y ) );
+			}
+
+			// shift advance goes here -- TODO
+			//std::cout << "Shift advance goes here." << std::endl;
+
+	  	       	float const bearingX = mFace->glyph->metrics.horiBearingX >> 6;
+            		float const bearingY = mFace->glyph->metrics.horiBearingY >> 6;
+            		float const advance  = mFace->glyph->advance.x >> 6;
+
+			if ( mOutlineSpans.empty( ) )
+			{
+				std::cerr << "No outline found." << std::endl;
+				exit( -1 );
+			}
+
+			auto blitSpans = [&]( Spans & xSpans, std::function<void(Spans::iterator  &, uint8_t*)> xProcessPixel )
+			{
+				for ( Spans::iterator s = xSpans.begin( ); s != xSpans.end( ); ++s )
 				{
-					bx = cellW * cols;
-					by = cellH * rows;
+					for ( int32_t w = 0; w < s->width; ++w)
+					{
+						uint32_t const y = yOffset + ( s->y - rect.yMin );
+						uint32_t const x = xOffset + ( s->x - rect.xMin + w );
 
-					nextClip.x = bx;
-					nextClip.y = by;
-					nextClip.w = metrics[ currentChar ].width / 64;
-					nextClip.h = cellH;
+						if ( y > xImage.getHeight( ) || x > xImage.getWidth ( ) ||
+						     y < 0 || x < 0 )
+						{
+							continue;
+						}
 
-					bitmaps[ currentChar ].blitPixels8( bx, by + maxBearing - metrics[ currentChar ].horiBearingY / 64, *this );
-				
-					mClips.push_back( nextClip );
+						uint8_t * data = xImage[ xImage.getHeight( ) - y - 1 ][ x ];
 
-					++currentChar;
+						xProcessPixel( s, data );
+					}
 				}
-			}	
-		
-			Texture::padPixels8( );
+			};
 
-			Texture::loadTextureFromPixels8( );
+			auto blendFunc = [&]( Spans::iterator & xS, uint8_t * xPixel )
+			{
+				xPixel [ 0 ] = (xPixel [ 0 ] + ( ( xFontColor.r - xPixel [ 0 ] ) * xFontColor.a) / 255.0f);
+				xPixel [ 1 ] = (xPixel [ 1 ] + ( ( xFontColor.g - xPixel [ 1 ] ) * xFontColor.a) / 255.0f);
+				xPixel [ 2 ] = (xPixel [ 2 ] + ( ( xFontColor.b - xPixel [ 2 ] ) * xFontColor.a) / 255.0f);
+				xPixel [ 3 ] = std::min( (uint8_t)xS->coverage, (uint8_t)(xOutlineColor.a + xPixel[ 3 ]));
+			};
 
-			generateDataBuffer( );
+			blitSpans( mOutlineSpans, blendFunc );
 
-			glBindTexture( GL_TEXTURE_2D, getTextureID() );
-		        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-		        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-
-			mSpace      = cellW / 2;
-			mNewLine    = maxBearing;
-			mLineHeight = cellH;
-			
-			FT_Done_Face( face );
-
+			blitSpans( mSpans, blendFunc );
 		}
-	
-		GLfloat getLineHeight( ) const
+
+		FT_Bitmap * getBitmap( )   const { return & mFace->glyph->bitmap;      }
+
+		uint32_t getGlyphWidth( )  const
 		{
-			std::cout << __PRETTY_FUNCTION__ << " not implemented yet." << std::endl;
-			exit( -1 );
+			return round( ( mFace->bbox.xMax - mFace->bbox.xMin ) * mSize / mFace->units_per_EM );
 		}
 
-		Rect getStringArea( std::string const & xText )
+		uint32_t getGlyphHeight( ) const
 		{
-			std::cout << __PRETTY_FUNCTION__ << " not implemented yet." << std::endl;
-			exit( -1 );
+			return round( ( mFace->bbox.yMax - mFace->bbox.yMin ) * mSize / mFace->units_per_EM );
 		}
+
 };
 
-
 } // namespace sisu
-
 
 #endif // FONT_EAF969A3C426403DA705D9614D79046D_HPP_

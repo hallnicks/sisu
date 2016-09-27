@@ -27,15 +27,15 @@ TEST(libpng_UT, writePNGFile)
 {
 	PNGImage test1("resources/spring_breakers_png_by_flawlessduck-d5xdmmp.png");
 	std::ofstream ofs1( "render01.png", std::ios::binary);
-	
+
 	ofs1 << test1;
 	ofs1.close( );
 
 	std::ofstream ofs2( "render02.png", std::ios::binary);
-	
+
 	ofs2 << test1;
 	ofs2.close( );
-	
+
 	MUSTEQ(filesAreEqual( "render01.png", "render02.png" ), TRUE);
 }
 
@@ -62,11 +62,11 @@ TEST(libpng_UT, readPNGfile)
 	    ) ( [&]( PNGImage & xImage )
 			{
 				std::ofstream ofs("libpng_UT_output02.png", std::ios::binary );
-				ofs << xImage; 
-				ofs.close( ); 
+				ofs << xImage;
+				ofs.close( );
 			});
 
-	test1.perPixel( [&] ( PNGPixel xPixel ) 
+	test1.perPixel( [&] ( PNGPixel xPixel )
 	{
 
 		xPixel.data[0] = 0;
@@ -77,7 +77,7 @@ TEST(libpng_UT, readPNGfile)
 	} );
 
 	std::ofstream ofs2( "final_render.png", std::ios::binary);
-	
+
 	ofs2 << test1;
 	ofs2.close( );
 }
@@ -91,11 +91,11 @@ TEST(libpng_UT, writeBlankPng)
 	PNGImage image( { 1920, 1080 } );
 
 	std::ofstream ofs1( outputPath01, std::ios::binary);
-	
+
 	ofs1 << image;
 	ofs1.close( );
 
-	(image)( [&]( PNGImage & xImage ) 
+	(image)( [&]( PNGImage & xImage )
 	{
 		xImage.perPixel( [ & ] ( PNGPixel xPixel )
 				{
@@ -106,20 +106,20 @@ TEST(libpng_UT, writeBlankPng)
 				});
 	});
 
-	
+
 	std::ofstream ofs2( outputPath02, std::ios::binary);
-	
+
 	ofs2 << image;
 	ofs2.close( );
 
-	(image)( [&]( PNGImage & xImage ) 
+	(image)( [&]( PNGImage & xImage )
 	{
 		xImage.perPixel( [ & ] ( PNGPixel xPixel )
 				{
 					double const xRatio = (double)xPixel.x / (double)image.getWidth( );
 					double const yRatio = (double)xPixel.y / (double)image.getHeight( );
 
-					xPixel.data[ 0 ] = 
+					xPixel.data[ 0 ] =
 					xPixel.data[ 1 ] =
 					xPixel.data[ 2 ] = 0;
 
@@ -133,7 +133,7 @@ TEST(libpng_UT, writeBlankPng)
 	});
 
 	std::ofstream ofs3( outputPath03, std::ios::binary);
-	
+
 	ofs3 << image;
 	ofs3.close( );
 }
@@ -158,7 +158,7 @@ TEST(libpng_UT, writePNGByIndices)
 	}
 
 	std::ofstream ofs1( outputPath01, std::ios::binary);
-	
+
 	ofs1 << image;
 	ofs1.close( );
 }

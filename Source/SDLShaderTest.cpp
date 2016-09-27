@@ -144,9 +144,7 @@ SDLTestShaderWindow & SDLTestShaderWindow::operator( )( std::function<void(void)
 void SDLTestShaderWindow::initialize( OpenGLAttributes const & xOpenGLAttributes )
 {
 	SDLTestWindow::initialize( xOpenGLAttributes );
-
 	mShader.initialize( );
-
 	_checkForGLError( );
 }
 

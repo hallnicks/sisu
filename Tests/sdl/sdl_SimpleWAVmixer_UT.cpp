@@ -1,6 +1,7 @@
 #if 0
 // TODO: Fix all of it!
 #include "test.hpp"
+#include "threadgears.hpp"
 #include <string>
 #include <iostream>
 
@@ -12,6 +13,7 @@
 
 #include <Shlwapi.h>
 
+using namespace sisu;
 
 namespace
 {
@@ -46,7 +48,6 @@ void my_audio_callback(void *userdata, Uint8 *stream, int len) {
 
 TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioWithoutExceptions)
 {
-
 	if (SDL_Init(SDL_INIT_AUDIO) < 0)
 	{
 		std::cout << "SDL_Init failed." << std::endl;
@@ -57,7 +58,7 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioWithoutExceptions)
 	static Uint8 *wav_buffer;
 	static SDL_AudioSpec wav_spec;
 
-	if( SDL_LoadWAV( "resources/beat01.wav", &wav_spec, &wav_buffer, &wav_length) == NULL ){
+	if( SDL_LoadWAV( "resources/DMT.wav", &wav_spec, &wav_buffer, &wav_length) == NULL ){
 		std::cout << "SDL_LoadWAV failed." << std::endl;
 		exit( -1 );
 	}
@@ -76,16 +77,13 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioWithoutExceptions)
 
 	SDL_PauseAudio( 0 );
 
-	while ( audio_len > 0 )
-	{
-		SDL_Delay( 100 );
-	}
+	sleep::ms( 10000 );
 
 	SDL_CloseAudio( );
 
 	SDL_FreeWAV( wav_buffer );
 }
-
+#if 0
 TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioOnMultipleThreads)
 {
 	gear<uint32_t, Sound *> g([&](Sound * xSound)->uint32_t {
@@ -99,10 +97,10 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioOnMultipleThreads)
 	g( new Sound( "beat01.wav" )
 	 ( new Sound( "test.mp3" );
 
-	while ( !quit.isSet( ) )
-	{
-		sleep::ms( 1000 );
-		std::cout << "Main thread still alive." << std::endl;
-	}
+	sleep::ms( 3000 );
+
+	quit.set( );
 }
+
+#endif
 #endif

@@ -35,14 +35,11 @@ class sdl_RedBookCh03_UT : public context
 
 TEST(sdl_RedBookCh03_UT, CreateSDLWindowWithoutExceptions)
 {
-	{
-		RedbookCh03Shader window;
 
-		window.initialize( { 4, 4, 1, false, false } );
+	RedbookCh03Shader window;
 
-		window.run( );
-
-	}
+	window.initialize( { 4, 4, 1, true, true } );
+	window.run( );
 
 	BLOCK_EXECUTION;
 }

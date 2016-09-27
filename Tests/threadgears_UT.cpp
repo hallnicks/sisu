@@ -1,4 +1,3 @@
-#if 0
 // This file is part of sisu.
 
 // sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by
@@ -148,7 +147,9 @@ TEST(tg_UT, EventTrivial1)
 
 	do
 	{
+		sleep::ms( 1000 );
 		std::cout << "Waiting for set." << std::endl;
+
 	} while (!e.isSet( ));
 
 	std::cout << "Set!" << std::endl;
@@ -192,7 +193,6 @@ TEST(tg_UT, ThreadCreatesThreads)
 		MultithreadedCout g( [&](const char * xPtr ) -> int
 			{
 				m.lock( );
-				std::cout << "locked: " << xPtr <<  std::endl;
 				++results;
 				m.unlock( );
 				return results;
@@ -207,6 +207,37 @@ TEST(tg_UT, ThreadCreatesThreads)
 		g.join( );
 
 		MUSTEQ(g.size( ), 5);
+
+		while( g.size( ) > 0 )
+		{
+			std::cout << "Result= " << *g << std::endl;
+		}
+	}
+}
+
+TEST(tg_UT, ThreadCreatesThreadsWithForLoop)
+{
+	{
+		mutex m;
+
+		static uint32_t results = 0;
+
+		MultithreadedCout g( [&]( const char * ) -> int
+			{
+				m.lock( );
+				++results;
+				m.unlock( );
+				return results;
+			} );
+
+		for ( int32_t ii = 0; ii < 50; ++ii )
+		{
+			g( "Hello, world."    );
+
+		}
+		g.join( );
+
+		MUSTEQ(g.size( ), 50);
 
 		while( g.size( ) > 0 )
 		{
@@ -233,4 +264,3 @@ TEST(tg_UT, ThreadLambdaCute2)
 	}
 	std::cout << "scope cleared." << std::endl;
 }
-#endif

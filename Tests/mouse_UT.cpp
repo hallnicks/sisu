@@ -68,7 +68,7 @@ namespace {
 		mutex mM;
 		std::vector< OnMouseEventCallback > mCallbacks;
 		bool mInitialized;
-		gear<uint32_t, int64_t> mMouseListener;
+		gear< uint32_t, int64_t > mMouseListener;
 		event mQuit;
 
 		MouseEventInfo mLast;
@@ -78,6 +78,9 @@ namespace {
 				, mCallbacks( )
 				, mMouseListener( [&]( int64_t xSleepIntervalNs )->uint32_t
 				{
+					// Ugly hack for mouse wheel.
+					SDL_Event pollEvent;
+
 					while ( !mQuit.isSet( ) )
 					{
 						if ( xSleepIntervalNs > 0 )
@@ -89,9 +92,6 @@ namespace {
 
 						uint32_t const state = SDL_GetMouseState( &x, &y );
 
-
-						// Ugly hack for mouse wheel.
-						SDL_Event pollEvent;
 						SDL_PollEvent( &pollEvent );
 
 						MouseEventInfo const current = { state

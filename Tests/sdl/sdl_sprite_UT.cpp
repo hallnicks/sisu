@@ -1,4 +1,4 @@
- #include "test.hpp"
+#include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"
 #include "ioassist.hpp"
@@ -38,18 +38,32 @@ TEST(sdl_sprite_UT, CreateShaderWithoutExceptions)
 	ShaderPathPair shaderPathPair( "resources/sprite.vs.txt", "resources/sprite.fs.txt" );
 
  	SDLShader spriteShader( shaderPathPair );
-	//spriteShader.initialize( );
 }
 
-TEST(sdl_sprite_UT, CreateSDLWindowWithoutExceptions)
+TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutExceptions)
 {
 	{
 		SpriteShader window;
 
-		window.initialize( { 4, 4, 1, false, false } );
+		window.initialize( { 4, 4, 0, false, false } );
 
 		window.run( );
 	}
 
 	BLOCK_EXECUTION;
 }
+
+#if 0
+TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithoutExceptions)
+{
+	{
+		SpriteShader window(false);
+
+		window.initialize( { 4, 4, 0, true, true } );
+
+		window.run( );
+	}
+
+	BLOCK_EXECUTION;
+}
+#endif

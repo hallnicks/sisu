@@ -20,6 +20,8 @@ class Texture2D
 
 	bool mInitialized;
 
+	uint8_t * mData;
+
 	public:
 		Texture2D( )
 			: mID( 0 )
@@ -32,6 +34,7 @@ class Texture2D
 			, mFilterMin( GL_LINEAR )
 			, mFilterMax( GL_LINEAR )
 			, mInitialized( false )
+			, mData( NULL )
 		{
 			;
 		}
@@ -50,6 +53,7 @@ class Texture2D
 		{
 			mWidth  = xWidth;
 			mHeight = xHeight;
+			mData = xData;
 
 			glGenTextures( 1, &mID );
 
@@ -72,8 +76,21 @@ class Texture2D
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mFilterMax );
 			} );
 
-
 		}
+
+		class Texture2DRow
+		{
+			uint8_t * mRow;
+
+			Texture2DRow( uint8_t * xRow ) : mRow( xRow ) { }
+
+			friend class Texture2D;
+
+			public:
+				uint8_t* operator [ ] ( size_t const xX ) { return &mRow[ xX ]; }
+		};
+
+		Texture2DRow operator [ ] ( size_t const xY ) { return Texture2DRow( mData + ( mWidth * xY ) ); }
 
 		void operator( )( std::function<void(void)> xLambda )
 		{
@@ -81,6 +98,9 @@ class Texture2D
 			xLambda( );
 			glBindTexture( GL_TEXTURE_2D, 0 );
 		}
+
+		GLuint getWidth( )  const { return mWidth;  }
+		GLuint getHeight( ) const { return mHeight; }
 };
 
 } // namespace sisu

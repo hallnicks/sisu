@@ -30,6 +30,7 @@
 
 #include "TextureFactory.hpp"
 #include "Texture2D.hpp"
+#include "GLCharacterMap.hpp"
 
 namespace sisu {
 
@@ -95,7 +96,6 @@ class SDLShader
 					glUniform1i( (*this)[ xName ], xValue );
 				}
 
-
 				void setUniform1f( const char * xName, GLfloat const xValue )
 				{
 					glUniform1f( (*this)[ xName ], xValue );
@@ -154,118 +154,51 @@ class SDLQuadShader : public SDLTestShaderWindow
 		virtual void initialize( OpenGLAttributes const & xAttributes );
 };
 
-class StackOverflowGuerillaShader : public SDLTestShaderWindow
-{
-	GLuint mTextureID;
-	GLuint * mBuffer;
-	public:
-		StackOverflowGuerillaShader( )
-			: SDLTestShaderWindow( ShaderSourcePair("#version 330 core\n"
-								"layout(points) in;"
-								"layout(triangle_strip, max_vertices = 4) out;"
-								"out vec2 texcoord;"
-								"void main() "
-								"{"
-								"    gl_Position = vec4( 1.0, 1.0, 0.5, 1.0 );"
-								"    texcoord = vec2( 1.0, 1.0 );"
-								"    EmitVertex();"
-								"    gl_Position = vec4(-1.0, 1.0, 0.5, 1.0 );"
-								"    texcoord = vec2( 0.0, 1.0 ); "
-								"    EmitVertex();"
-								"    gl_Position = vec4( 1.0,-1.0, 0.5, 1.0 );"
-								"    texcoord = vec2( 1.0, 0.0 );"
-								"    EmitVertex();"
-								"    gl_Position = vec4(-1.0,-1.0, 0.5, 1.0 );"
-								"    texcoord = vec2( 0.0, 0.0 ); "
-								"    EmitVertex();"
-								"    EndPrimitive(); "
-							      , "#version 330 core\n"
-								"void main(){}") )
-		, mTextureID( 0 )
-		, mBuffer( NULL )
-		{
-			;
-		}
-
-		~StackOverflowGuerillaShader( )
-		{
-			if ( mBuffer != NULL )
-			{
-				delete[] mBuffer;
-			}
-		}
-
-		virtual void initialize( OpenGLAttributes const & xAttributes )
-		{
-			SDLTestShaderWindow::initialize( xAttributes );
-
-			mBuffer = new GLuint[ mH * mW ];
-
-			for ( uint32_t ii = 0; ii <  (mH * mW); ++ii )
-			{
-				mBuffer[ii] = rand( );
-			}
-
-			glGenTextures( 1, &mTextureID );
-
-			glBindTexture( GL_TEXTURE_2D, mTextureID );
-
-			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, mW, mH, 0, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
-
-                        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-                        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-                        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-                        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-
-                        glBindTexture( GL_TEXTURE_2D, 0 );
-
-			glClearColor(0.05f, 0.1f, 1.0f, 1.0f);
-
-			// TODO: Should only do this on resize
-			glViewport(0, 0, mW, mH );
-
-			_checkForGLError( );
-		}
-
-
-		virtual void run( )
-		{
-			for( int ii = 0; ii < 50000; ++ii )
-			{
-				render( );
-				SDL_GL_SwapWindow( mMainWindow );
-			}
-
-			_hide( );
-		}
-
-	protected:
-		virtual void render( )
-		{
-			SDLTestShaderWindow::render( );
-
-			glEnable(GL_CULL_FACE);
-			glDisable(GL_DEPTH_TEST);
-
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                        glBindTexture( GL_TEXTURE_2D, mTextureID );
-
-			mShader([](){ glDrawArrays(GL_POINTS, 0, 1); });
-		}
-
-
-};
 
 class SpriteShader : public SDLTestWindow
 {
 	SDLShader mSpriteShader;
-	Texture2D mTexture;
+	Texture2D mBackgroundTexture;
 	uint8_t * mRandomData;
+
+	struct _TextureInstance
+	{
+		_TextureInstance( )
+			: tex( )
+			, texData( NULL )
+			, w( 0 )
+			, h( 0 )
+		{
+			;
+		}
+
+		~_TextureInstance( )
+		{
+			if (texData != NULL )
+			{
+				free( texData );
+			}
+		}
+
+		Texture2D tex;
+		GLubyte * texData;
+
+		uint32_t w, h;
+	};
+
+	std::map<char, _TextureInstance * > mCharacters;
 
 	GLuint mVBO, mQuadVAO;
 
 	event mQuit;
+
+	bool mPBOEnabled;
+
+	GLuint mPBO[2];
+
+	uint64_t mSize;
+
+	GLCharacterMap mCharacterMap;
 
 	void _drawSprite( Texture2D & xTexture
 		        , glm::vec2 const xPosition
@@ -273,8 +206,8 @@ class SpriteShader : public SDLTestWindow
 			, GLfloat xRotate
 			, glm::vec3 const xColor )
 	{
-		mSpriteShader( [ & ] ( ) {
-
+		mSpriteShader( [ & ] ( )
+		{
 			glm::mat4 model;
 
 			model = glm::translate( model, glm::vec3( xPosition, 0.0f ) );
@@ -293,8 +226,8 @@ class SpriteShader : public SDLTestWindow
 
 			glActiveTexture( GL_TEXTURE0 );
 
-			xTexture( [ & ]( ) {
-
+			xTexture( [ & ]( )
+			{
 				glBindVertexArray( mQuadVAO );
 
 				glDrawArrays( GL_TRIANGLES, 0, 6 );
@@ -303,39 +236,155 @@ class SpriteShader : public SDLTestWindow
 			} );
 		} );
 
-		_fillRandomData( );
-
 		xTexture( [ & ]( )
 		{
-			glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
-			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
+			if ( !mPBOEnabled )
+			{
+				_fillRandomData( );
+				glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
+				glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
+			}
+			else
+			{
+				static int index = 0;
+				int nextIndex = 0;
+
+				index = (index + 1) % 2;
+			        nextIndex = (index + 1) % 2;
+
+				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ index ] );
+
+				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ nextIndex ] );
+
+				glBufferDataARB( GL_PIXEL_UNPACK_BUFFER_ARB, mSize, 0, GL_STREAM_DRAW_ARB );
+
+				GLubyte* ptr = (GLubyte*)glMapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
+
+				if ( ptr )
+				{
+					_fillRandomData( );
+					glUnmapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB );
+				}
+
+				glTexSubImage2D( GL_TEXTURE_2D
+					       , 0
+					       , 0
+					       , 0
+					       , mW
+					       , mH
+					       , GL_RGBA
+					       , GL_UNSIGNED_BYTE
+					       , 0 );
+
+				glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
+			}
 		});
 
 	}
 
+	union _RGBA
+	{
+	        _RGBA( )
+	                  : integer( 0 )
+	        {
+	               ;
+	        }
+	        _RGBA2( uint8_t const xR
+	                    , uint8_t const xG
+	                    , uint8_t const xB
+	                    , uint8_t xA = 255 )
+	        {
+	                r = xR;
+	                g = xG;
+        	        b = xB;
+	                a = xA;
+	        }
+
+	        uint32_t integer;
+	        struct { uint8_t r, g, b, a; };
+	};
+
+	void _loadGLCharacter( GLCharacter * xGLChar )
+	{
+		if ( xGLChar == NULL )
+		{
+			std::cerr << "GLCharacter was NULL." << std::endl; 
+			exit( -1 );
+		}
+
+		std::cout << "checking for existing.. " << std::endl;
+		if ( mCharacters.find( xGLChar->getCharacter( ) ) != mCharacters.end( ) )
+		{
+			// character already loaded!
+			return;
+		}
+
+		_TextureInstance * pT = new _TextureInstance( );
+
+		std::cout << "Allahu akbuffer" << std::endl;
+		pT->texData = xGLChar->allocGLBuffer( );
+
+		std::cout << "Initialize texture." <<std::endl;
+		pT->tex.initialize( ( pT->w = xGLChar->getWidth( )  )
+				  , ( pT->h = xGLChar->getHeight( ) )
+				  , ( uint8_t* )pT->texData );
+
+		std::cout << "Set to map." << std::endl;
+
+		mCharacters[ xGLChar->getCharacter( ) ] = pT;
+	}
+
 	void _fillRandomData( )
 	{
-		for ( uint64_t ii = 0; ii < mW * mH * 4; ++ii )
+		_RGBA * pixelData = reinterpret_cast<_RGBA*>( mRandomData );
+
+		for ( uint64_t ii = 0; ii < mW * mH; ii += 4 )
 		{
-			mRandomData[ ii ] = rand( ) % 255;
+			pixelData[ ii ].r = 255;
+			pixelData[ ii ].g = 0;
+			pixelData[ ii ].b = 0;
+			pixelData[ ii ].a = 255;
 		}
 	}
 
 	protected:
 		virtual void render( )
 		{
-			_drawSprite( mTexture, glm::vec2( 0, 0 ), glm::vec2( mW, mH ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
+			_drawSprite( mBackgroundTexture, glm::vec2( 0, 0 ), glm::vec2( mW, mH ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+			GLuint offsetx = 0, offsety = 0;
+
+			for ( auto && ii : mCharacters )
+			{
+
+				_drawSprite( ii.second->tex
+					   , glm::vec2( offsetx, offsety )
+					   , glm::vec2( ii.second->w, ii.second->h )
+					   , 0.0f
+					   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+				offsetx += ii.second->w;
+				// TODO: do this every newline.
+				//offsety += ii.second->h;
+			}
 		}
 
 	public:
-		SpriteShader( )
+		SpriteShader( bool const xEnablePBO = false )
 			: SDLTestWindow( )
 			, mSpriteShader( ShaderPathPair( "resources/sprite.vs.txt", "resources/sprite.fs.txt" ) )
-			, mTexture( )
+			, mBackgroundTexture( )
 			, mRandomData( NULL )
 			, mVBO( 0 )
 			, mQuadVAO( 0 )
 			, mQuit( )
+			, mPBOEnabled( xEnablePBO )
+			, mPBO( )
+			, mSize( 0 )
+			, mCharacterMap( "resources/terminus.ttf"
+				       , 32
+				       , "" )
+			, mCharacters( )
 		{
 			;
 		}
@@ -347,6 +396,10 @@ class SpriteShader : public SDLTestWindow
 				delete[] mRandomData;
 			}
 
+			for ( auto && ii : mCharacters )
+			{
+				delete ii.second;
+			}
 			// TODO: delete quad vao and vbo (!)
 		}
 
@@ -355,19 +408,52 @@ class SpriteShader : public SDLTestWindow
 		{
 			SDLTestWindow::initialize( xAttributes );
 
+		        for ( char c = '!'; c < '~'; c++ )
+			{
+				std::cout << "Load GL character " << c << std::endl;
+				_loadGLCharacter( mCharacterMap[ c ] );
+			}
+
+			if ( mPBOEnabled )
+			{
+				std::cout << "PBO is enabled." << std::endl;
+				glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
+			}
+
 			if ( mRandomData != NULL )
 			{
 				std::cout << "RGBA data was already initialized. Calling initialze( .. ) twice is undefined." << std::endl;
 				exit( -1 );
 			}
 
-			uint64_t const sSize = mW * mH * 4; // Assuming 32 bit color. TODO: Fix or not care
+			mSize = mW * mH * 4; // Assuming 32 bit color. TODO: Fix or not care
 
-			mRandomData = new uint8_t[ sSize ];
+			mRandomData = new uint8_t[ mSize ];
 
 			_fillRandomData( );
 
-			mTexture.initialize( mW, mH, mRandomData );
+			mBackgroundTexture.initialize( mW, mH, mRandomData );
+
+			if ( mPBOEnabled )
+			{
+				mBackgroundTexture( [ & ] ( )
+				{
+					glGenBuffersARB( 2, mPBO );
+
+					glBindBufferARB( GL_PIXEL_PACK_BUFFER_ARB, mPBO[ 0 ] );
+
+					glBufferDataARB( GL_PIXEL_PACK_BUFFER_ARB, mSize, 0, GL_STREAM_READ_ARB );
+
+					glBindBufferARB( GL_PIXEL_PACK_BUFFER_ARB, mPBO[ 1 ] );
+
+					glBufferDataARB( GL_PIXEL_PACK_BUFFER_ARB, mSize, 0, GL_STREAM_READ_ARB );
+
+					glBindBufferARB( GL_PIXEL_PACK_BUFFER_ARB, 0 );
+
+					_checkForGLError( "Create PBOs" );
+				} );
+			}
+
 
 			mSpriteShader.initialize( );
 
@@ -422,10 +508,8 @@ class SpriteShader : public SDLTestWindow
 			{
 				render( );
 				SDL_GL_SwapWindow( mMainWindow );
-				std::cout << "Render." << std::endl;
+				SDL_PumpEvents( );
 			}
-
-			std::cout << "Quit set, main thread is out." << std::endl;
 
 			_hide( );
 		}
@@ -640,7 +724,6 @@ class RedbookCh04Shader : public SDLTestWindow
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
 			SDLTestWindow::initialize( xAttributes );
-
 			mAspect = mH / mW;
 
 			mShadowShader.initialize( );
@@ -733,111 +816,6 @@ class RedbookCh04Shader : public SDLTestWindow
 
 };
 
-class CheShader : public SDLTestShaderWindow
-{
-	TextureBase * mTexture;
-
-	protected:
-		virtual void render( )
-		{
-			SDLTestShaderWindow::render( );
-
-			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-			if ( mTexture != NULL )
-			{
-				mTexture->bind( 0 );
-
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-			}
-
-			mShader([&]() {
-				mShader.getUniforms().setUniform1f( "myTexture", 0 );
-
-				glBegin( GL_QUADS );
-					glVertex3f(-1.0f, -1.0f,  0.0f);
-        				glTexCoord2f(1.0, 0.0);
-					glVertex3f( 1.0f, -1.0f,  0.0f);
-					glTexCoord2f(1.0, 1.0);
-					glVertex3f( 1.0f,  1.0f,  0.0f);
-					glTexCoord2f(0.0, 1.0);
-					glVertex3f(-1.0f,  1.0f,  0.0f);
-					glTexCoord2f(0.0, 0.0);
-				glEnd();
-			});
-
-			_checkForGLError( );
-		}
-
-	public:
-		CheShader( )
-			: SDLTestShaderWindow( ShaderPathPair( "resources/vertexshader.txt", "resources/fragmentshader.txt" ) )
-			, mTexture( NULL )
-		{
-			;
-		}
-
-		~CheShader( )
-		{
-			if ( mTexture != NULL )
-			{
-				delete mTexture;
-
-				mTexture = NULL;
-			}
-		}
-
-		virtual void initialize( OpenGLAttributes const & xAttributes )
-		{
-			std::cout << "Before check glew ( )" << std::endl;
-
-			_checkForGLError( );
-
-			std::cout << "after check glew." << std::endl;
-
-			if (!GL_ARB_bindless_texture)
-			{
-				std::cerr << "GL_ARB_bindless_texture extension not enabled." <<std::endl;
-				exit( -1 );
-			}
-
-
-			SDLTestShaderWindow::initialize( xAttributes );
-
-
-			_checkForGLError( );
-
-			glClearColor( 0.5f, 0.5f, 1.0f, 1.0f );
-
-			glShadeModel( GL_SMOOTH );
-
-			glEnable( GL_DEPTH_TEST );
-
-			glEnable( GL_TEXTURE_2D );
-
-			mTexture = TextureFactory::createTextureFromRandomPixels( );
-
-			_checkForGLError( );
-
-			glViewport(0, 0, mW, mH );
-
-			_checkForGLError( );
-		}
-
-		virtual void run( )
-		{
-			while ( 1 )
-			{
-				render( );
-				SDL_GL_SwapWindow( mMainWindow );
-			}
-
-			_hide( );
-		}
-
-};
-
 class RedbookCh03Shader : public SDLTestShaderWindow
 {
 	float mAspect;
@@ -909,6 +887,7 @@ class RedbookCh03Shader : public SDLTestShaderWindow
 		{
 			SDLTestShaderWindow::initialize( xAttributes );
 
+
 			mShader([&](){
 
 				mRenderModelMatrixLoc = glGetUniformLocation( mShader.getProgramID( ), "model_matrix" );
@@ -964,344 +943,18 @@ class RedbookCh03Shader : public SDLTestShaderWindow
 
 		virtual void run( )
 		{
-			for( int ii = 0; ii < 50000; ++ii )
+			do
 			{
+				std::cout << "Loop is alive: " << SDL_GetError( ) << std::endl;
 				render( );
+				_checkForGLError( );
+				SDL_PumpEvents( );
 				SDL_GL_SwapWindow( mMainWindow );
-			}
 
+			} while ( !mQuit.isSet( ) );
 			_hide( );
 		}
 
-};
-
-#define IMPLEMENT_ME std::cerr << __PRETTY_FUNCTION__ << " is not implemented." << std::endl; exit( -1 );
-
-class ModelViewProjectionShader : public SDLShader
-{
-	GLint mVertexPos2DLocation
-            , mTexCoordLocation
-	    , mTextureUnitLocation
-	    , mProjectionMatrixLocation
-	    , mModelViewMatrixLocation;
-
-	glm::mat4 mProjectionMatrix, mModelViewMatrix;
-
-	protected:
-		void _setAttribute( GLint & xVar , const char * xAttribute )
-	        {
-	        	if ( ( xVar = glGetAttribLocation( mProgramID, xAttribute ) ) == -1 )
-		        {
-		        	std::cerr << "OpenGL: Failed to set location for " << xAttribute << std::endl;
-		                exit( -1 );
-		        }
-		}
-
-		void _setUniform( GLint & xVar , const char * xAttribute )
-	        {
-	        	if ( ( xVar = glGetUniformLocation( mProgramID, xAttribute ) ) == -1 )
-		        {
-		        	std::cerr << "OpenGL: Failed to set location for " << xAttribute << std::endl;
-		                exit( -1 );
-		        }
-		}
-
-	public:
-		ModelViewProjectionShader( ShaderPathPair const & xPaths ) 
-			: SDLShader( xPaths )
-			, mVertexPos2DLocation( 0 )
-    		        , mTexCoordLocation( 0 )
-		        , mTextureUnitLocation( 0 )
-			, mProjectionMatrixLocation( 0 )
-			, mModelViewMatrixLocation( 0 )
-			, mProjectionMatrix( )
-			, mModelViewMatrix( )
-		{
-			;
-		}
-
-		// Initialize everything but color location (which we will unify soon ).. TODO
-		virtual void initialize( )
-		{
-			SDLShader::initialize( );
-
-			_setAttribute( mVertexPos2DLocation,    "LVertexPos2D"      );
-			_setAttribute( mTexCoordLocation,       "LTexCoord"         );
-
-			_setUniform( mTextureUnitLocation,      "LTextureUnit"      );
-			_setUniform( mProjectionMatrixLocation, "LProjectionMatrix" );
-			_setUniform( mModelViewMatrixLocation,  "LModelViewMatrix"  );
-		}
-
-		void setVertexPointer( GLsizei const xStride, const GLvoid* xData )
-		{
-			glVertexAttribPointer( mVertexPos2DLocation, 2, GL_FLOAT, GL_FALSE, xStride, xData );
-		}
-
-		void setTexCoordPointer( GLsizei const xStride, const GLvoid* xData )
-		{
-			glVertexAttribPointer( mTexCoordLocation, 2, GL_FLOAT, GL_FALSE, xStride, xData );
-		}
-
-		void enableVertexPointer( )
-		{
-			glEnableVertexAttribArray( mVertexPos2DLocation );
-		}
-
-		void disableVertexPointer( )
-		{
-			glDisableVertexAttribArray( mVertexPos2DLocation );
-		}
-
-		void enableTexCoordPointer( )
-		{
-			glEnableVertexAttribArray( mTexCoordLocation );
-		}
-
-		void disableTexCoordPointer( )
-		{
-			glDisableVertexAttribArray( mTexCoordLocation );
-		}
-
-		void setProjection( glm::mat4 const & xMatrix )
-		{
-			mProjectionMatrix = xMatrix;
-		}
-
-		void setModelView( glm::mat4 const & xMatrix )
-		{
-			mModelViewMatrix = xMatrix;
-		}
-
-		void leftMultProjection( glm::mat4 const & xMatrix )
-		{
-			mProjectionMatrix = mProjectionMatrix * xMatrix;
-		}
-
-		void leftMultModelView( glm::mat4 const & xMatrix )
-		{
-			mModelViewMatrix = mModelViewMatrix * xMatrix;
-		}
-
-		void updateProjection( )
-		{
-			glUniformMatrix4fv( mProjectionMatrixLocation, 1, GL_FALSE, glm::value_ptr( mProjectionMatrix ) );
-		}
-
-		void updateModelView( )
-		{
-			glUniformMatrix4fv( mModelViewMatrixLocation, 1, GL_FALSE, glm::value_ptr( mModelViewMatrix ) );
-		}
-
-		void setTextureUnit( GLuint const xUnit )
-		{
-			glUniform1i( mTextureUnitLocation, xUnit );
-		}
-};
-
-
-class SDLTexturedPolygonShader : public ModelViewProjectionShader
-{
-	GLint mColorLocation;
-
-	public:
-		SDLTexturedPolygonShader( )
-			: ModelViewProjectionShader( ShaderPathPair( "resources/shaders/LTexturedPolygonProgram2D.glvs"
-                                                                   , "resources/shaders/LTexturedPolygonProgram2D.glfs" ) )
-			, mColorLocation( 0 )
-		{
-			;
-		}
-
-		virtual void initialize( )
-		{
-			ModelViewProjectionShader::initialize( );
-			_setUniform( mColorLocation, "LTextureColor" ); // TODO: unify into LColor
-		}
-
-		void setTextureColor( ColorRGBA const xColor )
-		{
-			glUniform4f( mColorLocation, xColor.r, xColor.g, xColor.b, xColor.a );
-		}
-};
-
-class SDLFontShader : public ModelViewProjectionShader
-{
-	GLint mColorLocation;
-
-	public:
-		SDLFontShader( )
-			: ModelViewProjectionShader( ShaderPathPair( "resources/shaders/LFontProgram2D.glvs"
-                                                                   , "resources/shaders/LFontProgram2D.glfs" ) )
-			, mColorLocation( 0 )
-		{
-			;
-		}
-
-		virtual void initialize(  )
-		{
-			ModelViewProjectionShader::initialize( );
-			_setUniform( mColorLocation, "LTextColor" );
-		}
-
-		void setTextColor( ColorRGBA const xColor )
-		{
-			glUniform4f( mColorLocation, xColor.r, xColor.g, xColor.b, xColor.a );
-		}
-};
-
-
-// TODO: Make this class scalable for N shaders in a pipeline for scenes, lighting, etc!
-class SDLTexturedFontShader : public SDLTestWindow
-{
-	SDLTexturedPolygonShader mTexturedQuadProgram;
-	SDLFontShader mFontProgram;
-
-	ColorRGBA mImageColor, mTextColor;
-
-	Rect mScreenArea;
-
-	Texture mOpenGLTexture;
-
-	GLuint * mPixels;
-
-	Font mFont;
-
-	void _freePixels( )
-	{
-		if ( mPixels != NULL )
-		{
-			delete[] mPixels;
-		}
-	}
-
-	protected:
-		virtual void render( )
-		{
-			glClear( GL_COLOR_BUFFER_BIT );
-
-			mTexturedQuadProgram([&]( )
-			{
-				mTexturedQuadProgram.setModelView( glm::mat4( ) );
-				mTexturedQuadProgram.setTextureColor( mImageColor );
-				mOpenGLTexture.render( ( mW - mOpenGLTexture.getImageWidth( ) ) / 2.0f
-							, ( mH - mOpenGLTexture.getImageHeight( ) ) / 2.0f
-							, NULL
-							, &mTexturedQuadProgram  );
-
-				_checkForGLError( );
-
-			});
-
-			mFontProgram([&]( )
-			{
-				mFontProgram.setModelView( glm::mat4( ) );
-				mFontProgram.setTextColor( mTextColor );
-
-				const char * message = "Godzilla";
-
-				mFont.render( 0.0f, 0.0f, message, &mFontProgram, &mScreenArea, eFontTextAlignment_Centered_H | eFontTextAlignment_Centered_V );
-
-				_checkForGLError( );
-			});
-		}
-
-	public:
-		SDLTexturedFontShader( )
-			: SDLTestWindow( )
-			, mTexturedQuadProgram( )
-			, mFontProgram( )
-			, mImageColor( { 0.5f, 0.5f, 0.5f, 1.0f } )
-			, mTextColor( { 1.0f, 0.5f, 0.5f, 1.0f } )
-			, mScreenArea( )
-			, mFont ( )
-			, mPixels( NULL )
-		{
-			;
-		}
-
-		~SDLTexturedFontShader( )
-		{
-			if ( mPixels != NULL )
-			{
-				delete[] mPixels;
-			}
-		}
-
-		virtual void initialize( OpenGLAttributes const & xAttributes )
-		{
-			SDLTestWindow::initialize( xAttributes );
-
-			mScreenArea = { 0.0f, 0.0f, (GLfloat)mW, (GLfloat)mH };
-
-			_freePixels( );
-
-			GLuint const size = mW * mH;
-
-			mPixels = new GLuint[ size ];
-			memset( mPixels, 0, size * sizeof(GLuint) );
-
-			for (int ii = 0; ii < size; ++ii )
-			{
-				mPixels[ ii ] = rand( ) % std::numeric_limits<GLuint>::max( );
-			}
-
-			mOpenGLTexture.fromMemoryRGBA32( mPixels, mW, mH, mW, mH );
-
-			mFont.loadFreeType( "resources/lazy.ttf", 60 );
-
-			glViewport( 0.0f, 0.0f, mW, mH );
-
-			glClearColor( 0.0f, 1.0f, 1.0f, 1.0f );
-
-			glEnable( GL_TEXTURE_2D );
-
-			glEnable( GL_BLEND );
-			glDisable( GL_DEPTH_TEST );
-			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
-			_checkForGLError( );
-
-			mTexturedQuadProgram.initialize( );
-
-			mFontProgram.initialize( );
-
-			_checkForGLError( );
-
-			auto initializeOrtho = [&]( ModelViewProjectionShader * const xShader )
-			{
-				xShader->setProjection( glm::ortho<GLfloat>( 0.0, mW, mH, 0.0, 1.0, -1.0 ) );
-				xShader->updateProjection( );
-
-				xShader->setModelView( glm::mat4( ) );
-				xShader->updateModelView( );
-
-				xShader->setTextureUnit( 0 );
-
-				_checkForGLError( );
-
-			};
-
-			mTexturedQuadProgram([&]( )
-			{
-				initializeOrtho( static_cast<ModelViewProjectionShader*>( &mTexturedQuadProgram ) );
-			});
-
-			mFontProgram([&]( )
-			{
-				initializeOrtho( static_cast<ModelViewProjectionShader*>( &mFontProgram ) );
-			});
-		}
-
-		virtual void run( )
-		{
-
-			for( int ii = 0; ii < 50000; ++ii )
-			{
-				render( );
-				SDL_GL_SwapWindow( mMainWindow );
-			}
-		}
 };
 
 } // namespace sisu

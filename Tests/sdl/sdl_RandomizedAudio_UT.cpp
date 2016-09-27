@@ -25,15 +25,8 @@ class sdl_RandomizedAudio_UT : public context
 		void Down( ) { }
 };
 
-class SoundMixer
-{
 
-};
 
-class AudioSynchonizer
-{
-
-};
 
 Uint32 sampleRate	 = 48000;
 Uint32 frameRate 	 =    60;
@@ -250,9 +243,8 @@ TEST(sdl_RandomizedAudio_UT, PlaySDLAudioWithoutExceptions)
 
 	onExit();
 
-	BLOCK_EXECUTION;
+	audioThread.join( );
 
 	MUSTEQ(*audioThread, true);
 }
-
 #endif

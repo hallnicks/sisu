@@ -53,12 +53,16 @@ void _printGLShaderLog( GLuint const xShader )
         delete[] infoLog;
 }
 
-void _checkForGLError( )
+void _checkForGLError( const char * xAddendum )
 {
 	GLenum const error = glGetError( );
 	if ( error != GL_NO_ERROR )
 	{
-		std::cerr << "Error in OpenGL: " << error << std::endl;
+		std::cerr << "OpenGL: Error# "
+			  << error
+			  << " "
+			  << (const char*)(xAddendum == NULL ? "" : xAddendum)
+			  << std::endl;
 		exit( -1 );
 	}
 }
@@ -135,7 +139,8 @@ void SDLTestWindow::_checkSDLError( )
 }
 
 SDLTestWindow::SDLTestWindow( )
-	: mMainWindow( NULL )
+	: mQuit( )
+	, mMainWindow( NULL )
         , mMainContext( )
 {
 	;
@@ -150,11 +155,9 @@ SDLTestWindow::~SDLTestWindow( )
 
 void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 {
-	int result1;
-
-        if ( ( result1 = SDL_Init( SDL_INIT_VIDEO ) ) < 0)
+        if ( SDL_Init( SDL_INIT_VIDEO ) < 0)
         {
-		std::cout << "SDL init failed." << result1 << std::endl;
+		std::cout << "SDL init failed: " << SDL_GetError() << std::endl;
                 exit(-1);
 	}
 
@@ -175,7 +178,7 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
                 exit( -1 );
 	}
 
-	_stealContext( ); 
+	_stealContext( );
 
         SDL_GetWindowSize( mMainWindow, &mW, &mH );
 
@@ -184,11 +187,10 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 	if ( mMainContext == NULL )
 	{
 		std::cerr << "Failed to create GL context from window." << std::endl;
-		exit( -1 ); 
+		exit( -1 );
 	}
 
-	// Initialize GLEW
-
+	// Initialize GLEW with experimental extensions enabled
 	glewExperimental = true;
 
 	GLenum err = glewInit( );

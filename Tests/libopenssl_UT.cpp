@@ -418,14 +418,11 @@ class SocketConnector
 			FD_SET( mSocketArray[ ii ]->Socket, receivesMore ? &mWriteSet : &mReadSet );
 		}
 
-		std::cout << "Listening for IO.." << std::endl;
 		if ( ( total = select( 0, &mReadSet, &mWriteSet, NULL, NULL ) ) == SOCKET_ERROR )
 		{
 			std::cerr << "select( .. ) failed." << std::endl;
 			exit( -1 );
 		}
-		std::cout << "IO activity found." << std::endl;
-
 
 		return total;
 	}
@@ -475,7 +472,10 @@ class SocketConnector
 	{
 		DWORD sendBytes = 0;
 
-		xSocketInformation->DataBuf.buf = xSocketInformation->Buffer    + xSocketInformation->BytesSEND;
+		xSocketInformation->DataBuf.buf = xSocketInformation->Buffer  + xSocketInformation->BytesSEND;
+		//static char defaultResponse[] = "OK";
+		//xSocketInformation->DataBuf.buf = defaultResponse;
+		//xSocketInformation->DataBuf.len = strlen( defaultResponse );
 
 		if ( WSASend( xSocketInformation->Socket, &(xSocketInformation->DataBuf), 1, &sendBytes, 0, NULL, NULL ) == SOCKET_ERROR )
 		{
@@ -490,28 +490,21 @@ class SocketConnector
 
 	void _serviceSockets( )
 	{
-		std::cout << "Servicing " << mTotalConnectedSockets << " sockets." << std::endl;
 		for ( int32_t ii = 0; ii < mTotalConnectedSockets; ++ii )
 		{
-			std::cout << "Servicing socket # " << ii << std::endl;
-
 			SOCKET_INFORMATION<XBufferSize> * si = mSocketArray[ ii ];
 
 			if ( FD_ISSET( si->Socket, &mReadSet ) )
 			{
-				std::cout << "Found a read pending." << std::endl;
 				_readNonBlocking( si, ii );
 				continue;
 			}
 
 			if ( FD_ISSET( si->Socket, &mWriteSet ) )
 			{
-				std::cout << "Found a write pending." << std::endl;
 				_writeNonBlocking( si, ii );
 				continue;
 			}
-
-			std::cout << "No FD set for # " << ii << std::endl;
 		}
 	}
 
@@ -525,19 +518,20 @@ class SocketConnector
 			{
 				if ( FD_ISSET( xConnector->mListenSocket, &xConnector->mReadSet ) )
 				{
-					std::cout << "Read was set for socket." << std::endl;
-
 					struct sockaddr sockaddr_info;
 					int32_t sockAddrInfoLength = sizeof( sockaddr_info );
 
 					// TODO: Put a sockaddr_info object into accept( ) and keep track of connected clients!
 					if ( ( xConnector->mAcceptSocket = accept( xConnector->mListenSocket, (struct sockaddr*)&sockaddr_info, &sockAddrInfoLength ) ) == INVALID_SOCKET )
 					{
+						if ( WSAGetLastError( ) == WSAEWOULDBLOCK )
+						{
+							continue; // try again!
+						}
+
 						std::cerr << "accept( .. ) failed in _selectFunction: " << WSAGetLastError( )<< std::endl;
 						exit( -1 );
 					}
-
-					std::cout << "Accepted connection. " << std::endl;
 
 					xConnector->_setSocketNonBlocking( xConnector->mAcceptSocket );
 
@@ -799,7 +793,7 @@ class SocketConnector
 							WSABUF dataBuf;
 							dataBuf.len = xSize;
 							dataBuf.buf = (char*)xMemory;
-							std::cout << "WSASend: " << xSize << " bytes." << std::endl;
+
 							if ( WSASend( mListenSocket, &dataBuf, 1, &xSize, 0, NULL, NULL ) == SOCKET_ERROR )
 							{
 								std::cerr << "WSASend( .. ) failed: " << WSAGetLastError( ) << std::endl;
@@ -809,7 +803,7 @@ class SocketConnector
 						}
 						else
 						{
-							std::cerr << "Server side send not yet implemented." << std::endl;
+							std::cerr << "Server side send not yet implemented. Use queue instead." << std::endl;
 							exit( -1 );
 						}
 					}
@@ -891,7 +885,6 @@ TEST(libopenssl_UT, createOpenSSLCertificateProgramatically)
 }
 
 // Ensures writes are stateless ( at least for one iteration ) ..
-#if 0
 TEST(libopenssl_UT, runSynchronousBlockingSocketServerAndClient)
 {
 	{
@@ -1002,7 +995,6 @@ TEST(libopenssl_UT, runSynchronousBlockingSocketServerAndClient)
 		winsockClient.disconnect( );
 	}
 }
-#endif
 
 TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
 {
@@ -1023,17 +1015,31 @@ TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
 	{
 		std::cout << ccolor( eTTYCBlack, eTTYCMagenta, eModBold )
 			  << "Server received " << xSelectData.size <<  " bytes."
-			  //<< memblock( xSelectData.data, xSelectData.size )
+			  << memblock( xSelectData.data, xSelectData.size )
 			  << " from socket # " << xSelectData.socket->socketID
 			  << " and did nothing with it."
 			  << std::endl;
-
-		//winsockServer.reply( xData, xSize );
 	});
 
 	winsockServer.initialize( );
 
 	// Server thread should now be running.
+
+	auto getRandomColor = [&]()->eTTYColor
+	{
+		static eTTYColor sColors[] = {  eTTYCBlack
+        				      , eTTYCRed
+        				      , eTTYCGreen
+        				      , eTTYCYellow
+        				      , eTTYCBlue
+        				      , eTTYCMagenta
+        				      , eTTYCCyan
+        				      , eTTYCWhite
+       					      , eTTYCMax  };
+
+		return sColors[ rand( ) % ( sizeof( sColors ) / sizeof( eTTYColor ) )];
+	};
+
 
 	NamedThread clientThread( [ & ] ( const char * xName ) -> uint32_t
 	{
@@ -1049,6 +1055,7 @@ TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
 						      , "      Come to my arms, my beamish boy! "
 						      , "O frabjous day! Callooh! Callay!” "
 						      , "      He chortled in his joy. " };
+
 
 		std::cout << "In thread " << xName << std::endl;
 
@@ -1067,6 +1074,7 @@ TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
 
 		bool once = false;
 
+		eTTYColor fg = getRandomColor( ), bg = getRandomColor( );
 		while ( !quit.isSet( ) )
 		{
 			if ( ++index > ( sizeof( sJabberwocky ) / sizeof( const char * ) ) - 1 )
@@ -1098,9 +1106,9 @@ TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
 				continue;
 			}
 
-			std::cout << ccolor( eTTYCBlack, eTTYCYellow, eModBold )
-				   << "Client received " << bytes << std::endl;
-				   //<<memblock( buff, sBufferSize ) << std::endl;;
+			std::cout << ccolor( bg, fg, eModBold )
+				   << "Client received " << bytes << std::endl
+				   <<memblock( buff, sBufferSize ) << std::endl;
 		}
 
 		winsockClient.disconnect( );
@@ -1109,11 +1117,12 @@ TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
 	});
 
 	clientThread( "Client thread 01" );
-	//clientThread( "Client thread 02" );
-	//clientThread( "Client thread 03" );
+	clientThread( "Client thread 02" );
+	clientThread( "Client thread 03" );
+
 	sleep::ms( 10000 );
 
-	std::cout << "Quiting from main thread." << std::endl;
+	std::cout << "Quitting from main thread." << std::endl;
 	quit.set( );
 
 	winsockServer.disconnect( );

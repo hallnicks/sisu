@@ -1,4 +1,3 @@
-#if 0
 #include "drawings.hpp"
 #include "test.hpp"
 #include "ttycolor.hpp"
@@ -231,5 +230,3 @@ TEST(Drawings_UT, TerminalRects)
 		painterSut.refresh( );
 	}
 }
-
-#endif
