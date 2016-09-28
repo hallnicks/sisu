@@ -124,7 +124,7 @@ TEST(PNGImageStreamer_UT, loadPNGFiles)
 	{
 		do
 		{
-			queueFilesMatchingExtension< MessageQueue, std::string >( "E:\\data", ".png", q);
+			queueFilesMatchingExtension< MessageQueue, std::string >( "resources/", ".png", q);
 		} while (!quit.isSet( ) );
 		return 0;
 	} );
