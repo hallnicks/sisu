@@ -349,8 +349,7 @@ class FTFont
 		{
 			if ( mSpans.empty( ) )
 			{
-				std::cerr << "No spans found!" << std::endl;
-				exit( -1 );
+				return;
 			}
 
 			_FontRect rect( mSpans.front( ).x

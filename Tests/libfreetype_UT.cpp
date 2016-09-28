@@ -29,6 +29,9 @@ TEST(libfreetype_UT, createCharacterMap)
 
 		MUSTNEQ( pC, NULL );
 	}
+
+	GLCharacter * pC = charmap[ ' ' ];
+	MUSTNEQ( pC, NULL );
 }
 
 

@@ -50,15 +50,8 @@ namespace sisu
 		void _makePNG( char const xC )
 		{
 			mFont.loadGlyph( xC, 0.0f );
-			PNGImage output( { mFont.getGlyphWidth( ), mFont.getGlyphHeight( ) } );
 
-			output.perPixel( [ ] ( PNGPixel xPixel )
-			{
-				xPixel.data[ 0 ] = 0;
-				xPixel.data[ 1 ] = 0;
-				xPixel.data[ 2 ] = 0;
-				xPixel.data[ 3 ] = 255;
-			} );
+			PNGImage output( { mFont.getGlyphWidth( ), mFont.getGlyphHeight( ) } );
 
 			mFont.printSpans( output, _FontPixel32( 255, 255, 255 ), _FontPixel32( 255, 255, 255 ) );
 
@@ -69,6 +62,7 @@ namespace sisu
 			std::ofstream ofs( filename.str( ).c_str( ), std::ios::binary);
 
 			ofs << output;
+
 			ofs.close( );
 		}
 

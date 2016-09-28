@@ -33,13 +33,7 @@ class sdl_sprite_UT : public context
 
 } // namespace
 
-TEST(sdl_sprite_UT, CreateShaderWithoutExceptions)
-{
-	ShaderPathPair shaderPathPair( "resources/sprite.vs.txt", "resources/sprite.fs.txt" );
-
- 	SDLShader spriteShader( shaderPathPair );
-}
-
+#if 0
 TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutExceptions)
 {
 	{
@@ -49,21 +43,17 @@ TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutExceptions)
 
 		window.run( );
 	}
-
-	BLOCK_EXECUTION;
 }
+#endif
 
-#if 0
 TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithoutExceptions)
 {
 	{
-		SpriteShader window(false);
+		SpriteShader window(true);
 
 		window.initialize( { 4, 4, 0, true, true } );
 
 		window.run( );
 	}
 
-	BLOCK_EXECUTION;
 }
-#endif

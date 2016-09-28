@@ -31,7 +31,6 @@
 #include <stdio.h>
 
 
-#include "TextureFactory.hpp"
 #include "Texture2D.hpp"
 #include "GLCharacterMap.hpp"
 #include "keyboard.hpp"
@@ -258,11 +257,9 @@ class SpriteShader : public SDLTestWindow
 		{
 			if ( !mPBOEnabled )
 			{
-#if 0
-				_fillRandomData( );
+				_fillRandomData( mRandomData );
 				glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
 				glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
-#endif
 			}
 			else
 			{
@@ -274,18 +271,6 @@ class SpriteShader : public SDLTestWindow
 
 				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ index ] );
 
-				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ nextIndex ] );
-
-				glBufferDataARB( GL_PIXEL_UNPACK_BUFFER_ARB, mSize, 0, GL_STREAM_DRAW_ARB );
-
-				GLubyte* ptr = (GLubyte*)glMapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
-
-				if ( ptr )
-				{
-					_fillRandomData( );
-					glUnmapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB );
-				}
-
 				glTexSubImage2D( GL_TEXTURE_2D
 					       , 0
 					       , 0
@@ -295,6 +280,29 @@ class SpriteShader : public SDLTestWindow
 					       , GL_RGBA
 					       , GL_UNSIGNED_BYTE
 					       , 0 );
+
+				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ nextIndex ] );
+
+				glBufferDataARB( GL_PIXEL_UNPACK_BUFFER_ARB, mSize, 0, GL_STREAM_DRAW_ARB );
+
+				GLubyte* ptr = (GLubyte*)glMapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
+
+				if ( ptr )
+				{
+					_fillRandomData( ptr );
+					glUnmapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB );
+				}
+				/*
+				glTexSubImage2D( GL_TEXTURE_2D
+					       , 0
+					       , 0
+					       , 0
+					       , mW
+					       , mH
+					       , GL_RGBA
+					       , GL_UNSIGNED_BYTE
+					       , 0 );
+				*/
 
 				glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
 			}
@@ -327,16 +335,16 @@ class SpriteShader : public SDLTestWindow
 
 	void _loadCursor( )
 	{
-		_loadGLCharacter( mCharacterMap[ 'o' ] );
+		_loadGLCharacter( mCharacterMap[ 'X' ] );
 
-		mCursor = mCharacters[ 'o' ];
+		mCursor = mCharacters[ 'X' ];
 	}
 
 	_TextureInstance * _loadGLCharacter( GLCharacter * xGLChar )
 	{
 		if ( xGLChar == NULL )
 		{
-			std::cerr << "GLCharacter was NULL." << std::endl; 
+			std::cerr << "GLCharacter was NULL." << std::endl;
 			exit( -1 );
 		}
 
@@ -359,16 +367,16 @@ class SpriteShader : public SDLTestWindow
 		return pT;
 	}
 
-	void _fillRandomData( )
+	void _fillRandomData( uint8_t * xRandomData )
 	{
-		_RGBA * pixelData = reinterpret_cast<_RGBA*>( mRandomData );
+		_RGBA * pixelData = reinterpret_cast<_RGBA*>( xRandomData );
 
 		for ( uint64_t ii = 0; ii < mW * mH; ii += 4 )
 		{
 			pixelData[ ii ].r = rand( ) % 255;
 			pixelData[ ii ].g = rand( ) % 255;
 			pixelData[ ii ].b = rand( ) % 255;
-			pixelData[ ii ].a = rand( ) % 255;
+			pixelData[ ii ].a = 255;
 		}
 	}
 
@@ -385,19 +393,23 @@ class SpriteShader : public SDLTestWindow
 	{
 		mKB.registerCallback( [&]( KeyboardEvent xEvent )
 		{
-			std::cout << "Key pressed." << std::endl;
+			std::cout << "Receive scancode: " << xEvent.getScanCode( ) << std::endl;
 
 			if ( xEvent.getScanCode( ) == SDL_SCANCODE_Q )
 			{
 				mQuit.set( );
 			}
 
-			char const c = sSDLKeyboardScancodeMap[ xEvent.getScanCode( ) ];
+			bool const shiftPressed = xEvent[ SDL_SCANCODE_LSHIFT ] || xEvent[ SDL_SCANCODE_RSHIFT ];
 
-			std::cout << "enqueue : " << c << std::endl;
+			char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
 
-			mStdIn.enqueue( c );
+			if ( c != 0x00 )
+			{
+				mStdIn.enqueue( c );
+			}
 		} );
+
 		mKB.listen( );
 	}
 
@@ -405,33 +417,25 @@ class SpriteShader : public SDLTestWindow
 	protected:
 		virtual void render( )
 		{
+			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+
+			glEnable( GL_BLEND );
+
+			//glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+			glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE );
+
+			glBlendEquation( GL_FUNC_ADD );
 
 			MouseEventInfo currentCursorPosition;
 			mMouseMutex.run([&]() { currentCursorPosition = mCursorPosition; } );
 
 			_drawSprite( mBackgroundTexture, glm::vec2( 0, 0 ), glm::vec2( mW, mH ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
 
-			_drawSprite( mCursor->tex
-				   , glm::vec2( currentCursorPosition.x, currentCursorPosition.y )
-				   , glm::vec2( mCursor->w, mCursor->h )
-				   , 0.0f
-			           , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+			static GLuint const sOverscanX = 5;
+			static GLuint const sOverscanY = 10;
 
-			GLuint offsetx = 0;
-			GLuint offsety = 0;
-			/*
-			for ( auto && ii : mCharacters )
-			{
-				_drawSprite( ii.second->tex
-					   , glm::vec2( offsetx, offsety )
-					   , glm::vec2( ii.second->w, ii.second->h )
-					   , 0.0f
-					   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
-				offsetx += ii.second->w;
-				// TODO: do this every newline.
-				//offsety += ii.second->h;
-			}
-			*/
+			GLuint offsetx = sOverscanX;
+			GLuint offsety = sOverscanY;
 
 			char c;
 
@@ -456,6 +460,13 @@ class SpriteShader : public SDLTestWindow
 					offsety += pT->h;
 				}
 			}
+
+			// Draw the cursor
+			_drawSprite( mCursor->tex
+				   , glm::vec2( currentCursorPosition.x, currentCursorPosition.y )
+				   , glm::vec2( mCursor->w, mCursor->h )
+				   , 0.0f
+			           , glm::vec3( 1.0f, 1.0f, 1.0f ) );
 		}
 
 	public:
@@ -493,7 +504,12 @@ class SpriteShader : public SDLTestWindow
 			{
 				delete ii.second;
 			}
-			// TODO: delete quad vao and vbo (!)
+			// TODO: delete quad vao and vbo (!) and pbo
+
+			if ( mPBOEnabled )
+			{
+				glDeleteBuffersARB( 2, mPBO );
+			}
 		}
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
@@ -512,11 +528,8 @@ class SpriteShader : public SDLTestWindow
 
 			_loadCursor( );
 
-			if ( mPBOEnabled )
-			{
-				std::cout << "PBO is enabled." << std::endl;
-				glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
-			}
+			glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
+
 
 			if ( mRandomData != NULL )
 			{
@@ -528,7 +541,7 @@ class SpriteShader : public SDLTestWindow
 
 			mRandomData = new uint8_t[ mSize ];
 
-			_fillRandomData( );
+			_fillRandomData( mRandomData );
 
 			mBackgroundTexture.initialize( mW, mH, mRandomData );
 
@@ -604,6 +617,9 @@ class SpriteShader : public SDLTestWindow
 		{
 			while ( !mQuit.isSet( ) )
 			{
+				ShowCursor( FALSE );
+				SetCursor( NULL );
+
 				render( );
 				SDL_GL_SwapWindow( mMainWindow );
 				SDL_PumpEvents( );
