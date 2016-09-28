@@ -33,8 +33,7 @@ class sdl_sprite_UT : public context
 
 } // namespace
 
-#if 0
-TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutExceptions)
+TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutPBO)
 {
 	{
 		SpriteShader window;
@@ -44,9 +43,8 @@ TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutExceptions)
 		window.run( );
 	}
 }
-#endif
 
-TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithoutExceptions)
+TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithPBO)
 {
 	{
 		SpriteShader window(true);

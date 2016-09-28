@@ -253,61 +253,6 @@ class SpriteShader : public SDLTestWindow
 			} );
 		} );
 
-		xTexture( [ & ]( )
-		{
-			if ( !mPBOEnabled )
-			{
-				_fillRandomData( mRandomData );
-				glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
-				glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
-			}
-			else
-			{
-				static int index = 0;
-				int nextIndex = 0;
-
-				index = (index + 1) % 2;
-			        nextIndex = (index + 1) % 2;
-
-				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ index ] );
-
-				glTexSubImage2D( GL_TEXTURE_2D
-					       , 0
-					       , 0
-					       , 0
-					       , mW
-					       , mH
-					       , GL_RGBA
-					       , GL_UNSIGNED_BYTE
-					       , 0 );
-
-				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ nextIndex ] );
-
-				glBufferDataARB( GL_PIXEL_UNPACK_BUFFER_ARB, mSize, 0, GL_STREAM_DRAW_ARB );
-
-				GLubyte* ptr = (GLubyte*)glMapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
-
-				if ( ptr )
-				{
-					_fillRandomData( ptr );
-					glUnmapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB );
-				}
-				/*
-				glTexSubImage2D( GL_TEXTURE_2D
-					       , 0
-					       , 0
-					       , 0
-					       , mW
-					       , mH
-					       , GL_RGBA
-					       , GL_UNSIGNED_BYTE
-					       , 0 );
-				*/
-
-				glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
-			}
-		});
-
 	}
 
 	union _RGBA
@@ -467,6 +412,52 @@ class SpriteShader : public SDLTestWindow
 				   , glm::vec2( mCursor->w, mCursor->h )
 				   , 0.0f
 			           , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+			// Animate the background
+			mBackgroundTexture( [ & ]( )
+			{
+				if ( !mPBOEnabled )
+				{
+					_fillRandomData( mRandomData );
+					glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
+					glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
+				}
+				else
+				{
+					static int index = 0;
+					int nextIndex = 0;
+
+					index = (index + 1) % 2;
+				        nextIndex = (index + 1) % 2;
+
+					glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ index ] );
+
+					glTexSubImage2D( GL_TEXTURE_2D
+						       , 0
+						       , 0
+						       , 0
+						       , mW
+						       , mH
+						       , GL_RGBA
+						       , GL_UNSIGNED_BYTE
+						       , 0 );
+
+					glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ nextIndex ] );
+
+					glBufferDataARB( GL_PIXEL_UNPACK_BUFFER_ARB, mSize, 0, GL_STREAM_DRAW_ARB );
+
+					GLubyte* ptr = (GLubyte*)glMapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
+
+					if ( ptr )
+					{
+						_fillRandomData( ptr );
+						glUnmapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB );
+					}
+
+					glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
+				}
+			});
+
 		}
 
 	public:
@@ -504,12 +495,23 @@ class SpriteShader : public SDLTestWindow
 			{
 				delete ii.second;
 			}
-			// TODO: delete quad vao and vbo (!) and pbo
+			// TODO: Make sure these neither fault or leak
 
 			if ( mPBOEnabled )
 			{
 				glDeleteBuffersARB( 2, mPBO );
 			}
+
+			if ( mVBO != 0 )
+			{
+				glDeleteBuffers( 1, &mVBO );
+			}
+
+			if ( mQuadVAO != 0 )
+			{
+				glDeleteVertexArrays( 1, &mQuadVAO );
+			}
+
 		}
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
@@ -564,7 +566,6 @@ class SpriteShader : public SDLTestWindow
 					_checkForGLError( "Create PBOs" );
 				} );
 			}
-
 
 			mSpriteShader.initialize( );
 
