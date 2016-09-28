@@ -113,7 +113,6 @@ typedef gear< uint8_t, uint8_t > Thread;
 
 TEST(PNGImageStreamer_UT, loadPNGFiles)
 {
-
 	event quit;
 
 	MessageQueue q;

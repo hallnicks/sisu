@@ -187,6 +187,7 @@ class SpriteShader : public SDLTestWindow
 		}
 
 		Texture2D tex;
+
 		GLubyte * texData;
 
 		uint32_t w, h;
@@ -329,7 +330,10 @@ class SpriteShader : public SDLTestWindow
 
 		if ( mTextureQueue.try_dequeue( instance ) && instance != NULL )
 		{
-			instance->initialize( );
+			if ( !mPBOEnabled )
+			{
+				instance->initialize( );
+			}
 
 			if ( mShown != NULL )
 			{
@@ -342,8 +346,37 @@ class SpriteShader : public SDLTestWindow
 
 	void _fillData( GLubyte * xRandomData )
 	{
-		_RGBA * pixelData = reinterpret_cast<_RGBA*>( xRandomData );
+		if ( mShown != NULL )
+		{
+			size_t const bounds   = std::min( (uint32_t)mW * mH, (uint32_t)mShown->w * mShown->h );
+			//memcpy( xRandomData, mShown->texData, bounds );
 
+			_RGBA * pixelData = reinterpret_cast<_RGBA*>( xRandomData );
+			_RGBA * setData = reinterpret_cast<_RGBA*>( mShown->texData );
+			for ( uint32_t ii = 0; ii < bounds; ++ii )
+			{
+				pixelData[ ii ].r = setData[ ii ].r;
+				pixelData[ ii ].g = setData[ ii ].g;
+				pixelData[ ii ].b = setData[ ii ].b;
+				pixelData[ ii ].a = setData[ ii ].a;
+			}
+
+
+			/*
+			for ( uint32_t ii = 0; ii < rows; ++ii )
+			{
+				GLubyte * source = &mShown->texData[ ii ];
+
+				memcpy( xRandomData + ( rowBytes* ii )
+				      , source
+				      , rowBytes );
+			}
+			*/
+
+			return;
+		}
+
+		_RGBA * pixelData = reinterpret_cast<_RGBA*>( xRandomData );
 		for ( uint64_t ii = 0; ii < mW * mH; ii += 4 )
 		{
 			pixelData[ ii ].r = rand( ) % 255;
@@ -405,7 +438,7 @@ class SpriteShader : public SDLTestWindow
 
 			_dequeueOne( );
 
-			if ( mShown != NULL )
+			if ( mShown != NULL && !mPBOEnabled )
 			{
 				_drawSprite( mShown->tex, glm::vec2( 0, 0 ), glm::vec2( mShown->w, mShown->h ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
 			}
@@ -468,13 +501,11 @@ class SpriteShader : public SDLTestWindow
 				if ( !mPBOEnabled )
 				{
 					_fillData( mRandomData );
-
 					glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
 					glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
 				}
 				else
 				{
-
 					static int index = 0;
 					int nextIndex = 0;
 
@@ -483,12 +514,20 @@ class SpriteShader : public SDLTestWindow
 
 					glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ index ] );
 
+					GLsizei w = mW, h = mH;
+
+					if ( mShown != NULL )
+					{
+						w = mShown->w;
+						h = mShown->h;
+					}
+
 					glTexSubImage2D( GL_TEXTURE_2D
 						       , 0
 						       , 0
 						       , 0
-						       , mW
-						       , mH
+						       , w
+						       , h
 						       , GL_RGBA
 						       , GL_UNSIGNED_BYTE
 						       , 0 );

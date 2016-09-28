@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "mouse.hpp"
 
@@ -93,3 +94,4 @@ TEST(mouse_UT, MouseHandlerCallback)
 
 	}
 }
+#endif

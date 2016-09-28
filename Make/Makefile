@@ -22,6 +22,9 @@ TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32 Shlwapi
 
 TARGET_LIBS += tbb
 
+#ffmpeg lawdy lawdy
+TARGET_LIBS += avcodec swscale
+
 #Extra's for fun (TODO: integrate)
 #TARGET_LIBS += curl twitcurl utp x264
 
