@@ -35,6 +35,7 @@
 #include "GLCharacterMap.hpp"
 #include "keyboard.hpp"
 #include "mouse.hpp"
+#include "memblock.hpp"
 
 namespace sisu {
 
@@ -163,7 +164,8 @@ class SpriteShader : public SDLTestWindow
 {
 	SDLShader mSpriteShader;
 	Texture2D mBackgroundTexture;
-	uint8_t * mRandomData;
+
+	GLubyte * mRandomData;
 
 	struct _TextureInstance
 	{
@@ -188,7 +190,14 @@ class SpriteShader : public SDLTestWindow
 		GLubyte * texData;
 
 		uint32_t w, h;
+
+		void initialize( )
+		{
+			tex.initialize( w, h, texData );
+		}
 	};
+
+	_TextureInstance * mShown;
 
 	std::map<char, _TextureInstance * > mCharacters;
 
@@ -214,6 +223,8 @@ class SpriteShader : public SDLTestWindow
 	MouseEventInfo mCursorPosition;
 
 	moodycamel::ConcurrentQueue< char > mStdIn;
+
+	moodycamel::ConcurrentQueue< _TextureInstance * > mTextureQueue;
 
 	std::vector<char> mLineBuffer;
 
@@ -252,7 +263,6 @@ class SpriteShader : public SDLTestWindow
 				glBindVertexArray( 0 );
 			} );
 		} );
-
 	}
 
 	union _RGBA
@@ -312,7 +322,25 @@ class SpriteShader : public SDLTestWindow
 		return pT;
 	}
 
-	void _fillRandomData( uint8_t * xRandomData )
+
+	void _dequeueOne( )
+	{
+		_TextureInstance * instance = NULL;
+
+		if ( mTextureQueue.try_dequeue( instance ) && instance != NULL )
+		{
+			instance->initialize( );
+
+			if ( mShown != NULL )
+			{
+				delete mShown;
+			}
+
+			mShown = instance;
+		}
+	}
+
+	void _fillData( GLubyte * xRandomData )
 	{
 		_RGBA * pixelData = reinterpret_cast<_RGBA*>( xRandomData );
 
@@ -338,8 +366,6 @@ class SpriteShader : public SDLTestWindow
 	{
 		mKB.registerCallback( [&]( KeyboardEvent xEvent )
 		{
-			std::cout << "Receive scancode: " << xEvent.getScanCode( ) << std::endl;
-
 			if ( xEvent.getScanCode( ) == SDL_SCANCODE_Q )
 			{
 				mQuit.set( );
@@ -349,7 +375,7 @@ class SpriteShader : public SDLTestWindow
 
 			char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
 
-			if ( c != 0x00 )
+			if ( c != 0x00 && xEvent.getKeyDown( ) || xEvent.getKeyContinue( ) )
 			{
 				mStdIn.enqueue( c );
 			}
@@ -374,7 +400,15 @@ class SpriteShader : public SDLTestWindow
 			MouseEventInfo currentCursorPosition;
 			mMouseMutex.run([&]() { currentCursorPosition = mCursorPosition; } );
 
+
 			_drawSprite( mBackgroundTexture, glm::vec2( 0, 0 ), glm::vec2( mW, mH ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+			_dequeueOne( );
+
+			if ( mShown != NULL )
+			{
+				_drawSprite( mShown->tex, glm::vec2( 0, 0 ), glm::vec2( mShown->w, mShown->h ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
+			}
 
 			static GLuint const sOverscanX = 5;
 			static GLuint const sOverscanY = 10;
@@ -393,6 +427,19 @@ class SpriteShader : public SDLTestWindow
 			{
 				_TextureInstance * pT = _loadGLCharacter( mCharacterMap[ c ] );
 
+				if ( c == '\n' )
+				{
+					offsety += pT->h;
+					offsetx = sOverscanX;
+					continue;
+				}
+
+				if ( c == '\t' )
+				{
+					offsetx += pT->w * 8;
+					continue;
+				}
+
 				_drawSprite( pT->tex
 					   , glm::vec2( offsetx, offsety )
 					   , glm::vec2( pT->w, pT->h )
@@ -401,7 +448,7 @@ class SpriteShader : public SDLTestWindow
 
 				if ( ( offsetx += pT->w ) >= mW )
 				{
-					offsetx = 0;
+					offsetx = sOverscanX;
 					offsety += pT->h;
 				}
 			}
@@ -413,17 +460,21 @@ class SpriteShader : public SDLTestWindow
 				   , 0.0f
 			           , glm::vec3( 1.0f, 1.0f, 1.0f ) );
 
-			// Animate the background
+
+
+			// Animate the background if we had no incoming frames
 			mBackgroundTexture( [ & ]( )
 			{
 				if ( !mPBOEnabled )
 				{
-					_fillRandomData( mRandomData );
+					_fillData( mRandomData );
+
 					glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
 					glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
 				}
 				else
 				{
+
 					static int index = 0;
 					int nextIndex = 0;
 
@@ -450,14 +501,13 @@ class SpriteShader : public SDLTestWindow
 
 					if ( ptr )
 					{
-						_fillRandomData( ptr );
+						_fillData( ptr );
 						glUnmapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB );
 					}
 
 					glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
 				}
 			});
-
 		}
 
 	public:
@@ -480,12 +530,22 @@ class SpriteShader : public SDLTestWindow
 			, mKB( )
 			, mMouseMutex( )
 			, mCursor( NULL )
+			, mShown( NULL )
 		{
 			;
 		}
 
 		~SpriteShader( )
 		{
+			if ( mShown != NULL )
+			{
+				delete mShown;
+			}
+
+			mMouse.stopListening( );
+
+			mKB.stopListening( );
+
 			if ( mRandomData != NULL )
 			{
 				delete[] mRandomData;
@@ -495,7 +555,6 @@ class SpriteShader : public SDLTestWindow
 			{
 				delete ii.second;
 			}
-			// TODO: Make sure these neither fault or leak
 
 			if ( mPBOEnabled )
 			{
@@ -511,7 +570,18 @@ class SpriteShader : public SDLTestWindow
 			{
 				glDeleteVertexArrays( 1, &mQuadVAO );
 			}
+		}
 
+
+		virtual void enqueue( GLubyte * xData, uint64_t const xWidth, uint64_t const xHeight )
+		{
+			_TextureInstance * instance = new _TextureInstance( );
+
+			instance->texData = xData;
+			instance->w = xWidth;
+			instance->h = xHeight;
+
+			mTextureQueue.enqueue( instance );
 		}
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
@@ -532,20 +602,19 @@ class SpriteShader : public SDLTestWindow
 
 			glPixelStorei( GL_UNPACK_ALIGNMENT, 4 );
 
-
 			if ( mRandomData != NULL )
 			{
-				std::cout << "RGBA data was already initialized. Calling initialze( .. ) twice is undefined." << std::endl;
+				std::cerr << "RGBA data was already initialized. Calling initialze( .. ) twice is undefined." << std::endl;
 				exit( -1 );
 			}
 
 			mSize = mW * mH * 4; // Assuming 32 bit color. TODO: Fix or not care
 
-			mRandomData = new uint8_t[ mSize ];
+			mRandomData = new GLubyte[ mSize ];
 
-			_fillRandomData( mRandomData );
+			_fillData( mRandomData );
 
-			mBackgroundTexture.initialize( mW, mH, mRandomData );
+			mBackgroundTexture.initialize( mW, mH, (uint8_t*)mRandomData );
 
 			if ( mPBOEnabled )
 			{
@@ -1060,7 +1129,6 @@ class RedbookCh03Shader : public SDLTestShaderWindow
 		{
 			do
 			{
-				std::cout << "Loop is alive: " << SDL_GetError( ) << std::endl;
 				render( );
 				_checkForGLError( );
 				SDL_PumpEvents( );

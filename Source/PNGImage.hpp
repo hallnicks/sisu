@@ -67,6 +67,8 @@ namespace sisu
 	{
 		uint32_t mWidth, mHeight;
 
+		bool mIsValid;
+
 		png_byte mColorType, mBitDepth;
 
 		png_bytep * mRGBBuffer;
@@ -98,6 +100,7 @@ namespace sisu
 
 			void perPixel( std::function< void( PNGPixel ) > xPixel );
 
+			bool			getIsValid( )   const { return mIsValid; }
 			uint32_t    		getWidth( )     const;
 			uint32_t    		getHeight( )    const;
 			png_byte    		getColorType( ) const;

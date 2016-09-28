@@ -12,6 +12,8 @@
 namespace sisu { 
 
 
+static inline bool fileExists( const char * xPathToFile ) { return std::ifstream( xPathToFile ).good( ); }
+
 static inline std::string fileToString( const char * xPathToFile ) {
 	std::ifstream ifs( xPathToFile );
 

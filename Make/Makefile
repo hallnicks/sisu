@@ -18,7 +18,7 @@ TARGET_LIBS  += ssl crypto
 TARGET_LIBS  += png z freetype
 
 #This is now windows specific. Need to test on linux again. For example, winsock, opengl32, glew32, etc, linked differently.
-TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32
+TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32 Shlwapi
 
 TARGET_LIBS += tbb
 
@@ -40,7 +40,7 @@ FREEGLUT_FLAGS  := -Wl,--subsystem,windows
 CXXFLAGS 	+= $(FREEGLUT_FLAGS)
 LDFLAGS		+= $(FREEGLUT_FLAGS)
 
-#Turn on max warnings
+#Turn on max warnings (TODO: Fix these.) 
 #CXXFLAGS += -Wall -Wextra
 #LDFLAGS  += -Wall -Wextra
 

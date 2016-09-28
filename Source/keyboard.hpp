@@ -44,8 +44,9 @@ namespace sisu {
 				;
 			}
 
-			bool getKeyUp( )   const { return mKeyState == eKeyState_Up;   }
-			bool getKeyDown( ) const { return mKeyState == eKeyState_Down; }
+			bool getKeyUp( )       const { return mKeyState == eKeyState_Up;       }
+			bool getKeyDown( )     const { return mKeyState == eKeyState_Down;     }
+			bool getKeyContinue( ) const { return mKeyState == eKeyState_Continue; }
 
 			uint16_t getScanCode( ) const { return mScanCode; }
 
@@ -175,32 +176,32 @@ static class KeyboardScancodeMap
 			sScanCodes[ SDL_SCANCODE_8 ] = '8';
 			sScanCodes[ SDL_SCANCODE_9 ] = '9';
 
-			sScanCodes[ SDL_SCANCODE_A ] = 'A';
-			sScanCodes[ SDL_SCANCODE_B ] = 'B';
-			sScanCodes[ SDL_SCANCODE_C ] = 'C';
-			sScanCodes[ SDL_SCANCODE_D ] = 'D';
-			sScanCodes[ SDL_SCANCODE_E ] = 'E';
-			sScanCodes[ SDL_SCANCODE_F ] = 'F';
-			sScanCodes[ SDL_SCANCODE_G ] = 'G';
-			sScanCodes[ SDL_SCANCODE_H ] = 'H';
-			sScanCodes[ SDL_SCANCODE_I ] = 'I';
-			sScanCodes[ SDL_SCANCODE_J ] = 'J';
-			sScanCodes[ SDL_SCANCODE_K ] = 'K';
-			sScanCodes[ SDL_SCANCODE_L ] = 'L';
-			sScanCodes[ SDL_SCANCODE_M ] = 'M';
-			sScanCodes[ SDL_SCANCODE_N ] = 'N';
-			sScanCodes[ SDL_SCANCODE_O ] = 'O';
-			sScanCodes[ SDL_SCANCODE_P ] = 'P';
-			sScanCodes[ SDL_SCANCODE_Q ] = 'Q';
-			sScanCodes[ SDL_SCANCODE_R ] = 'R';
-			sScanCodes[ SDL_SCANCODE_S ] = 'S';
-			sScanCodes[ SDL_SCANCODE_T ] = 'T';
-			sScanCodes[ SDL_SCANCODE_U ] = 'U';
-			sScanCodes[ SDL_SCANCODE_V ] = 'V';
-			sScanCodes[ SDL_SCANCODE_W ] = 'W';
-			sScanCodes[ SDL_SCANCODE_X ] = 'X';
-			sScanCodes[ SDL_SCANCODE_Y ] = 'Y';
-			sScanCodes[ SDL_SCANCODE_Z ] = 'Z';
+			sScanCodes[ SDL_SCANCODE_A ] = 'a';
+			sScanCodes[ SDL_SCANCODE_B ] = 'b';
+			sScanCodes[ SDL_SCANCODE_C ] = 'c';
+			sScanCodes[ SDL_SCANCODE_D ] = 'd';
+			sScanCodes[ SDL_SCANCODE_E ] = 'e';
+			sScanCodes[ SDL_SCANCODE_F ] = 'f';
+			sScanCodes[ SDL_SCANCODE_G ] = 'g';
+			sScanCodes[ SDL_SCANCODE_H ] = 'h';
+			sScanCodes[ SDL_SCANCODE_I ] = 'i';
+			sScanCodes[ SDL_SCANCODE_J ] = 'j';
+			sScanCodes[ SDL_SCANCODE_K ] = 'k';
+			sScanCodes[ SDL_SCANCODE_L ] = 'l';
+			sScanCodes[ SDL_SCANCODE_M ] = 'm';
+			sScanCodes[ SDL_SCANCODE_N ] = 'n';
+			sScanCodes[ SDL_SCANCODE_O ] = 'o';
+			sScanCodes[ SDL_SCANCODE_P ] = 'p';
+			sScanCodes[ SDL_SCANCODE_Q ] = 'q';
+			sScanCodes[ SDL_SCANCODE_R ] = 'r';
+			sScanCodes[ SDL_SCANCODE_S ] = 's';
+			sScanCodes[ SDL_SCANCODE_T ] = 't';
+			sScanCodes[ SDL_SCANCODE_U ] = 'u';
+			sScanCodes[ SDL_SCANCODE_V ] = 'v';
+			sScanCodes[ SDL_SCANCODE_W ] = 'w';
+			sScanCodes[ SDL_SCANCODE_X ] = 'x';
+			sScanCodes[ SDL_SCANCODE_Y ] = 'y';
+			sScanCodes[ SDL_SCANCODE_Z ] = 'z';
 
 			sScanCodes[ SDL_SCANCODE_MINUS        ] = '-';
 			sScanCodes[ SDL_SCANCODE_EQUALS       ] = '=';
@@ -238,34 +239,32 @@ static class KeyboardScancodeMap
 			sScanCodesShift[ SDL_SCANCODE_8 ] = '*';
 			sScanCodesShift[ SDL_SCANCODE_9 ] = '(';
 
-			sScanCodesShift[ SDL_SCANCODE_A ] = 'a';
-			sScanCodesShift[ SDL_SCANCODE_B ] = 'b';
-			sScanCodesShift[ SDL_SCANCODE_C ] = 'c';
-			sScanCodesShift[ SDL_SCANCODE_D ] = 'd';
-			sScanCodesShift[ SDL_SCANCODE_E ] = 'e';
-			sScanCodesShift[ SDL_SCANCODE_F ] = 'f';
-			sScanCodesShift[ SDL_SCANCODE_G ] = 'g';
-			sScanCodesShift[ SDL_SCANCODE_H ] = 'h';
-			sScanCodesShift[ SDL_SCANCODE_I ] = 'i';
-			sScanCodesShift[ SDL_SCANCODE_J ] = 'j';
-			sScanCodesShift[ SDL_SCANCODE_K ] = 'k';
-			sScanCodesShift[ SDL_SCANCODE_L ] = 'l';
-			sScanCodesShift[ SDL_SCANCODE_M ] = 'm';
-			sScanCodesShift[ SDL_SCANCODE_N ] = 'n';
-			sScanCodesShift[ SDL_SCANCODE_O ] = 'o';
-			sScanCodesShift[ SDL_SCANCODE_P ] = 'p';
-			sScanCodesShift[ SDL_SCANCODE_Q ] = 'q';
-			sScanCodesShift[ SDL_SCANCODE_R ] = 'r';
-			sScanCodesShift[ SDL_SCANCODE_S ] = 's';
-			sScanCodesShift[ SDL_SCANCODE_T ] = 't';
-			sScanCodesShift[ SDL_SCANCODE_U ] = 'u';
-			sScanCodesShift[ SDL_SCANCODE_V ] = 'v';
-			sScanCodesShift[ SDL_SCANCODE_W ] = 'w';
-			sScanCodesShift[ SDL_SCANCODE_X ] = 'x';
-			sScanCodesShift[ SDL_SCANCODE_Y ] = 'y';
-			sScanCodesShift[ SDL_SCANCODE_Z ] = 'z';
-
-
+			sScanCodesShift[ SDL_SCANCODE_A ] = 'A';
+			sScanCodesShift[ SDL_SCANCODE_B ] = 'B';
+			sScanCodesShift[ SDL_SCANCODE_C ] = 'C';
+			sScanCodesShift[ SDL_SCANCODE_D ] = 'D';
+			sScanCodesShift[ SDL_SCANCODE_E ] = 'E';
+			sScanCodesShift[ SDL_SCANCODE_F ] = 'F';
+			sScanCodesShift[ SDL_SCANCODE_G ] = 'G';
+			sScanCodesShift[ SDL_SCANCODE_H ] = 'H';
+			sScanCodesShift[ SDL_SCANCODE_I ] = 'I';
+			sScanCodesShift[ SDL_SCANCODE_J ] = 'J';
+			sScanCodesShift[ SDL_SCANCODE_K ] = 'K';
+			sScanCodesShift[ SDL_SCANCODE_L ] = 'L';
+			sScanCodesShift[ SDL_SCANCODE_M ] = 'M';
+			sScanCodesShift[ SDL_SCANCODE_N ] = 'N';
+			sScanCodesShift[ SDL_SCANCODE_O ] = 'O';
+			sScanCodesShift[ SDL_SCANCODE_P ] = 'P';
+			sScanCodesShift[ SDL_SCANCODE_Q ] = 'Q';
+			sScanCodesShift[ SDL_SCANCODE_R ] = 'R';
+			sScanCodesShift[ SDL_SCANCODE_S ] = 'S';
+			sScanCodesShift[ SDL_SCANCODE_T ] = 'T';
+			sScanCodesShift[ SDL_SCANCODE_U ] = 'U';
+			sScanCodesShift[ SDL_SCANCODE_V ] = 'V';
+			sScanCodesShift[ SDL_SCANCODE_W ] = 'W';
+			sScanCodesShift[ SDL_SCANCODE_X ] = 'X';
+			sScanCodesShift[ SDL_SCANCODE_Y ] = 'Y';
+			sScanCodesShift[ SDL_SCANCODE_Z ] = 'Z';
 
 			auto setIdx = [&]( SDL_Scancode xIdx, char const xC )
 			{
@@ -277,13 +276,10 @@ static class KeyboardScancodeMap
 			setIdx( SDL_SCANCODE_SPACE,  ' ' );
 			setIdx( SDL_SCANCODE_TAB,    '\t');
 
-
 		}
 
 		char resolveScanCode( uint16_t const xCode, bool const xShiftPressed )
 		{
-			if (xShiftPressed)
-				std::cout << "Shift is pressed." << std::endl;
 			return xShiftPressed ? sScanCodesShift[ xCode ] : sScanCodes[ xCode ];
 		}
 

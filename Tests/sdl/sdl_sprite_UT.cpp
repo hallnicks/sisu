@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"
@@ -32,7 +33,7 @@ class sdl_sprite_UT : public context
 };
 
 } // namespace
-
+#if 0
 TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutPBO)
 {
 	{
@@ -42,16 +43,18 @@ TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutPBO)
 
 		window.run( );
 	}
-}
 
+}
+#endif
 TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithPBO)
 {
 	{
 		SpriteShader window(true);
 
-		window.initialize( { 4, 4, 0, true, true } );
+		window.initialize( { 4, 4, 0, false, false } );
 
 		window.run( );
 	}
 
 }
+#endif

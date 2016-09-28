@@ -251,6 +251,7 @@ void PNGImage::_allocateRGBBuffer( png_uint_32 const xRowBytes )
 #define CTOR_ARGS(xPath)\
 	: mWidth( 0 )\
 	, mHeight( 0 )\
+	, mIsValid( false )\
 	, mColorType( 0 )\
 	, mBitDepth( 0 )\
 	, mRGBBuffer( NULL )\
@@ -277,6 +278,8 @@ PNGImage::PNGImage( _PNGImageDimensions const & xDimensions )
                 xPixel.data[2] =
                 xPixel.data[3] = 0;
         });
+
+	mIsValid = true;
 }
 
 PNGImage::PNGImage( const char * xPath )
@@ -287,14 +290,17 @@ PNGImage::PNGImage( const char * xPath )
 	if ( fp == NULL )
 	{
 		std::cerr << "File " << xPath << " does not exist." << std::endl;
-		exit( -1 );
 	}
+	else
+	{
+		_initializeReadStructures( );
 
-	_initializeReadStructures( );
+		png_init_io( mPNGRead, fp );
 
-	png_init_io( mPNGRead, fp );
+		_initializeObject( fp );
 
-	_initializeObject( fp );
+		mIsValid = true;
+	}
 }
 
 PNGImage::~PNGImage( )
