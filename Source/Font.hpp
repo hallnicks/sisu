@@ -18,11 +18,7 @@
 #include FT_FREETYPE_H
 #include FT_STROKER_H
 
-
-#if __BYTE_ORDER == __BIG_ENDIAN
-  #define SISU_BIG_ENDIAN
-#endif
-
+#include "word.hpp"
 
 namespace sisu
 {
@@ -82,12 +78,20 @@ union _FontPixel32
 		a = xA;
 	}
 
+	_FontPixel32( _FontPixel32 const & xRhs )
+	{
+		b = xRhs.b;
+		g = xRhs.g;
+		r = xRhs.r;
+		a = xRhs.a;
+	}
+
 	uint32_t integer;
 
 	struct
 	{
 #ifdef SISU_BIG_ENDIAN
-	    uint8_t a, r, g, b;
+	    uint8_t a, b, g, r;
 #else // SISU_BIG_ENDIAN
 	    uint8_t b, g, r, a;
 #endif // SISU_BIG_ENDIAN

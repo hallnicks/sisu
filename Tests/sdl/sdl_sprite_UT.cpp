@@ -33,7 +33,7 @@ class sdl_sprite_UT : public context
 };
 
 } // namespace
-#if 0
+
 TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutPBO)
 {
 	{
@@ -45,7 +45,7 @@ TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutPBO)
 	}
 
 }
-#endif
+
 TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithPBO)
 {
 	{
@@ -55,6 +55,5 @@ TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithPBO)
 
 		window.run( );
 	}
-
 }
 #endif

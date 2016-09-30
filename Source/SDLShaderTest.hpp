@@ -1,3 +1,4 @@
+
 #ifndef SDL_SHADER_TEST_DBB12D8670054D2E97E6A436C1F0EC51_HPP_
 #define SDL_SHADER_TEST_DBB12D8670054D2E97E6A436C1F0EC51_HPP_
 
@@ -14,6 +15,8 @@
 #include <iostream>
 #include <functional>
 #include <limits>
+#include <map>
+#include <vector>
 
 #include <concurrentqueue.h>
 
@@ -36,6 +39,7 @@
 #include "keyboard.hpp"
 #include "mouse.hpp"
 #include "memblock.hpp"
+#include "word.hpp"
 
 namespace sisu {
 
@@ -162,45 +166,81 @@ class SDLQuadShader : public SDLTestShaderWindow
 
 class SpriteShader : public SDLTestWindow
 {
+	// TODO: unify these constants into a config.
+	static constexpr int32_t const sFuzzPixels = 64;
+
 	SDLShader mSpriteShader;
 	Texture2D mBackgroundTexture;
 
 	GLubyte * mRandomData;
 
-	struct _TextureInstance
+	class  _TextureInstance
 	{
-		_TextureInstance( )
-			: tex( )
-			, texData( NULL )
-			, w( 0 )
-			, h( 0 )
-		{
-			;
-		}
-
-		~_TextureInstance( )
-		{
-			if (texData != NULL )
+		public:
+			_TextureInstance( )
+				: tex( )
+				, texData( NULL )
+				, w( 0 )
+				, h( 0 )
+				, x( 0 )
+				, y( 0 )
+				, initialized( false )
 			{
-				free( texData );
+			;
 			}
-		}
 
-		Texture2D tex;
+			virtual ~_TextureInstance( )
+			{
+				if (texData != NULL )
+				{
+					free( texData );
+				}
+			}
 
-		GLubyte * texData;
+			bool initialized;
 
-		uint32_t w, h;
+			Texture2D tex;
 
-		void initialize( )
-		{
-			tex.initialize( w, h, texData );
-		}
+			GLubyte * texData;
+
+			uint32_t w, h, x, y;
+
+			void initialize( )
+			{
+				tex.initialize( w, h, texData );
+				initialized = true;
+			}
+	};
+
+	class _SubWindow : public _TextureInstance
+	{
+		public:
+			_SubWindow( )
+				: stdIn( )
+				, isSelected( false )
+				, hasUpdates( false )
+				, originX( 0 )
+				, originY( 0 )
+				, resizeX( false )
+				, resizeY( false )
+			{
+				;
+			}
+
+			std::vector<char> stdIn;
+			bool isSelected
+			   , hasUpdates
+			   , resizeX
+			   , resizeY;
+
+			uint32_t originX, originY;
 	};
 
 	_TextureInstance * mShown;
 
-	std::map<char, _TextureInstance * > mCharacters;
+	typedef std::map<char, _TextureInstance * > CharacterMap;
+
+	CharacterMap mCharacters, mHighlightedCharacters, mTitleCharacters;
 
 	_TextureInstance * mCursor;
 
@@ -214,7 +254,7 @@ class SpriteShader : public SDLTestWindow
 
 	uint64_t mSize;
 
-	GLCharacterMap mCharacterMap;
+	GLCharacterMap mCharacterMap, mHighlightedCharacterMap, mTitleCharacterMap;
 
 	Mouse mMouse;
 	Keyboard mKB;
@@ -228,6 +268,11 @@ class SpriteShader : public SDLTestWindow
 	moodycamel::ConcurrentQueue< _TextureInstance * > mTextureQueue;
 
 	std::vector<char> mLineBuffer;
+
+	std::map< uint32_t, std::map< uint32_t, _SubWindow * > > mSubWindows;
+	typedef std::map< uint32_t, _SubWindow * >::iterator _SubWindowIterator;
+
+	_SubWindow * mSelectedWindow;
 
 	void _drawSprite( Texture2D & xTexture
 		        , glm::vec2 const xPosition
@@ -285,29 +330,34 @@ class SpriteShader : public SDLTestWindow
 	        }
 
 	        uint32_t integer;
+#ifdef SISU_BIG_ENDIAN_
+		struct { uint8_t g, a, b, r; };
+#else
 	        struct { uint8_t r, g, b, a; };
+#endif
 	};
-
 
 	void _loadCursor( )
 	{
-		_loadGLCharacter( mCharacterMap[ 'X' ] );
+		_loadTitleCharacter( mCharacterMap[ 'X' ] );
 
-		mCursor = mCharacters[ 'X' ];
+		mCursor = mTitleCharacters[ 'X' ];
 	}
 
-	_TextureInstance * _loadGLCharacter( GLCharacter * xGLChar )
+
+	static _TextureInstance * _loadGLCharacterFromMap( CharacterMap & xMap, GLCharacter * xGLChar )
 	{
+
 		if ( xGLChar == NULL )
 		{
 			std::cerr << "GLCharacter was NULL." << std::endl;
 			exit( -1 );
 		}
 
-		if ( mCharacters.find( xGLChar->getCharacter( ) ) != mCharacters.end( ) )
+		if ( xMap.find( xGLChar->getCharacter( ) ) != xMap.end( ) )
 		{
 			// character already loaded!
-			return mCharacters[ xGLChar->getCharacter( ) ];
+			return xMap[ xGLChar->getCharacter( ) ];
 		}
 
 		_TextureInstance * pT = new _TextureInstance( );
@@ -318,9 +368,26 @@ class SpriteShader : public SDLTestWindow
 				  , ( pT->h = xGLChar->getHeight( ) )
 				  , ( uint8_t* )pT->texData );
 
-		mCharacters[ xGLChar->getCharacter( ) ] = pT;
+		xMap[ xGLChar->getCharacter( ) ] = pT;
 
 		return pT;
+	}
+
+
+	_TextureInstance * _loadTitleCharacter( GLCharacter * xGLChar )
+	{
+
+		return _loadGLCharacterFromMap( mTitleCharacters, xGLChar );
+	}
+
+	_TextureInstance * _loadHighlightedCharacter( GLCharacter * xGLChar )
+	{
+		return _loadGLCharacterFromMap( mHighlightedCharacters, xGLChar );
+
+	}
+	_TextureInstance * _loadGLCharacter( GLCharacter * xGLChar )
+	{
+		return _loadGLCharacterFromMap( mCharacters, xGLChar );
 	}
 
 
@@ -344,15 +411,66 @@ class SpriteShader : public SDLTestWindow
 		}
 	}
 
+
+	_SubWindow * _createSubWindow( uint32_t const xWidth
+					   , uint32_t const xHeight
+ 					   , uint32_t const xX
+					   , uint32_t const xY )
+	{
+		_SubWindow * subWindow = new _SubWindow( );
+
+		subWindow->texData    		   = ( GLubyte* )malloc( xWidth * xHeight * 4  );
+		subWindow->w 	      		   = xWidth;
+		subWindow->h 	      		   = xHeight;
+		subWindow->originX = subWindow->x  = xX;
+		subWindow->originY = subWindow->y  = xY;
+		subWindow->isSelected 		   = false;
+
+		_RGBA * windowPixels = reinterpret_cast<_RGBA*>( subWindow->texData );
+
+		for ( uint32_t ii = 0; ii < xWidth * xHeight; ++ii )
+		{
+			static int32_t const sBorderWidth  = 4;
+			static int32_t const sCaptionWidth = 64;
+
+			if ( ( ii % xWidth < sBorderWidth ) 		   	   ||
+		             ( ii > ( xWidth * xHeight - xWidth * sBorderWidth ) ) ||
+			     ( ii < ( xWidth * sBorderWidth ) ) 		   ||
+			     ( ii % xWidth > xWidth - sBorderWidth ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+			else if ( ( ii < ( xWidth * sCaptionWidth ) ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+			else
+			{
+				windowPixels[ ii ].r = 0;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+		}
+
+		return subWindow;
+	}
+
 	void _fillData( GLubyte * xRandomData )
 	{
 		if ( mShown != NULL )
 		{
-			size_t const bounds   = std::min( (uint32_t)mW * mH, (uint32_t)mShown->w * mShown->h );
-			//memcpy( xRandomData, mShown->texData, bounds );
+			size_t const bounds = std::min( (uint32_t)mW * mH, (uint32_t)mShown->w * mShown->h );
 
 			_RGBA * pixelData = reinterpret_cast<_RGBA*>( xRandomData );
 			_RGBA * setData = reinterpret_cast<_RGBA*>( mShown->texData );
+
 			for ( uint32_t ii = 0; ii < bounds; ++ii )
 			{
 				pixelData[ ii ].r = setData[ ii ].r;
@@ -360,18 +478,6 @@ class SpriteShader : public SDLTestWindow
 				pixelData[ ii ].b = setData[ ii ].b;
 				pixelData[ ii ].a = setData[ ii ].a;
 			}
-
-
-			/*
-			for ( uint32_t ii = 0; ii < rows; ++ii )
-			{
-				GLubyte * source = &mShown->texData[ ii ];
-
-				memcpy( xRandomData + ( rowBytes* ii )
-				      , source
-				      , rowBytes );
-			}
-			*/
 
 			return;
 		}
@@ -386,13 +492,267 @@ class SpriteShader : public SDLTestWindow
 		}
 	}
 
+	void _deselectWindow( _SubWindow * xWindow )
+	{
+		if ( xWindow == NULL )
+		{
+			std::cerr << "Attempt to set null window as selected window." << std::endl;
+			exit( -1 );
+		}
+
+		_RGBA * windowPixels = reinterpret_cast<_RGBA*>( xWindow->texData );
+
+		for ( uint32_t ii = 0; ii < xWindow->w* xWindow->h; ++ii )
+		{
+			static int32_t const sBorderWidth  = 4;
+			static int32_t const sCaptionWidth = 64;
+
+			if ( ( ii % xWindow->w < sBorderWidth ) 		   	     ||
+		             ( ii > ( xWindow->w* xWindow->h - xWindow->w * sBorderWidth ) ) ||
+			     ( ii < ( xWindow->w* sBorderWidth ) ) 		  	     ||
+			     ( ii % xWindow->w > xWindow->w - sBorderWidth ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+			else if ( ( ii < ( xWindow->w * sCaptionWidth ) ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+			else
+			{
+				windowPixels[ ii ].r = 0;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+		}
+
+		xWindow->isSelected = false;
+		xWindow->hasUpdates = true;
+		xWindow->resizeX    = false;
+		xWindow->resizeY    = false;
+
+		_SubWindowIterator const it = mSubWindows[ mSelectedWindow->originX ].find( mSelectedWindow->originY );
+
+		if ( it != mSubWindows[ mSelectedWindow->originX ].end( ) )
+		{
+			std::swap( mSubWindows[ mSelectedWindow->x ][ mSelectedWindow->y ]
+				 , it->second );
+			mSubWindows[ mSelectedWindow->x ].erase( it );
+		}
+
+		mSelectedWindow = NULL;
+	}
+
+	void _selectWindow( _SubWindow * xWindow )
+	{
+		if ( xWindow == NULL )
+		{
+			std::cerr << "Attempt to set null window as selected window." << std::endl;
+			exit( -1 );
+		}
+
+		if ( xWindow == mSelectedWindow )
+		{
+			return;
+		}
+
+		_RGBA * windowPixels = reinterpret_cast<_RGBA*>( xWindow->texData );
+
+		for ( uint32_t ii = 0; ii < xWindow->w* xWindow->h; ++ii )
+		{
+			static int32_t const sBorderWidth  = 4;
+			static int32_t const sCaptionWidth = 64;
+
+			if ( ( ii % xWindow->w < sBorderWidth ) 		   	   ||
+		             ( ii > ( xWindow->w* xWindow->h - xWindow->w * sBorderWidth ) ) ||
+			     ( ii < ( xWindow->w* sBorderWidth ) ) 		   ||
+			     ( ii % xWindow->w > xWindow->w - sBorderWidth ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 255;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+			else if ( ( ii < ( xWindow->w * sCaptionWidth ) ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 255;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+			else
+			{
+				windowPixels[ ii ].r = 0;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 255;
+			}
+		}
+
+		if ( mSelectedWindow != NULL )
+		{
+			_deselectWindow( mSelectedWindow );
+		}
+
+		mSelectedWindow = xWindow;
+
+		xWindow->isSelected = true;
+		xWindow->hasUpdates = true;
+	}
+
 	void _initializeMouse( )
 	{
 		mMouse.registerCallback( [ & ] ( MouseEventInfo xEvent )
 		{
-			mMouseMutex.run( [ & ] ( ) { mCursorPosition = xEvent; } );
-		});
+			mMouseMutex.run( [ & ] ( )
+			{
+				mCursorPosition = xEvent;
+
+				if ( xEvent.leftState == eClickState_Down )
+				{
+
+					for ( auto && ymap : mSubWindows )
+					{
+						for ( auto && xmapWindowPair : ymap.second )
+						{
+							_SubWindow * window = xmapWindowPair.second;
+
+							if ( window == NULL )
+							{
+								continue;
+							}
+
+							if ( xEvent.x > window->x 	      &&
+							     xEvent.x < window->x + window->w &&
+							     xEvent.y > window->y 	      &&
+							     xEvent.y < window->y + sFuzzPixels ) // Click top panel
+							{
+								_selectWindow( window );
+							}
+							else if ( xEvent.x > window->x 		   		     &&
+								  xEvent.x < window->x + window->w 		     &&
+								  xEvent.y > ( window->y + window->h - sFuzzPixels ) &&
+								  xEvent.y < ( window->y + window->h ) ) // Click Bottom line
+							{
+								window->resizeY = true;
+								_selectWindow( window );
+							}
+							/*
+							else if ( ) // click left or right border
+							{
+								window->resizeY = true;
+								_selectWindow( window );
+							}
+							else if (  ) // click corner
+							{
+								window->resizeX = true;
+								window->resizeY = true;
+								_selectWindow( window );
+							}
+							*/
+						}
+					}
+				} // if  click down
+				else if ( xEvent.leftState == eClickState_Continue )
+				{
+					if ( mSelectedWindow != NULL && !mSelectedWindow->resizeY && !mSelectedWindow->resizeX )
+					{
+						mSelectedWindow->x = xEvent.x;
+						mSelectedWindow->y = xEvent.y;
+					}
+
+					if ( mSelectedWindow != NULL && mSelectedWindow->resizeY )
+					{
+						uint32_t const newHeight = xEvent.y - mSelectedWindow->y;
+
+						mSelectedWindow->h = newHeight < mSelectedWindow->h + sFuzzPixels ? sFuzzPixels : newHeight;
+						mSelectedWindow->h = newHeight > mH ? mH : newHeight;
+					}
+
+					if ( mSelectedWindow != NULL && mSelectedWindow->resizeX )
+					{
+						mSelectedWindow->w = mSelectedWindow->x - xEvent.x;
+					}
+
+
+					mCursor = mTitleCharacters[ 'O' ];
+
+				}
+				else if ( xEvent.leftState == eClickState_Up )
+				{
+					if ( mSelectedWindow != NULL )
+					{
+						_deselectWindow( mSelectedWindow );
+					}
+
+					mCursor = mTitleCharacters[ 'X' ];
+				}
+			} ); // mutex run
+		}); // register cb
+
 		mMouse.listen( );
+	}
+
+	void _updateTexture( Texture2D & xTexture, GLubyte * xData, std::function<uint8_t(uint8_t*)> xUpdateFunction = [](uint8_t*){ return 0; })
+	{
+		xTexture( [ & ]( )
+		{
+			if ( !mPBOEnabled )
+			{
+				xUpdateFunction( xData );
+				glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
+				glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, xData );
+			}
+			else
+			{
+				static int index = 0;
+				int nextIndex = 0;
+
+				index = (index + 1) % 2;
+			        nextIndex = (index + 1) % 2;
+
+				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ index ] );
+
+				GLsizei w = mW, h = mH;
+
+				if ( mShown != NULL )
+				{
+					w = mShown->w;
+					h = mShown->h;
+				}
+
+				glTexSubImage2D( GL_TEXTURE_2D
+					       , 0
+					       , 0
+					       , 0
+					       , w
+					       , h
+					       , GL_RGBA
+					       , GL_UNSIGNED_BYTE
+					       , 0 );
+
+				glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ nextIndex ] );
+
+				glBufferDataARB( GL_PIXEL_UNPACK_BUFFER_ARB, mSize, 0, GL_STREAM_DRAW_ARB );
+				GLubyte* ptr = (GLubyte*)glMapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
+
+				if ( ptr )
+				{
+					xUpdateFunction( ptr );
+					glUnmapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB );
+				}
+
+				glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
+			}
+		});
+
 	}
 
 	void _initializeKeyboard( )
@@ -404,7 +764,22 @@ class SpriteShader : public SDLTestWindow
 				mQuit.set( );
 			}
 
-			bool const shiftPressed = xEvent[ SDL_SCANCODE_LSHIFT ] || xEvent[ SDL_SCANCODE_RSHIFT ];
+			bool const shiftPressed = xEvent[ SDL_SCANCODE_LSHIFT  ] || xEvent[ SDL_SCANCODE_RSHIFT  ];
+			bool const altPressed   = xEvent[ SDL_SCANCODE_LALT    ] || xEvent[ SDL_SCANCODE_RALT    ];
+			bool const ctrlPressed  = xEvent[ SDL_SCANCODE_LCTRL   ] || xEvent[ SDL_SCANCODE_RCTRL    ];
+			bool const enterPressed = xEvent[ SDL_SCANCODE_RETURN  ] || xEvent[ SDL_SCANCODE_RETURN2 ];
+
+			if ( ctrlPressed && altPressed && enterPressed )
+			{
+				uint32_t const x = rand( ) % 100 + 412;
+				uint32_t const y = rand( ) % 100 + 412;
+
+				mSubWindows[ y ][ x ] = _createSubWindow( x
+							  	        , y
+							                , rand( ) % mW - 512
+							                , rand( ) % mH - 512 );
+			}
+
 
 			char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
 
@@ -417,31 +792,94 @@ class SpriteShader : public SDLTestWindow
 		mKB.listen( );
 	}
 
+	void _drawWindow( _SubWindow * xWindow )
+	{
+		if ( xWindow == NULL )
+		{
+			std::cerr << "Null instance inserted into map." << std::endl;
+			return;
+		}
+
+		if ( !xWindow->initialized )
+		{
+			xWindow->initialize( );
+		}
+
+		_drawSprite( xWindow->tex
+			   , glm::vec2( xWindow->x, xWindow->y )
+			   , glm::vec2( xWindow->w, xWindow->h )
+			   , 0.0f
+			   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+		if ( xWindow->hasUpdates )
+		{
+			xWindow->tex([&]()
+			{
+				glTexParameteri( GL_TEXTURE_2D
+						       , GL_GENERATE_MIPMAP
+						       , GL_FALSE );
+
+				glTexSubImage2D( GL_TEXTURE_2D
+					        , 0
+						, 0
+						, 0
+						, xWindow->w
+						, xWindow->h
+						, GL_RGBA
+						, GL_UNSIGNED_BYTE
+						, xWindow->texData );
+			});
+
+			xWindow->hasUpdates = false;
+		}
+
+	}
 
 	protected:
 		virtual void render( )
 		{
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-			glEnable( GL_BLEND );
-
-			//glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-			glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE );
-
-			glBlendEquation( GL_FUNC_ADD );
-
-			MouseEventInfo currentCursorPosition;
-			mMouseMutex.run([&]() { currentCursorPosition = mCursorPosition; } );
-
-
-			_drawSprite( mBackgroundTexture, glm::vec2( 0, 0 ), glm::vec2( mW, mH ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
+			_drawSprite( mBackgroundTexture
+				   , glm::vec2( 0, 0 )
+				   , glm::vec2( mW, mH )
+				   , 0.0f
+				   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
 
 			_dequeueOne( );
 
 			if ( mShown != NULL && !mPBOEnabled )
 			{
-				_drawSprite( mShown->tex, glm::vec2( 0, 0 ), glm::vec2( mShown->w, mShown->h ), 0.0f, glm::vec3( 1.0f, 1.0f, 1.0f ) );
+				_drawSprite( mShown->tex
+					   , glm::vec2( 0, 0 )
+					   , glm::vec2( mShown->w, mShown->h )
+					   , 0.0f
+					   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
 			}
+
+
+			MouseEventInfo currentCursorPosition;
+
+			mMouseMutex.run( [ & ]( )
+			{
+				currentCursorPosition = mCursorPosition;
+
+				for ( auto && ymap : mSubWindows )
+				{
+					for ( auto && instance : ymap.second )
+					{
+						_drawWindow( instance.second );
+					}
+				}
+
+				// Draw the cursor
+				_drawSprite( mCursor->tex
+					   , glm::vec2( currentCursorPosition.x, currentCursorPosition.y )
+					   , glm::vec2( mCursor->w, mCursor->h )
+					   , 0.0f
+			        	   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+			});
 
 			static GLuint const sOverscanX = 5;
 			static GLuint const sOverscanY = 10;
@@ -455,6 +893,14 @@ class SpriteShader : public SDLTestWindow
 			{
 				mLineBuffer.push_back( c );
 			}
+
+			glEnable( GL_BLEND );
+
+			//glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+			glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE );
+
+			glBlendEquation( GL_FUNC_ADD );
 
 			for ( auto && c : mLineBuffer )
 			{
@@ -486,73 +932,14 @@ class SpriteShader : public SDLTestWindow
 				}
 			}
 
-			// Draw the cursor
-			_drawSprite( mCursor->tex
-				   , glm::vec2( currentCursorPosition.x, currentCursorPosition.y )
-				   , glm::vec2( mCursor->w, mCursor->h )
-				   , 0.0f
-			           , glm::vec3( 1.0f, 1.0f, 1.0f ) );
-
-
-
 			// Animate the background if we had no incoming frames
-			mBackgroundTexture( [ & ]( )
-			{
-				if ( !mPBOEnabled )
-				{
-					_fillData( mRandomData );
-					glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_FALSE );
-					glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, mW, mH, GL_RGBA, GL_UNSIGNED_BYTE, mRandomData );
-				}
-				else
-				{
-					static int index = 0;
-					int nextIndex = 0;
-
-					index = (index + 1) % 2;
-				        nextIndex = (index + 1) % 2;
-
-					glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ index ] );
-
-					GLsizei w = mW, h = mH;
-
-					if ( mShown != NULL )
-					{
-						w = mShown->w;
-						h = mShown->h;
-					}
-
-					glTexSubImage2D( GL_TEXTURE_2D
-						       , 0
-						       , 0
-						       , 0
-						       , w
-						       , h
-						       , GL_RGBA
-						       , GL_UNSIGNED_BYTE
-						       , 0 );
-
-					glBindBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, mPBO[ nextIndex ] );
-
-					glBufferDataARB( GL_PIXEL_UNPACK_BUFFER_ARB, mSize, 0, GL_STREAM_DRAW_ARB );
-
-					GLubyte* ptr = (GLubyte*)glMapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
-
-					if ( ptr )
-					{
-						_fillData( ptr );
-						glUnmapBufferARB( GL_PIXEL_UNPACK_BUFFER_ARB );
-					}
-
-					glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
-				}
-			});
+			_updateTexture( mBackgroundTexture, mRandomData, [&](uint8_t* xData) { _fillData( xData ); return 0; } );
 		}
 
 	public:
 		SpriteShader( bool const xEnablePBO = false )
 			: SDLTestWindow( )
-			, mSpriteShader( ShaderPathPair( "resources/sprite.vs.txt", "resources/sprite.fs.txt" ) )
+				, mSpriteShader( ShaderPathPair( "resources/sprite.vs.txt", "resources/sprite.fs.txt" ) )
 			, mBackgroundTexture( )
 			, mRandomData( NULL )
 			, mVBO( 0 )
@@ -564,18 +951,40 @@ class SpriteShader : public SDLTestWindow
 			, mCharacterMap( "resources/terminus.ttf"
 				       , 32
 				       , "" )
+			, mHighlightedCharacterMap( "resources/terminus.ttf"
+				       , 32
+				       , ""
+				       , _FontPixel32( 255, 255, 0 )
+				       , _FontPixel32( 255, 255, 0 ) )
+			, mTitleCharacterMap( "resources/terminus.ttf"
+				       , 32
+				       , ""
+				       , _FontPixel32( 0, 0, 0 )
+				       , _FontPixel32( 0, 0, 0 ) )
+			, mHighlightedCharacters( )
 			, mCharacters( )
+			, mTitleCharacters( )
 			, mMouse( )
 			, mKB( )
 			, mMouseMutex( )
 			, mCursor( NULL )
 			, mShown( NULL )
+			, mSubWindows( )
+			, mSelectedWindow( NULL )
 		{
 			;
 		}
 
 		~SpriteShader( )
 		{
+			for ( auto && ymap : mSubWindows )
+			{
+				for ( auto && window : ymap.second )
+				{
+					delete window.second;
+				}
+			}
+
 			if ( mShown != NULL )
 			{
 				delete mShown;
@@ -635,6 +1044,8 @@ class SpriteShader : public SDLTestWindow
 		        for ( char c = '!'; c < '~'; c++ )
 			{
 				_loadGLCharacter( mCharacterMap[ c ] );
+				_loadHighlightedCharacter( mHighlightedCharacterMap[ c ] );
+				_loadTitleCharacter( mTitleCharacterMap[ c ] );
 			}
 
 			_loadCursor( );

@@ -22,8 +22,8 @@ TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32 Shlwapi
 
 TARGET_LIBS += tbb
 
-#ffmpeg lawdy lawdy
-TARGET_LIBS += avcodec swscale
+#ffmpeg
+TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample log m z iconv
 
 #Extra's for fun (TODO: integrate)
 #TARGET_LIBS += curl twitcurl utp x264
@@ -46,14 +46,17 @@ LDFLAGS		+= $(FREEGLUT_FLAGS)
 #Turn on max warnings (TODO: Fix these.) 
 #CXXFLAGS += -Wall -Wextra
 #LDFLAGS  += -Wall -Wextra
+#CXXFLAGS += -Werror -O3
+CXXFLAGS += -Wno-deprecated-declarations
+
 
 # for GLEW
 CXXFLAGS     += -I/usr/include
 
-# for GLM, ssl
+# for GLM, ssl, libavcodec
 CXXFLAGS     += -I/usr/local/include
 
-# for libPNG
+# for libPNG, libavocdec
 LDFLAGS      += -L/usr/local/lib
 
 SOURCE_DIRS   := ../Source ../Tests

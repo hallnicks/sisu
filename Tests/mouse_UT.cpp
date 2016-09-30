@@ -58,15 +58,43 @@ TEST(mouse_UT, MouseHandlerCallback)
 
 			std::cout.flags( f );
 
-			std::cout << ( xEvent.isLeftClickPressed( )   ? ", left click "   : "" )
-				  << ( xEvent.isMiddleClickPressed( ) ? ", middle click " : "" )
-				  << ( xEvent.isRightClickPressed( )  ? ", right click "  : "" )
+			auto resolveClickStateName = []( eClickState const xState )->const char *
+			{
+
+				switch ( xState )
+				{
+					case eClickState_Up:
+						return "Up";
+
+					case eClickState_Down:
+						return "Down";
+
+					case eClickState_Continue:
+						return "Continue";
+
+					case eClickState_None:
+						return "None";
+
+					default:
+						return "Invalid";
+				}
+			};
+
+
+			std::cout 
+				  << "left: "   << ( resolveClickStateName( xEvent.leftState   ) ) << " "
+				  << "middle: " << ( resolveClickStateName( xEvent.middleState ) ) << " "
+				  << "right: "  << ( resolveClickStateName( xEvent.rightState  ) ) << " "
 				  << ( xEvent.wheelHasMovedUp( )      ? ", wheel up "     : "" )
 				  << ( xEvent.wheelHasMovedDown( )    ? ", wheel down "   : "" )
 				  << " ]"
 				  << std::endl;
 
-			if ( xEvent.isLeftClickPressed( ) && xEvent.isMiddleClickPressed( ) && xEvent.isRightClickPressed( ) )
+
+
+			if ( xEvent.leftState   == eClickState_Continue &&
+			     xEvent.middleState == eClickState_Continue &&
+			     xEvent.rightState  == eClickState_Continue )
 			{
 				std::cout << "All three buttons pressed. Exiting.." << std::endl;
 				quit.set( );
@@ -91,7 +119,8 @@ TEST(mouse_UT, MouseHandlerCallback)
 		SDL_DestroyWindow(window);
 
 		SDL_Quit( );
-
 	}
+
+	BLOCK_EXECUTION;
 }
 #endif

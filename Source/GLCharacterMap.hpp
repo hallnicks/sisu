@@ -40,10 +40,22 @@ namespace sisu
 		std::string const mTextureStorage;
 		std::map< char, GLCharacter * > mCharacters;
 		uint32_t const mFontSize;
+		_FontPixel32 mOutlineColor, mFillColor;
 
 		void _makeFilename( std::stringstream & xSS, char const xC )
 		{
-			xSS << mTextureStorage << "texture_" << (uint64_t)xC << ".png";
+			xSS << mTextureStorage
+			    << "texture_"
+			    << (uint64_t)xC
+			    << mOutlineColor.r
+			    << mOutlineColor.g
+			    << mOutlineColor.b
+			    << mOutlineColor.a
+			    << mFillColor.r
+			    << mFillColor.g
+			    << mFillColor.b
+			    << mFillColor.a
+			    << ".png";
 		}
 
 		// TODO: Support different colors. For now, just use white on black. 
@@ -53,7 +65,7 @@ namespace sisu
 
 			PNGImage output( { mFont.getGlyphWidth( ), mFont.getGlyphHeight( ) } );
 
-			mFont.printSpans( output, _FontPixel32( 255, 255, 255 ), _FontPixel32( 255, 255, 255 ) );
+			mFont.printSpans( output, mOutlineColor, mFillColor );
 
 			std::stringstream filename;
 
@@ -69,10 +81,14 @@ namespace sisu
 		public:
 			GLCharacterMap( const char * xFontPath
 			       	      , uint32_t const xFontSize // fixed for now
-				      , const char * xTextureStoragePath ) // TODO: Hook in memory font support if it becomes necessary (like streaming from net)
+				      , const char * xTextureStoragePath
+				      , _FontPixel32 const & xOutline = _FontPixel32( 255, 255, 255 )
+				      , _FontPixel32 const & xFill    = _FontPixel32( 255, 255, 255 ) )// TODO: Hook in memory font support if it becomes necessary (like streaming from net)
 				: mFont( xFontPath )
 				, mFontSize( xFontSize )
 				, mTextureStorage( xTextureStoragePath )
+				, mOutlineColor( xOutline )
+				, mFillColor( xFill )
 			{
 				if ( xTextureStoragePath == NULL )
 				{

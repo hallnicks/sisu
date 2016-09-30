@@ -8,9 +8,13 @@
 #include <streambuf>
 #include <vector>
 #include <iostream>
+#include <functional>
 
-namespace sisu { 
+#include <Windows.h>
+#include <dirent.h>
+#include <Shlwapi.h>
 
+namespace sisu {
 
 static inline bool fileExists( const char * xPathToFile ) { return std::ifstream( xPathToFile ).good( ); }
 
@@ -69,6 +73,49 @@ static inline bool filesAreEqual( const char * xLeft, const char * xRight )
 	return true;
 }
 
+
+static void doPerFile( const char * xPath
+                      , std::function<bool(const char*)> xFilter
+                      , std::function<void(const char*)> xPerFile )
+{
+	DIR * directory = NULL;
+
+	struct dirent * entry;
+
+	if ( ( directory = opendir( xPath ) ) == NULL )
+	{
+		return;
+
+	}
+
+	while ( ( entry = readdir( directory ) ) != NULL )
+	{
+		if ( ( strcmp( entry->d_name, "."  ) == 0 ) ||
+		     ( strcmp( entry->d_name, ".." ) == 0 ) )
+		{
+			continue;
+		}
+
+		std::stringstream ss;
+
+		ss << xPath << "\\" << entry->d_name;
+
+		DWORD fileAttributes = GetFileAttributes( ss.str( ).c_str( ) );
+
+		if ( fileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+		{
+			doPerFile( ss.str( ).c_str( ), xFilter, xPerFile );
+			continue;
+		}
+
+		if ( xFilter( entry->d_name ) )
+		{
+			xPerFile( ss.str( ).c_str( ) );
+		}
+	}
+
+	closedir( directory );
+}
 
 } // namespace
 

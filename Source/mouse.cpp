@@ -21,15 +21,54 @@ Mouse::Mouse( )
 
 			uint32_t const state = SDL_GetMouseState( &x, &y );
 
+			bool const leftPressed   = state & SDL_BUTTON( SDL_BUTTON_LEFT   );
+			bool const middlePressed = state & SDL_BUTTON( SDL_BUTTON_MIDDLE );
+			bool const rightPressed  = state & SDL_BUTTON( SDL_BUTTON_RIGHT  );
+
+			auto resolveClickState = [&]( bool const xPressed, bool const xPressedLastTime )
+			{
+				eClickState state = eClickState_None;
+
+				if ( xPressed && xPressedLastTime )
+				{
+					state = eClickState_Continue;
+				}
+				else if ( xPressed && !xPressedLastTime )
+				{
+					state = eClickState_Down;
+				}
+				else if ( !xPressed && xPressedLastTime )
+				{
+					state = eClickState_Up;
+				}
+
+				return state;
+			};
+
+
+			eClickState leftClickState   = resolveClickState( leftPressed,   mPressedLast[ 0 ] )
+				  , middleClickState = resolveClickState( middlePressed, mPressedLast[ 1 ] )
+                                  , rightClickState  = resolveClickState( rightPressed,  mPressedLast[ 2 ] );
+
+			mPressedLast[ 0 ] = leftPressed;
+			mPressedLast[ 1 ] = middlePressed;
+			mPressedLast[ 2 ] = rightPressed;
+
 			SDL_PollEvent( &pollEvent );
 
 			MouseEventInfo const current = { state
 						       , x
 						       , y
 						       , pollEvent.type == SDL_MOUSEWHEEL
-						       , pollEvent.wheel.y < 0 };
+						       , pollEvent.wheel.y < 0
+						       , leftClickState
+						       , middleClickState
+						       , rightClickState };
 
-			if ( _eventsAreDifferent( mLast, current ) )
+			if ( _eventsAreDifferent( mLast, current )    ||
+			     leftClickState   == eClickState_Continue ||
+			     middleClickState == eClickState_Continue ||
+			     rightClickState  == eClickState_Continue  )
 			{
 				mM.run([&]( )
 				{
@@ -44,8 +83,13 @@ Mouse::Mouse( )
 		}
 	})
 	, mQuit( )
+	, mPressedLast( )
 {
-	;
+
+	for ( size_t ii = 0; ii < sizeof(mPressedLast)/sizeof(bool); ++ii )
+	{
+		mPressedLast[ ii ] = false;
+	}
 }
 
 void Mouse::listen( int64_t const xSleepInterval )
@@ -64,3 +108,4 @@ void Mouse::stopListening( )
 }
 
 } // namespace sisu
+

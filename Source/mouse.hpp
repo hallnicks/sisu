@@ -18,6 +18,14 @@
 
 namespace sisu {
 
+	enum eClickState
+	{
+		eClickState_None = -1,
+		eClickState_Down,
+		eClickState_Continue,
+		eClickState_Up
+	};
+
 	struct MouseEventInfo
 	{
 		uint32_t state;
@@ -27,18 +35,21 @@ namespace sisu {
 		bool wheelMoved
 		   , wheelUp;
 
+		eClickState leftState
+			  , middleState
+			  , rightState;
+
 		void operator=( MouseEventInfo const & xOther )
 		{
-			state 	   = xOther.state;
-			x     	   = xOther.x;
-			y     	   = xOther.y;
-			wheelMoved = xOther.wheelMoved;
-			wheelUp    = xOther.wheelUp;
+			state 	    = xOther.state;
+			x     	    = xOther.x;
+			y     	    = xOther.y;
+			wheelMoved  = xOther.wheelMoved;
+			wheelUp     = xOther.wheelUp;
+			leftState   = xOther.leftState;
+			middleState = xOther.middleState;
+			rightState  = xOther.rightState;
 		}
-
-		bool isLeftClickPressed( )   const { return state & SDL_BUTTON(SDL_BUTTON_LEFT);   }
-		bool isMiddleClickPressed( ) const { return state & SDL_BUTTON(SDL_BUTTON_MIDDLE); }
-		bool isRightClickPressed( )  const { return state & SDL_BUTTON(SDL_BUTTON_RIGHT);  }
 
 		bool wheelHasMovedUp( )   const { return wheelMoved && wheelUp;   }
 		bool wheelHasMovedDown( ) const { return wheelMoved && !wheelUp;  }
@@ -55,14 +66,18 @@ namespace sisu {
 		event mQuit;
 
 		MouseEventInfo mLast;
+		bool mPressedLast[3];
 
 		inline bool _eventsAreDifferent( MouseEventInfo & xLhs, MouseEventInfo const & xRhs )
 		{
-			return !( xLhs.state      == xRhs.state      &&
-			          xLhs.x          == xRhs.x          &&
-			          xLhs.y          == xRhs.y          &&
-			          xLhs.wheelMoved == xRhs.wheelMoved &&
-			          xLhs.wheelUp    == xRhs.wheelUp );
+			return !( xLhs.state       == xRhs.state       &&
+			          xLhs.x           == xRhs.x           &&
+			          xLhs.y           == xRhs.y           &&
+			          xLhs.wheelMoved  == xRhs.wheelMoved  &&
+			          xLhs.wheelUp     == xRhs.wheelUp     &&
+				  xLhs.leftState   == xRhs.leftState   &&
+				  xLhs.middleState == xRhs.middleState &&
+				  xLhs.rightState  == xRhs.rightState );
 		}
 
 		public:

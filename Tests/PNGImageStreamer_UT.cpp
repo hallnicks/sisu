@@ -1,10 +1,6 @@
 #include "test.hpp"
 #include "SDLShaderTest.hpp"
 
-#include <Windows.h>
-#include <dirent.h>
-#include <Shlwapi.h>
-
 #include <sstream>
 #include <functional>
 
@@ -25,50 +21,6 @@ namespace
 			void Up( ) { }
 			void Down( ) { }
 	};
-
-
-
-	void doPerFile( const char * xPath
-		        , std::function<bool(const char*)> xFilter
-			, std::function<void(const char*)> xPerFile )
-	{
-		DIR * directory = NULL;
-
-		struct dirent * entry;
-
-		if ( ( directory = opendir( xPath ) ) == NULL )
-		{
-			return;
-		}
-
-		while ( ( entry = readdir( directory ) ) != NULL )
-		{
-			if ( ( strcmp( entry->d_name, "."  ) == 0 ) ||
-			     ( strcmp( entry->d_name, ".." ) == 0 ) )
-			{
-				continue;
-			}
-
-			std::stringstream ss;
-
-			ss << xPath << "\\" << entry->d_name;
-
-			DWORD fileAttributes = GetFileAttributes( ss.str( ).c_str( ) );
-
-			if ( fileAttributes & FILE_ATTRIBUTE_DIRECTORY )
-			{
-				doPerFile( ss.str( ).c_str( ), xFilter, xPerFile );
-				continue;
-			}
-
-			if ( xFilter( entry->d_name ) )
-			{
-				xPerFile( ss.str( ).c_str( ) );
-			}
-		}
-
-		closedir( directory );
-	}
 
 
 	void listFilesMatchingExtension( const char * xPath
@@ -124,6 +76,7 @@ TEST(PNGImageStreamer_UT, loadPNGFiles)
 		do
 		{
 			queueFilesMatchingExtension< MessageQueue, std::string >( "resources/", ".png", q);
+
 		} while (!quit.isSet( ) );
 		return 0;
 	} );
@@ -145,6 +98,7 @@ TEST(PNGImageStreamer_UT, loadPNGFiles)
 			{
 				GLubyte * allocatedRawTextureData = image.toGLTextureBuffer( );
 				window.enqueue( allocatedRawTextureData, image.getWidth( ), image.getHeight( ) );
+				sleep::ms( 3000 );
 			}
 		}
 		return 0;
@@ -160,4 +114,3 @@ TEST(PNGImageStreamer_UT, loadPNGFiles)
 
 	quit.set( );
 }
-

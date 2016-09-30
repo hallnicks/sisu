@@ -17,6 +17,10 @@ inline static bool isBigEndian(void)
 	return u.c [ 0 ] == 1;
 }
 
+#if __BYTE_ORDER == __BIG_ENDIAN
+  #define SISU_BIG_ENDIAN
+#endif
+
 #define ACCEPTOPS(xT, xV)\
 template< typename XOtherType > xT < XType > & operator ~  ( ) { xV = ~xV;  return (*this); }\
 template< typename XOtherType > xT < XType > & operator !  ( ) { xV = !xV;  return (*this); }\
