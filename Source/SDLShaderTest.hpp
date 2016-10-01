@@ -167,7 +167,9 @@ class SDLQuadShader : public SDLTestShaderWindow
 class SpriteShader : public SDLTestWindow
 {
 	// TODO: unify these constants into a config.
-	static constexpr int32_t const sFuzzPixels = 64;
+	static constexpr int32_t const sFuzzPixels   = 64;
+	static constexpr int32_t const sBorderWidth  = 4;
+	static constexpr int32_t const sCaptionWidth = 64;
 
 	SDLShader mSpriteShader;
 	Texture2D mBackgroundTexture;
@@ -215,7 +217,7 @@ class SpriteShader : public SDLTestWindow
 	class _SubWindow : public _TextureInstance
 	{
 		public:
-			_SubWindow( )
+			_SubWindow( _TextureInstance * xCloseButton )
 				: stdIn( )
 				, isSelected( false )
 				, hasUpdates( false )
@@ -223,17 +225,23 @@ class SpriteShader : public SDLTestWindow
 				, originY( 0 )
 				, resizeX( false )
 				, resizeY( false )
+				, hasFocus( false )
+				, closeButton( xCloseButton )
 			{
 				;
 			}
 
-			std::vector<char> stdIn;
+			moodycamel::ConcurrentQueue< char > stdIn;
+
 			bool isSelected
 			   , hasUpdates
 			   , resizeX
-			   , resizeY;
+			   , resizeY
+			   , hasFocus;
 
 			uint32_t originX, originY;
+
+			_TextureInstance * closeButton;
 	};
 
 	_TextureInstance * mShown;
@@ -272,7 +280,7 @@ class SpriteShader : public SDLTestWindow
 	std::map< uint32_t, std::map< uint32_t, _SubWindow * > > mSubWindows;
 	typedef std::map< uint32_t, _SubWindow * >::iterator _SubWindowIterator;
 
-	_SubWindow * mSelectedWindow;
+	_SubWindow * mSelectedWindow, * mFocusedWindow;
 
 	void _drawSprite( Texture2D & xTexture
 		        , glm::vec2 const xPosition
@@ -331,7 +339,7 @@ class SpriteShader : public SDLTestWindow
 
 	        uint32_t integer;
 #ifdef SISU_BIG_ENDIAN_
-		struct { uint8_t g, a, b, r; };
+		struct { uint8_t a, b, g, r; };
 #else
 	        struct { uint8_t r, g, b, a; };
 #endif
@@ -373,10 +381,8 @@ class SpriteShader : public SDLTestWindow
 		return pT;
 	}
 
-
 	_TextureInstance * _loadTitleCharacter( GLCharacter * xGLChar )
 	{
-
 		return _loadGLCharacterFromMap( mTitleCharacters, xGLChar );
 	}
 
@@ -389,7 +395,6 @@ class SpriteShader : public SDLTestWindow
 	{
 		return _loadGLCharacterFromMap( mCharacters, xGLChar );
 	}
-
 
 	void _dequeueOne( )
 	{
@@ -413,11 +418,11 @@ class SpriteShader : public SDLTestWindow
 
 
 	_SubWindow * _createSubWindow( uint32_t const xWidth
-					   , uint32_t const xHeight
- 					   , uint32_t const xX
-					   , uint32_t const xY )
+				     , uint32_t const xHeight
+ 				     , uint32_t const xX
+				     , uint32_t const xY )
 	{
-		_SubWindow * subWindow = new _SubWindow( );
+		_SubWindow * subWindow = new _SubWindow( mTitleCharacters['X'] );
 
 		subWindow->texData    		   = ( GLubyte* )malloc( xWidth * xHeight * 4  );
 		subWindow->w 	      		   = xWidth;
@@ -430,9 +435,6 @@ class SpriteShader : public SDLTestWindow
 
 		for ( uint32_t ii = 0; ii < xWidth * xHeight; ++ii )
 		{
-			static int32_t const sBorderWidth  = 4;
-			static int32_t const sCaptionWidth = 64;
-
 			if ( ( ii % xWidth < sBorderWidth ) 		   	   ||
 		             ( ii > ( xWidth * xHeight - xWidth * sBorderWidth ) ) ||
 			     ( ii < ( xWidth * sBorderWidth ) ) 		   ||
@@ -441,21 +443,21 @@ class SpriteShader : public SDLTestWindow
 				windowPixels[ ii ].r = 255;
 				windowPixels[ ii ].g = 0;
 				windowPixels[ ii ].b = 0;
-				windowPixels[ ii ].a = 255;
+				windowPixels[ ii ].a = 127;
 			}
 			else if ( ( ii < ( xWidth * sCaptionWidth ) ) )
 			{
 				windowPixels[ ii ].r = 255;
 				windowPixels[ ii ].g = 0;
 				windowPixels[ ii ].b = 0;
-				windowPixels[ ii ].a = 255;
+				windowPixels[ ii ].a = 127;
 			}
 			else
 			{
 				windowPixels[ ii ].r = 0;
 				windowPixels[ ii ].g = 0;
 				windowPixels[ ii ].b = 0;
-				windowPixels[ ii ].a = 255;
+				windowPixels[ ii ].a = 127;
 			}
 		}
 
@@ -492,35 +494,137 @@ class SpriteShader : public SDLTestWindow
 		}
 	}
 
-	void _deselectWindow( _SubWindow * xWindow )
+	void _deselectWindow( )
 	{
+		if ( mSelectedWindow == NULL )
+		{
+			return;
+		}
+
+		_RGBA * windowPixels = reinterpret_cast<_RGBA*>( mSelectedWindow->texData );
+
+		for ( uint32_t ii = 0; ii < mSelectedWindow->w* mSelectedWindow->h; ++ii )
+		{
+			if ( ( ii % mSelectedWindow->w < sBorderWidth ) 		                  	      ||
+		             ( ii > ( mSelectedWindow->w * mSelectedWindow->h - mSelectedWindow->w * sBorderWidth ) ) ||
+			     ( ii < ( mSelectedWindow->w* sBorderWidth ) ) 		  	     		      ||
+			     ( ii % mSelectedWindow->w > mSelectedWindow->w - sBorderWidth ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 127;
+			}
+			else if ( ( ii < ( mSelectedWindow->w * sCaptionWidth ) ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 127;
+			}
+			else
+			{
+				windowPixels[ ii ].r = 0;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 127;
+			}
+		}
+
+		mSelectedWindow->isSelected = false;
+		mSelectedWindow->hasUpdates = true;
+		mSelectedWindow->resizeX    = false;
+		mSelectedWindow->resizeY    = false;
+
+		_SubWindowIterator const it = mSubWindows[ mSelectedWindow->originX ].find( mSelectedWindow->originY );
+
+		if ( it != mSubWindows[ mSelectedWindow->originX ].end( ) )
+		{
+			std::swap( mSubWindows[ mSelectedWindow->x ][ mSelectedWindow->y ]
+				 , it->second );
+			mSubWindows[ mSelectedWindow->x ].erase( it );
+		}
+
+		mSelectedWindow = NULL;
+	}
+
+	void _unfocusWindow( )
+	{
+		if ( mFocusedWindow == NULL )
+		{
+			return;
+		}
+
+		_RGBA * windowPixels = reinterpret_cast<_RGBA*>( mFocusedWindow->texData );
+
+		for ( uint32_t ii = 0; ii < mFocusedWindow->w* mFocusedWindow->h; ++ii )
+		{
+			if ( ( ii % mFocusedWindow->w < sBorderWidth ) 		                  	      ||
+		             ( ii > ( mFocusedWindow->w * mFocusedWindow->h - mFocusedWindow->w * sBorderWidth ) ) ||
+			     ( ii < ( mFocusedWindow->w* sBorderWidth ) ) 		  	     		      ||
+			     ( ii % mFocusedWindow->w > mFocusedWindow->w - sBorderWidth ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 127;
+			}
+			else if ( ( ii < ( mFocusedWindow->w * sCaptionWidth ) ) )
+			{
+				windowPixels[ ii ].r = 255;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 127;
+			}
+			else
+			{
+				windowPixels[ ii ].r = 0;
+				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].b = 0;
+				windowPixels[ ii ].a = 127;
+			}
+		}
+
+		mFocusedWindow->hasFocus   = false;
+		mFocusedWindow->hasUpdates = true;
+
+		mFocusedWindow  = NULL;
+	}
+
+	void _focusWindow( _SubWindow * xWindow )
+	{
+		TRACE;
 		if ( xWindow == NULL )
 		{
 			std::cerr << "Attempt to set null window as selected window." << std::endl;
 			exit( -1 );
 		}
 
+		if ( xWindow == mFocusedWindow )
+		{
+			return;
+		}
+
+		std::cout << "Bisect1 " << std::endl;
+
 		_RGBA * windowPixels = reinterpret_cast<_RGBA*>( xWindow->texData );
 
 		for ( uint32_t ii = 0; ii < xWindow->w* xWindow->h; ++ii )
 		{
-			static int32_t const sBorderWidth  = 4;
-			static int32_t const sCaptionWidth = 64;
-
 			if ( ( ii % xWindow->w < sBorderWidth ) 		   	     ||
 		             ( ii > ( xWindow->w* xWindow->h - xWindow->w * sBorderWidth ) ) ||
-			     ( ii < ( xWindow->w* sBorderWidth ) ) 		  	     ||
+			     ( ii < ( xWindow->w* sBorderWidth ) ) 		   	     ||
 			     ( ii % xWindow->w > xWindow->w - sBorderWidth ) )
 			{
-				windowPixels[ ii ].r = 255;
-				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].r = 0;
+				windowPixels[ ii ].g = 255;
 				windowPixels[ ii ].b = 0;
 				windowPixels[ ii ].a = 255;
 			}
 			else if ( ( ii < ( xWindow->w * sCaptionWidth ) ) )
 			{
-				windowPixels[ ii ].r = 255;
-				windowPixels[ ii ].g = 0;
+				windowPixels[ ii ].r = 0;
+				windowPixels[ ii ].g = 255;
 				windowPixels[ ii ].b = 0;
 				windowPixels[ ii ].a = 255;
 			}
@@ -533,21 +637,25 @@ class SpriteShader : public SDLTestWindow
 			}
 		}
 
-		xWindow->isSelected = false;
-		xWindow->hasUpdates = true;
-		xWindow->resizeX    = false;
-		xWindow->resizeY    = false;
-
-		_SubWindowIterator const it = mSubWindows[ mSelectedWindow->originX ].find( mSelectedWindow->originY );
-
-		if ( it != mSubWindows[ mSelectedWindow->originX ].end( ) )
+		std::cout << "Bisect2 " << std::endl;
+		if ( mSelectedWindow != NULL && xWindow != mSelectedWindow )
 		{
-			std::swap( mSubWindows[ mSelectedWindow->x ][ mSelectedWindow->y ]
-				 , it->second );
-			mSubWindows[ mSelectedWindow->x ].erase( it );
+			_deselectWindow( );
 		}
 
-		mSelectedWindow = NULL;
+		std::cout << "Bisect3 " << std::endl;
+
+		if ( mFocusedWindow != NULL )
+		{
+			_unfocusWindow( );
+		}
+
+		mFocusedWindow = xWindow;
+
+		xWindow->hasFocus  = true;
+		xWindow->hasUpdates = true;
+		std::cout << "Bisect4 " << std::endl;
+
 	}
 
 	void _selectWindow( _SubWindow * xWindow )
@@ -567,12 +675,9 @@ class SpriteShader : public SDLTestWindow
 
 		for ( uint32_t ii = 0; ii < xWindow->w* xWindow->h; ++ii )
 		{
-			static int32_t const sBorderWidth  = 4;
-			static int32_t const sCaptionWidth = 64;
-
-			if ( ( ii % xWindow->w < sBorderWidth ) 		   	   ||
+			if ( ( ii % xWindow->w < sBorderWidth ) 		   	     ||
 		             ( ii > ( xWindow->w* xWindow->h - xWindow->w * sBorderWidth ) ) ||
-			     ( ii < ( xWindow->w* sBorderWidth ) ) 		   ||
+			     ( ii < ( xWindow->w* sBorderWidth ) ) 		   	     ||
 			     ( ii % xWindow->w > xWindow->w - sBorderWidth ) )
 			{
 				windowPixels[ ii ].r = 255;
@@ -598,7 +703,7 @@ class SpriteShader : public SDLTestWindow
 
 		if ( mSelectedWindow != NULL )
 		{
-			_deselectWindow( mSelectedWindow );
+			_deselectWindow( );
 		}
 
 		mSelectedWindow = xWindow;
@@ -617,7 +722,6 @@ class SpriteShader : public SDLTestWindow
 
 				if ( xEvent.leftState == eClickState_Down )
 				{
-
 					for ( auto && ymap : mSubWindows )
 					{
 						for ( auto && xmapWindowPair : ymap.second )
@@ -629,10 +733,46 @@ class SpriteShader : public SDLTestWindow
 								continue;
 							}
 
-							if ( xEvent.x > window->x 	      &&
-							     xEvent.x < window->x + window->w &&
-							     xEvent.y > window->y 	      &&
-							     xEvent.y < window->y + sFuzzPixels ) // Click top panel
+							std::cout << "xEvent.x  	     = " << xEvent.x  		   << std::endl;
+							std::cout << "xEvent.y  	     = " << xEvent.y  		   << std::endl;
+							std::cout << "window->x 	     = " << window->x 	  	   << std::endl;
+							std::cout << "window->y 	     = " << window->y 		   << std::endl;
+							std::cout << "window->w 	     = " << window->w 	  	   << std::endl;
+							std::cout << "window->h 	     = " << window->h 		   << std::endl;
+							std::cout << "window->CloseButton->w = " << window->closeButton->w << std::endl;
+							std::cout << "window->CloseButton->h = " << window->closeButton->h << std::endl;
+
+							if ( xEvent.x < ( window->x + window->w + sFuzzPixels ) 	                      &&
+							     xEvent.x > ( window->x + ( window->w - window->closeButton->w ) + sFuzzPixels  ) &&
+							     xEvent.y > window->y - sFuzzPixels			       		      	      &&
+							     xEvent.y < ( window->y + window->closeButton->h + sFuzzPixels ) )
+							{
+								std::cout << "Delete window (TODO)!" << std::endl;
+								/*
+								if ( window == mSelectedWindow )
+								{
+									_deselectWindow( );
+								}
+
+								// Delete this wwindow!!
+								_SubWindowIterator const it = mSubWindows[ window->x ].find( window->y );
+
+								if ( it != mSubWindows[ window->x ].end( ) )
+								{
+									delete it->second;
+									mSubWindows[ window->x ].erase( it );
+								}
+								else
+								{
+									std::cerr << "Window not found in map!" << std::endl;
+									exit( -1 );
+								}
+								*/
+							}
+						        else if ( xEvent.x > window->x 	      	   &&
+							          xEvent.x < window->x + window->w &&
+							     	  xEvent.y > window->y 	      	   &&
+							     	  xEvent.y < window->y + sFuzzPixels ) // Click top panel
 							{
 								_selectWindow( window );
 							}
@@ -642,7 +782,7 @@ class SpriteShader : public SDLTestWindow
 								  xEvent.y < ( window->y + window->h ) ) // Click Bottom line
 							{
 								window->resizeY = true;
-								_selectWindow( window );
+								//_selectWindow( window );
 							}
 							/*
 							else if ( ) // click left or right border
@@ -668,12 +808,13 @@ class SpriteShader : public SDLTestWindow
 						mSelectedWindow->y = xEvent.y;
 					}
 
-					if ( mSelectedWindow != NULL && mSelectedWindow->resizeY )
+					if ( mSelectedWindow != NULL  &&
+					     mSelectedWindow->resizeY &&
+					     xEvent.y > mSelectedWindow->y )
 					{
 						uint32_t const newHeight = xEvent.y - mSelectedWindow->y;
-
 						mSelectedWindow->h = newHeight < mSelectedWindow->h + sFuzzPixels ? sFuzzPixels : newHeight;
-						mSelectedWindow->h = newHeight > mH ? mH : newHeight;
+						mSelectedWindow->h = mSelectedWindow->y + newHeight > mH ? mH - mSelectedWindow->y : newHeight;
 					}
 
 					if ( mSelectedWindow != NULL && mSelectedWindow->resizeX )
@@ -689,7 +830,10 @@ class SpriteShader : public SDLTestWindow
 				{
 					if ( mSelectedWindow != NULL )
 					{
-						_deselectWindow( mSelectedWindow );
+						std::cout << "focus" << std::endl;
+						_focusWindow( mSelectedWindow );
+						std::cout << "Deselect" << std::endl;
+						_deselectWindow( );
 					}
 
 					mCursor = mTitleCharacters[ 'X' ];
@@ -698,6 +842,7 @@ class SpriteShader : public SDLTestWindow
 		}); // register cb
 
 		mMouse.listen( );
+
 	}
 
 	void _updateTexture( Texture2D & xTexture, GLubyte * xData, std::function<uint8_t(uint8_t*)> xUpdateFunction = [](uint8_t*){ return 0; })
@@ -779,13 +924,14 @@ class SpriteShader : public SDLTestWindow
 							                , rand( ) % mW - 512
 							                , rand( ) % mH - 512 );
 			}
-
-
-			char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
-
-			if ( c != 0x00 && xEvent.getKeyDown( ) || xEvent.getKeyContinue( ) )
+			else
 			{
-				mStdIn.enqueue( c );
+				char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
+
+				if ( c != 0x00 && xEvent.getKeyDown( ) || xEvent.getKeyContinue( ) )
+				{
+					mStdIn.enqueue( c );
+				}
 			}
 		} );
 
@@ -810,6 +956,15 @@ class SpriteShader : public SDLTestWindow
 			   , glm::vec2( xWindow->w, xWindow->h )
 			   , 0.0f
 			   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+		_drawSprite ( xWindow->closeButton->tex
+	  		   , glm::vec2( xWindow->x + (xWindow->w - xWindow->closeButton->w)
+				      , xWindow->y )
+			   , glm::vec2( xWindow->closeButton->w
+				      , xWindow->closeButton->h )
+			   , 0.0f
+			   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
 
 		if ( xWindow->hasUpdates )
 		{
@@ -839,6 +994,14 @@ class SpriteShader : public SDLTestWindow
 		virtual void render( )
 		{
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
+
+			glEnable( GL_BLEND );
+
+			//glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+			glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE );
+
+			glBlendEquation( GL_FUNC_ADD );
 
 			_drawSprite( mBackgroundTexture
 				   , glm::vec2( 0, 0 )
@@ -893,14 +1056,6 @@ class SpriteShader : public SDLTestWindow
 			{
 				mLineBuffer.push_back( c );
 			}
-
-			glEnable( GL_BLEND );
-
-			//glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
-			glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE );
-
-			glBlendEquation( GL_FUNC_ADD );
 
 			for ( auto && c : mLineBuffer )
 			{
@@ -971,6 +1126,7 @@ class SpriteShader : public SDLTestWindow
 			, mShown( NULL )
 			, mSubWindows( )
 			, mSelectedWindow( NULL )
+			, mFocusedWindow( NULL )
 		{
 			;
 		}
@@ -1063,6 +1219,7 @@ class SpriteShader : public SDLTestWindow
 			mRandomData = new GLubyte[ mSize ];
 
 			_fillData( mRandomData );
+
 
 			mBackgroundTexture.initialize( mW, mH, (uint8_t*)mRandomData );
 

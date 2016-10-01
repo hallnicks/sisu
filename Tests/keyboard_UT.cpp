@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 
@@ -129,9 +128,6 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 		sleep::ms( 3000 );
 		std::cout << "slept for " << test.finish( ) << " seconds." << std::endl;
 
-
-
-
 		double accum = 0.0;
 
 		Stopwatch t;
@@ -159,4 +155,3 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 	}
 }
-#endif

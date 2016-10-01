@@ -1,227 +1,130 @@
 #if 0
 #include "test.hpp"
 
-#include "memblock.hpp"
-#include "ttyc.hpp"
-#include "ioassist.hpp"
+#include "threadgears.hpp"
+#include "keyboard.hpp"
 
+#include <SDL2/SDL.h>
 #include <windows.h>
 
+#include "ChildProcessController.hpp"
 
 using namespace sisu;
 
-namespace
+namespace {
+
+class popen_UT : public context
 {
-	class popen_UT : public context
-	{
-
-		static constexpr const char * sInputMp4 = "trip.mp4";
-
-		public:
-			popen_UT( ) : context( ) { }
-			void Up( ) { }
-			void Down( ) { }
-	};
-
-template < uint32_t XBufSize = 4096 >
-class ChildProcessController
-{
-	HANDLE mChildStdInRead
-	     , mChildStdInWrite
-	     , mChildStdOutRead
-             , mChildStdOutWrite;
-
-
-	void _readPipe( )
-	{
-		DWORD dwRead, dwWritten;
-
-		CHAR buffer[ XBufSize ];
-
-		HANDLE parentStdOut = GetStdHandle( STD_OUTPUT_HANDLE );
-
-		while ( 1 )
-		{
-			if ( !ReadFile( mChildStdOutRead, buffer, XBufSize, &dwRead, NULL ) || dwRead == 0 )
-			{
-				break;
-			}
-
-			if ( !WriteFile( parentStdOut, buffer, dwRead, &dwWritten, NULL ) )
-			{
-				break;
-			}
-		}
-	}
-
-	void _writePipe( )
-	{
-		DWORD dwRead, dwWritten;
-
-		char getsBuffer[ XBufSize ];
-
-		TCHAR * commandLine;
-
-		while ( 1 )
-		{
-			std::cout << "Input:" << std::endl;
-			if ( ( commandLine = fgets( getsBuffer, XBufSize, stdin ) ) == NULL )
-			{
-				break;
-			}
-
-			// hack
-			if ( strcmp( getsBuffer, "quit" ) == 0 )
-			{
-				break;
-			}
-
-			if ( !WriteFile( mChildStdInWrite, getsBuffer, dwRead, &dwWritten, NULL ) )
-			{
-				break;
-			}
-		}
-
-		if ( !CloseHandle( mChildStdInWrite ) )
-		{
-			std::cerr << "CloseHandle( .. ) failed." << std::endl;
-			exit( -1 );
-		}
-
-	}
-
-	void _createChildProcess( )
-	{
-		TCHAR * commandLine;
-
-		char getsBuffer[ XBufSize ];
-
-		PROCESS_INFORMATION procInfo;
-
-		STARTUPINFO startUpInfo;
-
-		std::cout << "Input:" << std::endl;
-		if ( ( commandLine = fgets( getsBuffer, XBufSize, stdin ) ) == NULL )
-		{
-			std::cerr << "fgets( .. ) failed." <<std::endl;
-			exit( -1 );
-		}
-
-		ZeroMemory( &procInfo, sizeof( PROCESS_INFORMATION ) );
-
-		ZeroMemory( &startUpInfo, sizeof( STARTUPINFO ) );
-
-		startUpInfo.cb 	       = sizeof( STARTUPINFO );
-		startUpInfo.hStdError  = mChildStdOutWrite;
-		startUpInfo.hStdOutput = mChildStdOutWrite;
-		startUpInfo.hStdInput  = mChildStdInRead;
-		startUpInfo.dwFlags   |= STARTF_USESTDHANDLES;
-
-		if ( !CreateProcess( NULL
-				   , commandLine
-				   , NULL
-				   , NULL
-				   , TRUE
-				   , 0
-				   , NULL
-				   , NULL
-				   , &startUpInfo
-				   , &procInfo ) )
-		{
-			std::cerr << "CreateProcess( ... ) failed." << std::endl;
-			exit( -1 );
-		}
-
-		if ( !CloseHandle( procInfo.hProcess ) )
-		{
-			std::cerr << "CloseHandle( .. ) failed." << std::endl;
-			exit( -1 );
-		}
-
-		if ( !CloseHandle( procInfo.hThread ) )
-		{
-			std::cerr << "CloseHandle( .. ) failed." << std::endl;
-			exit( -1 );
-		}
-	}
-
 	public:
-		ChildProcessController( )
-			: mChildStdInRead  ( INVALID_HANDLE_VALUE )
-			, mChildStdInWrite ( INVALID_HANDLE_VALUE )
-			, mChildStdOutRead ( INVALID_HANDLE_VALUE )
-			, mChildStdOutWrite( INVALID_HANDLE_VALUE )
-		{
-			;
-		}
-
-		void initialize( )
-		{
-			SECURITY_ATTRIBUTES attributes;
-
-			attributes.nLength 	  	= sizeof( SECURITY_ATTRIBUTES );
-			attributes.bInheritHandle 	= true;
-			attributes.lpSecurityDescriptor = NULL;
-
-			if ( !CreatePipe( &mChildStdOutRead
-				        , &mChildStdOutWrite
- 				        , &attributes
-                                        , 0 ) )
-			{
-				std::cerr << "CreatePipe( .. ) failed" << std::endl;
-				exit( -1 );
-			}
-
-			if ( !SetHandleInformation( mChildStdOutRead
-						  , HANDLE_FLAG_INHERIT
-						  , 0 ) )
-			{
-				std::cerr << "SetHandleInformation( .. ) failed." << std::endl;
-			}
-
-			if ( !CreatePipe( &mChildStdInRead
-				        , &mChildStdInWrite
- 				        , &attributes
-                                        , 0 ) )
-			{
-				std::cerr << "CreatePipe( .. ) failed" << std::endl;
-				exit( -1 );
-			}
-
-
-			if ( !SetHandleInformation( mChildStdInWrite
-						  , HANDLE_FLAG_INHERIT
-						  , 0 ) )
-			{
-				std::cerr << "SetHandleInformation( .. ) failed." << std::endl;
-			}
-		}
-
-
-		// TODO: Try running this in its own thread.
-		void runChildProcess( )
-		{
-			_createChildProcess( );
-
-			_writePipe( );
-
-			_readPipe( );
-		}
+		popen_UT( ) : context( ) { }
+		void Up( ) { }
+		void Down( ) { }
 };
 
 } // namespace
 
-
-
-TEST(popen_UT, popenSimpleDirectoryListing)
+TEST(popen_UT, popenPipedFromSDLKeyboard)
 {
+	{
+		Keyboard kb;
+		event quit;
 
-	ChildProcessController<4096> ctl;
+		if ( SDL_Init ( SDL_INIT_VIDEO ) < 0 )
+		{
+			std::cerr << "SDL_Init ( .. ) failed: " << SDL_GetError( ) <<std::endl;
+			exit( -1 );
+		}
 
-	ctl.initialize( );
+		SDL_Window * window = SDL_CreateWindow( "SDL2 OpenGL"
+						      , SDL_WINDOWPOS_CENTERED
+        	                                      , SDL_WINDOWPOS_CENTERED
+	                                              , 1920 / 2
+	                                              , 1080 / 2
+        	                                      , SDL_WINDOW_OPENGL      | SDL_WINDOW_BORDERLESS    |
+	                                                SDL_WINDOW_SHOWN       | SDL_WINDOW_INPUT_GRABBED |
+	                                                SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS    );
 
-	ctl.runChildProcess( );
+		SDL_GLContext context = SDL_GL_CreateContext( window );
 
-	BLOCK_EXECUTION;
+		SDL_GL_SetSwapInterval( 1 );
+
+		SDL_RaiseWindow( window );
+
+		SDL_SetWindowGrab( window, SDL_TRUE );
+
+		std::vector<char> accum;
+
+		kb.registerCallback( [&]( KeyboardEvent const & xEvent )
+		{
+	                bool const shiftPressed = xEvent[ SDL_SCANCODE_LSHIFT  ] || xEvent[ SDL_SCANCODE_RSHIFT  ];
+	                bool const enterPressed = xEvent[ SDL_SCANCODE_RETURN  ] || xEvent[ SDL_SCANCODE_RETURN2 ];
+
+			if ( xEvent.getKeyDown( ) )
+			{
+				if ( !enterPressed )
+				{
+					char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
+
+					std::cout << c;
+
+					accum.push_back( c );
+				}
+				else
+				{
+					accum.push_back('\0');
+
+					if ( strcmp( accum.data( ), "quit" ) == 0 )
+					{
+						quit.set( );
+					}
+					else
+					{
+						ChildProcessController<4096> childProcess;
+
+						childProcess.initialize( );
+
+						auto onReceivePipeData = []( uint8_t * xBuffer, uint64_t xSize )
+						{
+							DWORD dwWritten;
+
+							HANDLE parentStdOut = GetStdHandle( STD_OUTPUT_HANDLE );
+
+							if ( !WriteFile( parentStdOut, xBuffer, xSize, &dwWritten, NULL ) )
+							{
+								std::cerr << "WriteFile( .. ) failed." << std::endl;
+								exit( -1 );
+							}
+						};
+
+						if ( !childProcess.runCommand( accum.data( ), onReceivePipeData ) )
+						{
+							std::cerr << " !! Invalid command: " << accum.data( ) << std::endl;
+						}
+					}
+
+					accum.clear( );
+
+					std::cout << std::endl <<  "[ sisu shell ] $ ";
+				}
+			}
+
+			fflush( stdout );
+		});
+
+		kb.listen( );
+
+		std::cout << std::endl <<  "[ sisu shell ] $ ";
+
+		while ( !quit.isSet( ) )
+		{
+			SDL_PumpEvents( );
+			SDL_GL_SwapWindow( window );
+		}
+
+		SDL_DestroyWindow( window );
+		SDL_Quit( );
+
+		kb.stopListening( );
+	}
 }
 #endif

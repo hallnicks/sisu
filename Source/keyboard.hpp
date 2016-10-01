@@ -50,7 +50,7 @@ namespace sisu {
 
 			uint16_t getScanCode( ) const { return mScanCode; }
 
-			uint8_t operator[] ( SDL_Scancode const xIdx ) { return mState[ xIdx ]; }
+			uint8_t operator[] ( SDL_Scancode const xIdx ) const { return mState[ xIdx ]; }
 	};
 
 	typedef std::function<void(KeyboardEvent)> OnKeyboardEventCallback;

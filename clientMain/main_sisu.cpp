@@ -11,56 +11,37 @@
 
 //    You should have received a copy of the GNU General Public License
 //    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
-#include "test.hpp"
-#include "ttycolor.hpp"
 #include <SDL.h>
-#include <time.h>
-
-using std::cout;
-using std::endl;
-using sisu::ccolor;
-using sisu::eTTYCBlack;
-using sisu::eTTYCYellow;
-using sisu::eModBold;
+#include <iostream>
 
 int main( int xArgc, char * xArgv[] )
 {
-	cout << "Hello, world." << endl; 
-	srand( time( NULL ) );
+	const char * buff[] = { " Measles make you bumpy"
+			      , " And mumps'll make you lumpy"
+			      , " And chicken pox'll make you jump and twitch"
+			      , " A common cold'll fool ya"
+			      , " And whooping cough'll cool ya"
+			      , "But poison ivy, Lord'll make you itch!!\n"
 
-	// TODO - get and save original color. For now, screw you!
-	ccolor const d( eTTYCBlack, eTTYCYellow, eModBold );
-	ccolor const b( eTTYCBlack, eTTYCYellow, eModBold );
+			      , "You're gonna need an ocean of calamine lotion"
+			      , "You'll be scratchin' like a hound"
+			      , "The minute you start to mess around" };
 
-	cout << d;
-
-	static const int ES = 7;
-
-
-	std::cout << '`' << std::endl;
-	unsigned i = 0;
-
-	for ( ; i < ES; ++i)
-		{ cout <<
-			endl << "                          ... ☁ ▅▒░☼‿☼░▒▅ ☁  "
-				<< endl; }
-
-	if(!sTestRuntimeParameters.alwaysBreak) 
-	{ 
-		cout << "Enabling verbose test mode." << endl; 
-		sTestRuntimeParameters.alwaysBreak = true;
+	for ( int32_t ii = 0; ii < sizeof(buff)/sizeof(const char*); ++ii)
+	{
+		std::cout << buff[ ii ] << std::endl;
 	}
 
-	int r = ::sisu::Execute();
+	char buffer[4096];
 
-	cout << b;
+	char * out = NULL;
 
-	for ( i = 0; i < ES; ++i )
-		{ cout <<
-			endl <<      "                          ... ☁ ▅▒░OoO░▒▅ ☁  "
-				<< endl; }
+	if ( ( out = fgets( buffer, 4096, stdin ) ) == NULL )
+	{
+		return -1;
+	}
 
-	std::cout << std::endl << "                              \\m/ >_< \\m/ " << std::endl;
+	puts( out );
 
-	return r;
+	return 0;
 }

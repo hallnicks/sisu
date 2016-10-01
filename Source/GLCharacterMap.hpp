@@ -46,15 +46,15 @@ namespace sisu
 		{
 			xSS << mTextureStorage
 			    << "texture_"
-			    << (uint64_t)xC
-			    << mOutlineColor.r
-			    << mOutlineColor.g
-			    << mOutlineColor.b
-			    << mOutlineColor.a
-			    << mFillColor.r
-			    << mFillColor.g
-			    << mFillColor.b
-			    << mFillColor.a
+			    << ( uint64_t )xC
+			    << ( uint64_t )mOutlineColor.r
+			    << ( uint64_t )mOutlineColor.g
+			    << ( uint64_t )mOutlineColor.b
+			    << ( uint64_t )mOutlineColor.a
+			    << ( uint64_t )mFillColor.r
+			    << ( uint64_t )mFillColor.g
+			    << ( uint64_t )mFillColor.b
+			    << ( uint64_t )mFillColor.a
 			    << ".png";
 		}
 

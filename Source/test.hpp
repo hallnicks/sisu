@@ -540,6 +540,7 @@ SMPLXCPT(EqualedException);
 
 } // namespace sisu
 
+#define TRACE std::cout << __FILE__ << ":" << __PRETTY_FUNCTION__ << ":" << __LINE__ << std::endl
 #define BLOCK_EXECUTION std::cout << "Blocking in " << __PRETTY_FUNCTION__ << ", " << __LINE__ << std::endl; while ( 1 ) { }
 #define FAIL(xMsg) { throw ::sisu::TestFailedException( xMsg ); }
 #define MUSTNEQ( xLHS, xRHS ) if ( xLHS == xRHS ) { throw ::sisu::EqualedException( " #xLhs did not equal #xRhs " ); }

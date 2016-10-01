@@ -1,3 +1,4 @@
+
 #include "test.hpp"
 #include "SDLShaderTest.hpp"
 
@@ -98,7 +99,6 @@ TEST(PNGImageStreamer_UT, loadPNGFiles)
 			{
 				GLubyte * allocatedRawTextureData = image.toGLTextureBuffer( );
 				window.enqueue( allocatedRawTextureData, image.getWidth( ), image.getHeight( ) );
-				sleep::ms( 3000 );
 			}
 		}
 		return 0;

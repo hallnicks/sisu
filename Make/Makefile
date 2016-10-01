@@ -9,7 +9,8 @@ LINKMODES    := static shared exe
 #Arbitrary number of "main" entry points 
 #Need to optimize it such that test library links only to test 
 #and runtime to runtime vice versa etc etc
-TARGET_NAME  := sisu sisuTest client server
+#TARGET_NAME  := sisu sisuTest client server
+TARGET_NAME := sisuTest client
 
 TARGET_LIBS  += pthread # rt # for when renabled test
 
