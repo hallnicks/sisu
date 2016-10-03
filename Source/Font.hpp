@@ -48,8 +48,6 @@ static struct _initializeFreeType
                                 std::cerr << "FT_Init_FreeType( .. ) failed. " << error << std::endl;
                                 exit( -1 );
                         }
-
-                        std::cout << "Initialized Freetype. " << std::endl;
                 }
 
                 ~_initializeFreeType( )
@@ -161,7 +159,6 @@ class FTFont
 	typedef std::vector<Span> Spans;
 
 	Spans mSpans, mOutlineSpans;
-	double mDPI;
 
 	int32_t mSize;
 
@@ -180,10 +177,8 @@ class FTFont
 
 	public:
 		FTFont( const FT_Byte * xFontData
-		      , std::streamsize const xSize
-                      , double const xDPI = 96.0  )
-			: mDPI( xDPI )
-			, mSize( 0 )
+		      , std::streamsize const xSize )
+		      : mSize( 0 )
 		{
 
 			FT_Error const error = FT_New_Memory_Face( sFT2.mLibrary
@@ -204,10 +199,8 @@ class FTFont
 			}
 		}
 
-		FTFont( const char * xFontPath
-                      , double const xDPI = 72.0  )
-			: mDPI( xDPI )
-			, mSize( 0 )
+		FTFont( const char * xFontPath )
+			: mSize( 0 )
 		{
 			FT_Error const error = FT_New_Face( sFT2.mLibrary, xFontPath, 0, &mFace );
 

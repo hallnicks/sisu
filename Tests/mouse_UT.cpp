@@ -120,7 +120,5 @@ TEST(mouse_UT, MouseHandlerCallback)
 
 		SDL_Quit( );
 	}
-
-	BLOCK_EXECUTION;
 }
 #endif

@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "word.hpp"
@@ -16,6 +15,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_gamecontroller.h>
 #include <SDL.h>
+#include "Stopwatch.hpp"
 
 using namespace sisu;
 
@@ -251,11 +251,21 @@ TEST(gameController_UT, GameControllerHandlerCallback)
 		gc.registerCallback(onGameControllerUpdate);
 		gc.listen( );
 
+		Stopwatch t;
+		double accum = 0.0;
+
 		while ( !quit.isSet( ) )
 		{
+			t.startMs( );
+
 			SDL_GameControllerUpdate( );
 			SDL_PumpEvents( );
 			SDL_GL_SwapWindow( window );
+
+			if ( ( accum += t.stop( ) ) > 3000.0 )
+			{
+				break;
+			}
 		}
 
 		gc.stopListening( );
@@ -266,4 +276,3 @@ TEST(gameController_UT, GameControllerHandlerCallback)
 
 	}
 }
-#endif

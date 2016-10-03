@@ -1,57 +1,57 @@
-#if 0
 #include "beep.hpp"
 
-
 #include <iostream>
+
+#ifdef __linux__
 #include <linux/kd.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#endif
 
 namespace sisu
 {
 
-namespace sound
+void noise::note( eFreq xFreq )
 {
-	void noise::note( eFreq xFreq, unsigned int xSleepUS )
+	if ( xFreq != 0 )
 	{
-		if ( xFreq != 0 )
-		{
-			ioctl( STDOUT_FILENO, KIOCSOUND, 1193180 / static_cast<int32_t>( xFreq ) );
+#ifdef __linux__
+		ioctl( STDOUT_FILENO, KIOCSOUND, 1193180 / static_cast<int32_t>( xFreq ) );
 
-			usleep( xSleepUS );
+		usleep( 50000 ); // TODO: Replace with a reasonable value for linux
+#endif
+		if ( !Beep( (DWORD)xFreq, 500 ) )
+		{
+			std::cerr << "Beep( .. ) failed." << std::endl;
+			exit( -1 );
 		}
 	}
+}
 
-	void noise::rest( )
+void noise::rest( )
+{
+#ifdef __linux__
+	ioctl( STDOUT_FILENO, KIOCSOUND, 0 );
+#endif
+}
+
+void noise::octave( )
+{
+	static eFreq octave[8] = { eFreqCA
+				 , eFreqD
+				 , eFreqE
+				 , eFreqF
+				 , eFreqG
+				 , eFreqA
+				 , eFreqB
+				 , eFreqCO };
+
+	for ( unsigned i = 0; i < 8; ++i )
 	{
-		ioctl( STDOUT_FILENO, KIOCSOUND, 0 );
+		note( octave[i] );
+		rest( );
 	}
-
-	void noise::octave( )
-	{
-		static eFreq octave[8] = { eFreqCA
-					 , eFreqD
-					 , eFreqE
-					 , eFreqF
-					 , eFreqG
-					 , eFreqA
-					 , eFreqB
-					 , eFreqCO };
-
-		for ( unsigned i = 0; i < 8; ++i )
-		{
-			note( octave[i] );
-			rest( );
-		}
-	}
-
-	Beep::Beep( ) { }
-
-	Beep::~Beep( ) { }
-
-} // sound
+}
 
 } // namespace sisu
-
-#endif

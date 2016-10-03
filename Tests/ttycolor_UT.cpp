@@ -1,11 +1,9 @@
 #include "test.hpp"
 #include "bits.hpp"
-#include "drawings.hpp"
 #include "memblock.hpp"
 #include "signal.hpp"
 #include "ttyc.hpp"
 #include "ttycolor.hpp"
-#include "ttyscreen.hpp"
 
 #include <iomanip>
 #include <iostream>

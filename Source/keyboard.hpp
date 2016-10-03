@@ -13,6 +13,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL.h>
+#include "Stopwatch.hpp"
 
 
 namespace sisu {
@@ -62,9 +63,10 @@ namespace sisu {
 		std::vector< OnKeyboardEventCallback > mCallbacks;
 		bool mInitialized;
 		gear<uint32_t, int64_t> mKeyboardListener;
+		double mDebounceTicks;
 
 		public:
-			Keyboard( )
+			Keyboard( double const xDebounceTicks = 18000000.0 )
 				: mM( )
 				, mQuit( )
 				, mCallbacks( )
@@ -77,6 +79,10 @@ namespace sisu {
 					{
 						pressedLastTime [ ii ] = false;
 					}
+
+					double continueDebounceAccum = 0.0;
+
+					Stopwatch t;
 
 					while ( !mQuit.isSet( ) )
 					{
@@ -105,29 +111,34 @@ namespace sisu {
 		        	                        if ( state[ ii ] && !pressedLastTime[ ii ] )
 		                	                {
 								keyState = eKeyState_Down;
-								runCallbacks( );
+								t.startMs( );
 			                                }
 							else if ( state[ ii ] && pressedLastTime[ ii ] )
 							{
-								keyState = eKeyState_Continue;
+								continueDebounceAccum += t.stop( );
+
+								if ( continueDebounceAccum > mDebounceTicks )
+								{
+									keyState = eKeyState_Continue;
+									continueDebounceAccum = 0;
+									t.startMs( );
+								}
 							}
 		        	                        else if ( !state[ ii ] && pressedLastTime[ ii ] )
 		                	                {
 								keyState = eKeyState_Up;
-								runCallbacks( );
 			                                }
 
-							/*
 							if ( keyState != eKeyState_None )
 							{
 								runCallbacks( );
 							}
-							*/
 
 			                                pressedLastTime[ ii ] = state[ ii ];
 						}
 					}
 				})
+				, mDebounceTicks( xDebounceTicks )
 			{
 				;
 			}
@@ -272,9 +283,10 @@ static class KeyboardScancodeMap
 			};
 
 
-			setIdx( SDL_SCANCODE_RETURN, '\n');
-			setIdx( SDL_SCANCODE_SPACE,  ' ' );
-			setIdx( SDL_SCANCODE_TAB,    '\t');
+			setIdx( SDL_SCANCODE_RETURN, 	'\n');
+			setIdx( SDL_SCANCODE_SPACE,  	' ' );
+			setIdx( SDL_SCANCODE_TAB,    	'\t');
+			setIdx( SDL_SCANCODE_BACKSPACE, '\b');
 
 		}
 

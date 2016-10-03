@@ -59,13 +59,18 @@ TEST(popen_UT, popenPipedFromSDLKeyboard)
 	                bool const shiftPressed = xEvent[ SDL_SCANCODE_LSHIFT  ] || xEvent[ SDL_SCANCODE_RSHIFT  ];
 	                bool const enterPressed = xEvent[ SDL_SCANCODE_RETURN  ] || xEvent[ SDL_SCANCODE_RETURN2 ];
 
-			if ( xEvent.getKeyDown( ) )
+			if ( !xEvent.getKeyUp( ) )
 			{
 				if ( !enterPressed )
 				{
 					char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
 
 					std::cout << c;
+
+					if ( c == '\b' )
+					{
+						std::cout << ' ';
+					}
 
 					accum.push_back( c );
 				}

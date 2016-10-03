@@ -4,8 +4,6 @@
 
 #include "SDLTest.hpp"
 #include "ioassist.hpp"
-#include "ColorRGBA.hpp"
-#include "Texture.hpp"
 #include "Rect.hpp"
 #include "Font.hpp"
 #include "VBM.hpp"
@@ -40,6 +38,10 @@
 #include "mouse.hpp"
 #include "memblock.hpp"
 #include "word.hpp"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 
 namespace sisu {
 
@@ -172,6 +174,7 @@ class SpriteShader : public SDLTestWindow
 	static constexpr int32_t const sCaptionWidth = 64;
 
 	SDLShader mSpriteShader;
+
 	Texture2D mBackgroundTexture;
 
 	GLubyte * mRandomData;
@@ -276,9 +279,10 @@ class SpriteShader : public SDLTestWindow
 	moodycamel::ConcurrentQueue< _TextureInstance * > mTextureQueue;
 
 	std::vector<char> mLineBuffer;
+	typedef std::map< uint32_t, _SubWindow * > _InnerWindowMap;
+	typedef _InnerWindowMap::iterator 	   _SubWindowIterator;
 
-	std::map< uint32_t, std::map< uint32_t, _SubWindow * > > mSubWindows;
-	typedef std::map< uint32_t, _SubWindow * >::iterator _SubWindowIterator;
+	std::map< uint32_t, _InnerWindowMap > mSubWindows;
 
 	_SubWindow * mSelectedWindow, * mFocusedWindow;
 
@@ -344,6 +348,32 @@ class SpriteShader : public SDLTestWindow
 	        struct { uint8_t r, g, b, a; };
 #endif
 	};
+
+	void _printMap( )
+	{
+		for ( auto && ymap : mSubWindows )
+		{
+			for ( auto && xmapWindowPair : ymap.second )
+			{
+				_SubWindow * w = xmapWindowPair.second;
+
+				if ( w == NULL )
+				{
+					std::cout << "[null window pointer]" << std::endl;
+					continue;
+				}
+
+				std::cout << "[" << ymap.first << "]"
+					  << "[" << xmapWindowPair.first << "]"
+					  << " = SubWindow( "
+					  << "x=" 	<< w->x       << ", y="      << w->y
+					  << "w=" 	<< w->h       << ", h="      << w->h
+					  << "originX=" << w->originX << ", originY" << w->originY
+					  << ")" << std::endl;
+			}
+		}
+
+	}
 
 	void _loadCursor( )
 	{
@@ -536,14 +566,19 @@ class SpriteShader : public SDLTestWindow
 		mSelectedWindow->resizeX    = false;
 		mSelectedWindow->resizeY    = false;
 
-		_SubWindowIterator const it = mSubWindows[ mSelectedWindow->originX ].find( mSelectedWindow->originY );
+		_SubWindowIterator const it = mSubWindows[ mSelectedWindow->originY ].find( mSelectedWindow->originX );
 
-		if ( it != mSubWindows[ mSelectedWindow->originX ].end( ) )
+		if ( it != mSubWindows[ mSelectedWindow->originY ].end( ) )
 		{
-			std::swap( mSubWindows[ mSelectedWindow->x ][ mSelectedWindow->y ]
+			std::swap( mSubWindows[ mSelectedWindow->y ][ mSelectedWindow->x ]
 				 , it->second );
-			mSubWindows[ mSelectedWindow->x ].erase( it );
+			mSubWindows[ mSelectedWindow->originY ].erase( it );
 		}
+
+		// Update new origin xy
+		mSelectedWindow->originX = mSelectedWindow->x;
+		mSelectedWindow->originY = mSelectedWindow->y;
+
 
 		mSelectedWindow = NULL;
 	}
@@ -593,6 +628,7 @@ class SpriteShader : public SDLTestWindow
 
 	void _focusWindow( _SubWindow * xWindow )
 	{
+		std::cout << "fuck us window. " << std::endl;
 		TRACE;
 		if ( xWindow == NULL )
 		{
@@ -720,8 +756,11 @@ class SpriteShader : public SDLTestWindow
 			{
 				mCursorPosition = xEvent;
 
+				bool windowCollission = false;
 				if ( xEvent.leftState == eClickState_Down )
 				{
+					_SubWindow * windowToDelete = NULL;
+
 					for ( auto && ymap : mSubWindows )
 					{
 						for ( auto && xmapWindowPair : ymap.second )
@@ -733,41 +772,19 @@ class SpriteShader : public SDLTestWindow
 								continue;
 							}
 
-							std::cout << "xEvent.x  	     = " << xEvent.x  		   << std::endl;
-							std::cout << "xEvent.y  	     = " << xEvent.y  		   << std::endl;
-							std::cout << "window->x 	     = " << window->x 	  	   << std::endl;
-							std::cout << "window->y 	     = " << window->y 		   << std::endl;
-							std::cout << "window->w 	     = " << window->w 	  	   << std::endl;
-							std::cout << "window->h 	     = " << window->h 		   << std::endl;
-							std::cout << "window->CloseButton->w = " << window->closeButton->w << std::endl;
-							std::cout << "window->CloseButton->h = " << window->closeButton->h << std::endl;
-
-							if ( xEvent.x < ( window->x + window->w + sFuzzPixels ) 	                      &&
-							     xEvent.x > ( window->x + ( window->w - window->closeButton->w ) + sFuzzPixels  ) &&
-							     xEvent.y > window->y - sFuzzPixels			       		      	      &&
-							     xEvent.y < ( window->y + window->closeButton->h + sFuzzPixels ) )
+							if ( xEvent.x < ( window->x + window->w ) 			       &&
+							     xEvent.x > ( window->x + ( window->w - window->closeButton->w ) ) &&
+							     xEvent.y > window->y  			       		       &&
+							     xEvent.y < ( window->y + window->closeButton->h ) )
 							{
-								std::cout << "Delete window (TODO)!" << std::endl;
-								/*
+								windowToDelete = window ;
+
 								if ( window == mSelectedWindow )
 								{
 									_deselectWindow( );
 								}
 
-								// Delete this wwindow!!
-								_SubWindowIterator const it = mSubWindows[ window->x ].find( window->y );
-
-								if ( it != mSubWindows[ window->x ].end( ) )
-								{
-									delete it->second;
-									mSubWindows[ window->x ].erase( it );
-								}
-								else
-								{
-									std::cerr << "Window not found in map!" << std::endl;
-									exit( -1 );
-								}
-								*/
+								windowCollission = true;
 							}
 						        else if ( xEvent.x > window->x 	      	   &&
 							          xEvent.x < window->x + window->w &&
@@ -775,6 +792,7 @@ class SpriteShader : public SDLTestWindow
 							     	  xEvent.y < window->y + sFuzzPixels ) // Click top panel
 							{
 								_selectWindow( window );
+								windowCollission = true;
 							}
 							else if ( xEvent.x > window->x 		   		     &&
 								  xEvent.x < window->x + window->w 		     &&
@@ -782,7 +800,7 @@ class SpriteShader : public SDLTestWindow
 								  xEvent.y < ( window->y + window->h ) ) // Click Bottom line
 							{
 								window->resizeY = true;
-								//_selectWindow( window );
+								windowCollission = true;
 							}
 							/*
 							else if ( ) // click left or right border
@@ -797,8 +815,39 @@ class SpriteShader : public SDLTestWindow
 								_selectWindow( window );
 							}
 							*/
+
+							if ( windowCollission )
+							{
+								break;
+							}
+						}
+
+						if ( windowCollission )
+						{
+							break;
 						}
 					}
+
+					// delete window
+					if ( windowToDelete != NULL )
+					{
+						//_printMap( );
+
+						_SubWindowIterator const it = mSubWindows[ windowToDelete->originY ].find( windowToDelete->originX );
+
+						if ( it == mSubWindows[ windowToDelete->originY ].end( ) )
+						{
+							std::cerr << "Window not found in map!" << std::endl;
+							exit( -1 );
+						}
+
+						delete it->second;
+
+						it->second = NULL;
+
+						mSubWindows[ windowToDelete->originY ].erase( it );
+					}
+
 				} // if  click down
 				else if ( xEvent.leftState == eClickState_Continue )
 				{
@@ -904,6 +953,7 @@ class SpriteShader : public SDLTestWindow
 	{
 		mKB.registerCallback( [&]( KeyboardEvent xEvent )
 		{
+			std::cout << "Event get" << std::endl;
 			if ( xEvent.getScanCode( ) == SDL_SCANCODE_Q )
 			{
 				mQuit.set( );
@@ -916,22 +966,23 @@ class SpriteShader : public SDLTestWindow
 
 			if ( ctrlPressed && altPressed && enterPressed )
 			{
-				uint32_t const x = rand( ) % 100 + 412;
-				uint32_t const y = rand( ) % 100 + 412;
 
-				mSubWindows[ y ][ x ] = _createSubWindow( x
-							  	        , y
-							                , rand( ) % mW - 512
-							                , rand( ) % mH - 512 );
+			        uint32_t const x = ( rand( ) % mW  ) - 512;
+		                uint32_t const y = ( rand( ) % mH  ) - 512;
+				uint32_t const w = ( rand( ) % 100 ) + 412;
+				uint32_t const h = ( rand( ) % 100 ) + 412;
+
+				std::cout << "create sub window. " << std::endl;
+				mSubWindows[ y ][ x ] = _createSubWindow( w, h, x, y );
+
+				return;
 			}
-			else
-			{
-				char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
 
-				if ( c != 0x00 && xEvent.getKeyDown( ) || xEvent.getKeyContinue( ) )
-				{
-					mStdIn.enqueue( c );
-				}
+			char const c = sSDLKeyboardScancodeMap.resolveScanCode( xEvent.getScanCode( ), shiftPressed );
+
+			if ( c != 0x00 && xEvent.getKeyDown( ) || xEvent.getKeyContinue( ) )
+			{
+				mStdIn.enqueue( c );
 			}
 		} );
 
@@ -942,7 +993,6 @@ class SpriteShader : public SDLTestWindow
 	{
 		if ( xWindow == NULL )
 		{
-			std::cerr << "Null instance inserted into map." << std::endl;
 			return;
 		}
 
@@ -995,19 +1045,20 @@ class SpriteShader : public SDLTestWindow
 		{
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-			glEnable( GL_BLEND );
-
-			//glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
-			glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE );
-
-			glBlendEquation( GL_FUNC_ADD );
 
 			_drawSprite( mBackgroundTexture
 				   , glm::vec2( 0, 0 )
 				   , glm::vec2( mW, mH )
 				   , 0.0f
 				   , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+
+			glEnable( GL_BLEND );
+
+			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+			//glBlendFuncSeparate( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE );
+
+			glBlendEquation( GL_FUNC_ADD );
 
 			_dequeueOne( );
 
@@ -1044,8 +1095,8 @@ class SpriteShader : public SDLTestWindow
 
 			});
 
-			static GLuint const sOverscanX = 5;
-			static GLuint const sOverscanY = 10;
+			static GLuint const sOverscanX = 64;
+			static GLuint const sOverscanY = 64;
 
 			GLuint offsetx = sOverscanX;
 			GLuint offsety = sOverscanY;
@@ -1219,7 +1270,6 @@ class SpriteShader : public SDLTestWindow
 			mRandomData = new GLubyte[ mSize ];
 
 			_fillData( mRandomData );
-
 
 			mBackgroundTexture.initialize( mW, mH, (uint8_t*)mRandomData );
 

@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"
@@ -56,4 +55,3 @@ TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithPBO)
 		window.run( );
 	}
 }
-#endif

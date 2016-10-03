@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 
@@ -14,6 +15,7 @@
 #include <SDL.h>
 
 #include "keyboard.hpp"
+#include "Stopwatch.hpp"
 
 using namespace sisu;
 
@@ -29,52 +31,6 @@ namespace {
 
 } // namespace
 
-
-class Stopwatch
-{
-	double mFrequency;
-	__int64 mStart;
-
-	void _queryPerformanceCounter( LARGE_INTEGER * xTicks )
-	{
-		if ( QueryPerformanceCounter( xTicks ) == FALSE )
-		{
-			std::cerr << "QueryPerformanceCounter( .. ) failed." << std::endl;
-			exit( -1 );
-		}
-	}
-
-
-	public:
-		Stopwatch( )
-			: mFrequency( 0.0 )
-			, mStart( 0 )
-		{
-		}
-
-
-		void start( )
-		{
-			LARGE_INTEGER li;
-
-			_queryPerformanceCounter( &li );
-
-			mFrequency = double( li.QuadPart );
-
-			_queryPerformanceCounter( &li );
-
-			mStart = li.QuadPart;
-		}
-
-		double finish( )
-		{
-			LARGE_INTEGER li;
-
-			_queryPerformanceCounter( &li );
-
-			return double( li.QuadPart - mStart ) / mFrequency;
-		}
-};
 
 TEST(keyboard_UT, KeyboardHandlerCallback)
 {
@@ -120,27 +76,23 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 		Keyboard kb;
 
-		kb.registerCallback(onKeyboardCharacter);
+		kb.registerCallback( onKeyboardCharacter );
 		kb.listen( );
-		Stopwatch test;
-
-		test.start( );
-		sleep::ms( 3000 );
-		std::cout << "slept for " << test.finish( ) << " seconds." << std::endl;
 
 		double accum = 0.0;
 
-		Stopwatch t;
 
 		while ( !quit.isSet( ) )
 		{
-			t.start( );
+			Stopwatch t;
+
+			t.startMs( );
 
 			SDL_PumpEvents( );
 
 			SDL_GL_SwapWindow( window );
 
-			if ( ( accum += t.finish( ) ) > 3.0 )
+			if ( ( accum += t.stop( ) ) > 300000.0 )
 			{
 				std::cerr << "Timeout reached. Exiting.." << std::endl;
 				break;
@@ -155,3 +107,4 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 	}
 }
+#endif

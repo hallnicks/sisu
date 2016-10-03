@@ -23,6 +23,8 @@ TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32 Shlwapi
 
 TARGET_LIBS += tbb
 
+#TARGET_LIBS += ncurses
+
 #ffmpeg
 TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample log m z iconv
 
