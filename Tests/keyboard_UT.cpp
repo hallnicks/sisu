@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 
@@ -92,7 +91,7 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 			SDL_GL_SwapWindow( window );
 
-			if ( ( accum += t.stop( ) ) > 300000.0 )
+			if ( ( accum += t.stop( ) ) > 3000.0 )
 			{
 				std::cerr << "Timeout reached. Exiting.." << std::endl;
 				break;
@@ -107,4 +106,3 @@ TEST(keyboard_UT, KeyboardHandlerCallback)
 
 	}
 }
-#endif

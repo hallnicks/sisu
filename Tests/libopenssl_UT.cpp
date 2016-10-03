@@ -1,4 +1,3 @@
-#if 0
 #include <fstream>
 #ifndef __linux__
 #include <winsock2.h>
@@ -1128,7 +1127,4 @@ TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
 	winsockServer.disconnect( );
 
 	std::cout << "Main thread is out, next is dtors." << std::endl;
-
-	BLOCK_EXECUTION;
 }
-#endif

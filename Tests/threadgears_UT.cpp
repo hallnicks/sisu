@@ -1,4 +1,3 @@
-#if 0
 // This file is part of sisu.
 
 // sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by
@@ -178,8 +177,6 @@ TEST(tg_UT, ThreadTrivial)
 
 		t1.join( );
 
-		while( t1.size( ) > 0 ) {
-			std::cout << "Result= " << *t1 << std::endl; }
 	}
 
 	std::cout << "Scope cleared " << std::endl;
@@ -211,10 +208,6 @@ TEST(tg_UT, ThreadCreatesThreads)
 
 		MUSTEQ(g.size( ), 5);
 
-		while( g.size( ) > 0 )
-		{
-			std::cout << "Result= " << *g << std::endl;
-		}
 	}
 }
 
@@ -241,11 +234,6 @@ TEST(tg_UT, ThreadCreatesThreadsWithForLoop)
 		g.join( );
 
 		MUSTEQ(g.size( ), 50);
-
-		while( g.size( ) > 0 )
-		{
-			std::cout << "Result= " << *g << std::endl;
-		}
 	}
 }
 
@@ -255,8 +243,6 @@ TEST(tg_UT, ThreadLambdaCute1)
 	g( "Hello, world." );
 
 	g.join( );
-	while( g.size( ) > 0 ) {
-		std::cout << "Result= " << *g << std::endl; }
 }
 
 // Mysterious segfault!
@@ -267,4 +253,3 @@ TEST(tg_UT, ThreadLambdaCute2)
 	}
 	std::cout << "scope cleared." << std::endl;
 }
-#endif

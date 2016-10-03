@@ -4,7 +4,6 @@
 
 #include "SDLTest.hpp"
 #include "ioassist.hpp"
-#include "Rect.hpp"
 #include "Font.hpp"
 #include "VBM.hpp"
 #include "threadgears.hpp"

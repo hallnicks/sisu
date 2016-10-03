@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 
 #include "threadgears.hpp"
@@ -132,4 +131,3 @@ TEST(popen_UT, popenPipedFromSDLKeyboard)
 		kb.stopListening( );
 	}
 }
-#endif

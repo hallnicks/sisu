@@ -1,6 +1,6 @@
-#if 0
 #include "test.hpp"
 #include "mouse.hpp"
+#include "Stopwatch.hpp"
 
 using namespace sisu;
 
@@ -108,10 +108,20 @@ TEST(mouse_UT, MouseHandlerCallback)
 		kb.registerCallback(onMouseCharacter);
 		kb.listen( );
 
+		double accum = 0.0;
+
+		Stopwatch t;
+
 		while ( !quit.isSet( ) )
 		{
+			t.startMs( );
 			SDL_PumpEvents( );
 			SDL_GL_SwapWindow( window );
+
+			if ( ( accum += t.stop( ) ) > 3000.0 )
+			{
+				break;
+			}
 		}
 
 		kb.stopListening( );
@@ -121,4 +131,3 @@ TEST(mouse_UT, MouseHandlerCallback)
 		SDL_Quit( );
 	}
 }
-#endif

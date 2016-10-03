@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "SDLShaderTest.hpp"
 
@@ -114,4 +113,3 @@ TEST(PNGImageStreamer_UT, loadPNGFiles)
 
 	quit.set( );
 }
-#endif
