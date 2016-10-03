@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "memblock.hpp"
@@ -12,10 +11,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-// Based on StackOverflow example I believe
-
 using namespace sisu;
-
 
 namespace
 {
@@ -277,4 +273,3 @@ TEST(sdl_MultiThreadedAudio_UT, OrchestrateAudioFromBackgroundThread)
 
 	BLOCK_EXECUTION;
 }
-#endif

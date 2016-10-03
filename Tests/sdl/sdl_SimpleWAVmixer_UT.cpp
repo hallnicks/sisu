@@ -1,5 +1,3 @@
-#if 0
-// TODO: Fix all of it!
 #include "test.hpp"
 #include "threadgears.hpp"
 #include <string>
@@ -58,7 +56,7 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioWithoutExceptions)
 	static Uint8 *wav_buffer;
 	static SDL_AudioSpec wav_spec;
 
-	if( SDL_LoadWAV( "resources/DMT.wav", &wav_spec, &wav_buffer, &wav_length) == NULL ){
+	if( SDL_LoadWAV( "resources/sound01.wav", &wav_spec, &wav_buffer, &wav_length) == NULL ){
 		std::cout << "SDL_LoadWAV failed." << std::endl;
 		exit( -1 );
 	}
@@ -83,7 +81,7 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioWithoutExceptions)
 
 	SDL_FreeWAV( wav_buffer );
 }
-#if 0
+
 TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioOnMultipleThreads)
 {
 	gear<uint32_t, Sound *> g([&](Sound * xSound)->uint32_t {
@@ -94,7 +92,7 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioOnMultipleThreads)
 
 	event quit;
 
-	g( new Sound( "beat01.wav" )
+	g( new Sound( "sound02.wav" )
 	 ( new Sound( "test.mp3" );
 
 	sleep::ms( 3000 );
@@ -102,5 +100,3 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioOnMultipleThreads)
 	quit.set( );
 }
 
-#endif
-#endif

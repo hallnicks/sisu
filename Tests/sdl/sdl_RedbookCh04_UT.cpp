@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"
@@ -44,4 +43,3 @@ TEST(sdl_RedBookCh04_UT, CreateSDLWindowWithoutExceptions)
 		window.run( );
 	}
 }
-#endif

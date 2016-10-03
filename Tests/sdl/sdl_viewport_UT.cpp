@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "ioassist.hpp"
@@ -208,4 +207,3 @@ TEST(sdl_viewport_UT, CreateSDLWindowWithoutExceptions)
 	}
 
 }
-#endif
