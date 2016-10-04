@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "ioassist.hpp"
@@ -63,9 +64,9 @@ class SDLViewportTest : public SDLTestWindow
 			glClear( GL_COLOR_BUFFER_BIT );
 
 			glLoadIdentity( );
-	
+
 			glTranslatef( mW / 2.0f, mH / 2.0f, 0.0f );
-			
+
 			auto randomColor = [ ] ( )
 					{
 					        glColor3f( _randomGLfloat( )
@@ -104,17 +105,17 @@ class SDLViewportTest : public SDLTestWindow
 
 					glViewport( mW / 2.0f, 0.0f, mW / 2.0f, mH / 2.0f );
 					drawQuads( );
-				
+
 					glViewport( 0.0f, mH / 2.0f, mW / 2.0f, mH / 2.0f );
 					drawQuads( );
-				
+
 					glViewport( mW / 2.0f, mH / 2.0f, mW / 2.0f, mH / 2.0f );
 					drawQuads( );
 					break;
 				case eViewportMode_Radar:
 					        //Full size quad
 				        glViewport( 0.f, 0.f, mW, mH );
-				
+
 				        glBegin( GL_QUADS );
 						randomColor( );
 				            	glVertex2f( -mW / 8.0f, -mH / 8.0f );
@@ -136,7 +137,7 @@ class SDLViewportTest : public SDLTestWindow
 				            	glVertex2f(  mW / 8.0f, -mH / 8.0f );
 				            	glVertex2f(  mW / 8.0f,  mH / 8.0f );
 				            	glVertex2f( -mW / 8.0f,  mH / 8.0f );
-				            
+
 						randomColor( );
 				            	glVertex2f( -mW / 16.0f, -mH / 16.0f );
 				            	glVertex2f(  mW / 16.0f, -mH / 16.0f );
@@ -150,8 +151,8 @@ class SDLViewportTest : public SDLTestWindow
 
 		}
 	public:
-		SDLViewportTest( ) 
-			: SDLTestWindow( ) 
+		SDLViewportTest( )
+			: SDLTestWindow( )
 			, mViewportMode( eViewportMode_Full )
 		{
 			;
@@ -162,9 +163,9 @@ class SDLViewportTest : public SDLTestWindow
 			SDLTestWindow::initialize( xAttributes );
 
 			glViewport( 0.0f, 0.0f, mW, mH );
-			
+
 			glMatrixMode( GL_PROJECTION );
-			
+
 			glLoadIdentity( );
 
 			glOrtho( 0.0, mW, mH, 0.0, 1.0, -1.0 );
@@ -176,16 +177,16 @@ class SDLViewportTest : public SDLTestWindow
 			glClearColor( 0.25f, 0.0f, 0.0f, 1.0f );
 		}
 
-		virtual void run ( ) 
+		virtual void run ( )
 		{
-			static uint32_t const sFrames = 500;
+			static uint32_t const sFrames = 50000;
 			static uint32_t const sFramesTenth = sFrames / 10;
 
 			for ( int32_t i = 0; i < sFrames; ++i )
  			{
 				if ( i % sFramesTenth == 0 )
 				{
-					++mViewportMode; 
+					++mViewportMode;
 				}
 
 				render( );
@@ -207,3 +208,4 @@ TEST(sdl_viewport_UT, CreateSDLWindowWithoutExceptions)
 	}
 
 }
+#endif

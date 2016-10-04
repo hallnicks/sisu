@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 
@@ -90,3 +91,4 @@ TEST(sdl_colorswitcher_UT, CreateSDLWindowWithoutExceptions)
 
 	test.run();
 }
+#endif

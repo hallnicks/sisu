@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "SDLShaderTest.hpp"
 
@@ -44,7 +45,6 @@ namespace
 		auto isExtension = [ & ]( const char* xPath )
 		{
 			PTSTR extension = PathFindExtension( xPath );
-
 			return strcmp( extension, xExtension ) == 0;
 		};
 
@@ -113,3 +113,4 @@ TEST(PNGImageStreamer_UT, loadPNGFiles)
 
 	quit.set( );
 }
+#endif

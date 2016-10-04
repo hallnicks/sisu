@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 #include <string>
@@ -81,22 +82,4 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioWithoutExceptions)
 
 	SDL_FreeWAV( wav_buffer );
 }
-
-TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioOnMultipleThreads)
-{
-	gear<uint32_t, Sound *> g([&](Sound * xSound)->uint32_t {
-
-		delete xSound;
-		return 0;
-	});
-
-	event quit;
-
-	g( new Sound( "sound02.wav" )
-	 ( new Sound( "test.mp3" );
-
-	sleep::ms( 3000 );
-
-	quit.set( );
-}
-
+#endif

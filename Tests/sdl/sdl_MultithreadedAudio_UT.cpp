@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "memblock.hpp"
@@ -32,8 +33,6 @@ class sdl_MultiThreadedAudio_UT : public context
 };
 
 const char * sdl_MultiThreadedAudio_UT::sSounds[] = { "resources/sound01.wav"
-						    , "resources/sound02.wav"
-						    , "resources/sound03.wav"
 						    , "resources/sound05.wav" };
 
 const uint8_t sdl_MultiThreadedAudio_UT::sSoundCount = sizeof( sSounds ) / sizeof( const char * );
@@ -55,6 +54,8 @@ class AudioPlayer
 
 		uint64_t threadID;
 
+		SDL_AudioDeviceID device;
+
 		void print( )
 		{
 			std::cout << "issued:       " << issued       << std::endl
@@ -69,7 +70,7 @@ class AudioPlayer
 
 	static mutex sOpenAudioMapMutex, sLoadWavMapMutex;
 	static std::map<uint64_t, AudioSpecUserdata* > sOpenAudioUserDataMap
-					      	     , sLoadWavCallbackUserDataMap; // suspect we may need to make this a heap variable for multithreaded playback
+					      	     , sLoadWavCallbackUserDataMap;
 
 	tooth<AudioPlayer, uint64_t> mThreadIDs;
 
@@ -83,6 +84,8 @@ class AudioPlayer
 			exit( -1 );
 		}
 
+
+		SDL_CloseAudioDevice( it->second->device );
 		delete it->second;
 
 		xMap.erase( it );
@@ -104,7 +107,6 @@ class AudioPlayer
 
 		if ( xLength > 0 && xData->buffer )
 		{
-
 			if ( ( newLength = xData->loadedLength + xLength ) > xData->bufferLength )
 			{
 				xLength   = xData->bufferLength - xData->loadedLength;
@@ -176,7 +178,7 @@ class AudioPlayer
 		{
 			std::cout << xPath << std::endl;
 
-			uint64_t threadID = ++mThreadIDs;
+			uint64_t threadID = ++mThreadIDs; // should be a 'tooth'
 
 			uint32_t  audioLength = 0;
 
@@ -222,11 +224,14 @@ class AudioPlayer
 			ud->bufferLength = audioLength;
 			ud->eventCount   = 0;
 
-			if ( SDL_OpenAudio( &wantWAVSpec, &haveWAVSpec) != 0 )
+			if ( ( ud->device = SDL_OpenAudioDevice( NULL, 0, &wantWAVSpec, &haveWAVSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE ) ) == 0 )
 			{
 				std::cerr << "SDL_OpenAudio( .. ) failed: " << SDL_GetError( ) << std::endl;
 				exit( -1 );
 			}
+
+			// Otherwise, unpause audio and begin playback.
+			SDL_PauseAudioDevice( ud->device, 0 );
 		}
 
 		void silence( ) { }
@@ -273,3 +278,4 @@ TEST(sdl_MultiThreadedAudio_UT, OrchestrateAudioFromBackgroundThread)
 
 	BLOCK_EXECUTION;
 }
+#endif

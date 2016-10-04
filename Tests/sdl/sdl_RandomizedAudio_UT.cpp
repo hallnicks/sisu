@@ -75,7 +75,7 @@ void init()
 
   	SDL_AudioSpec want;
 
-	SDL_zero(want);// btw, I have no idea what this is...
+	SDL_zero(want);
 
 	want.freq = sampleRate;
 	want.format = AUDIO_F32;
@@ -124,11 +124,9 @@ int onExit()
 	             If using audio output it has to be the same saple frequency 
         	    Used there*/
 
-
-
 float GenerateSignal( float const xHerz )
 {
-	const float frequency_in_Hertz = xHerz; /*set output frequency*/
+	const float frequency_in_Hertz = xHerz;
 	const float generatorContant1 = cosf(2*M_PI*(frequency_in_Hertz/S_FREQ));
 	const float generatorContant2 = sinf(2*M_PI*(frequency_in_Hertz/S_FREQ));
 

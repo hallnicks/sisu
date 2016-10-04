@@ -1,3 +1,4 @@
+#if 0
 // This file is part of sisu.
 
 // sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by
@@ -162,3 +163,4 @@ TEST(tsq_UT, ThreadSafeQueueTrivial)
 	sleep::ms( 3000 );
 	quit.set( );
 }
+#endif
