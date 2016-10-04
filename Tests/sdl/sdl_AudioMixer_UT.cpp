@@ -97,11 +97,9 @@ class SDLAudioMixer
 				return;
 			}
 
-			//std::cout << memblock( ap->getBuffer( ), ap->getOffset( ) );
-
 			SDL_memcpy( xStream, ap->getBuffer( ), xLength );
 
-			delete ap;
+			delete ap; // TODO: Reuse objects for a lower / more predictable memory profile
 		}
 
 		static void _loadWAVCallback( void * xUserData, uint8_t * xStream, int32_t xLength )
@@ -145,6 +143,25 @@ class SDLAudioMixer
 				exit( -1 );
 			}
 		}
+
+
+	static float _generateSignal( float const xHerz )
+	{
+		static uint32_t const sFreq      = 8000;
+
+	        const float generatorConstant1   = cosf( 2 * M_PI * ( xHerz / sFreq ) );
+	        const float generatorConstant2   = sinf( 2 * M_PI * ( xHerz / sFreq ) );
+
+	        static float Register[2]={1,0};
+	        static float FeedBack;
+
+	        FeedBack=2*generatorConstant1*Register[0]-Register[1];
+	        Register[1]=Register[0];
+	        Register[0]=FeedBack;
+
+	        return (generatorConstant2*Register[1]);
+	}
+
 	public:
 		SDLAudioMixer( uint32_t const xFrameRate  	 = 60
 			     , uint32_t const xSampleRate 	 = 48000
@@ -256,9 +273,66 @@ class SDLAudioMixer
 
 			Thread enqueueSineWave( [ & ]( uint8_t )->uint8_t
 			{
+				static uint32_t const sMaxHerz = 888;
+				static uint32_t const sMinHerz = 8;
+			        static int32_t const step = 3000;
+			        int32_t stepper = 0;
+
+			        float herz = sMaxHerz;
+			        bool reverse = false;
+
+
 				while ( !quit.isSet( ) )
 				{
+					uint32_t audioBufferSize = mHave.freq;
 
+					if ( audioBufferSize % mSamplesPerFrame )
+					{
+						audioBufferSize += mSamplesPerFrame
+								 - ( audioBufferSize % mSamplesPerFrame );
+					}
+
+					float * buffer = new float[ audioBufferSize ];
+
+					for ( uint32_t ii = 0; ii < audioBufferSize; ++ii )
+					{
+						buffer[ ii ] = _generateSignal( herz );
+
+                                                if ( ++stepper % step == 0 )
+                                                {
+                                                        if ( !reverse )
+                                                        {
+                                                                herz += 3.33;
+
+                                                                if ( herz >= sMaxHerz)
+                                                                {
+                                                                        reverse = true;
+                                                                }
+								continue;
+							}
+
+							herz -= 3.33;
+
+                                                        if( herz <= sMinHerz )
+                                                        {
+                                                                  reverse = false;
+                                                        }
+                                                }
+					}
+
+					AudioPacket * pAP = new AudioPacket( );
+
+					if (pAP->getSize( ) < audioBufferSize * sizeof( float ))
+					{
+						std::cerr << "Audio buffer overflow: " << pAP->getSize( )
+							  << " < "		       << ( audioBufferSize * sizeof( float ) )
+							  << std::endl;
+						exit( -1 );
+					}
+
+					pAP->writeBuffer(  (uint8_t*)buffer, audioBufferSize*sizeof(float) );
+
+					mQ.enqueue( pAP );
 				}
 
 				return 0;
@@ -346,7 +420,7 @@ TEST(sdl_AudioMixer_UT, PlaySDLAudioWithoutExceptions)
 		{
 			//mixer.playWAVImmediately( _randomSound( ) );
 
-			//mixer.playSineWave( 15000.0 );
+			mixer.playSineWave( 15000.0 );
 
 			mixer.playRandomNoise( 3000.0 );
 
