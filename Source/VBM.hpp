@@ -3,6 +3,8 @@
 
 #include <fstream>
 
+#include "test.hpp"
+
 namespace sisu {
 
 typedef struct _VBM_HEADER
@@ -161,19 +163,36 @@ class VBMObject
 		{
 			if ( mFileDescriptor.filename != NULL )
 			{
+				std::cout << "using " << mFileDescriptor.filename << std::endl;
 				uint8_t * rawData = NULL;
 
 				uint32_t totalDatasize = 0;
 
+				TRACE;
+
 				std::ifstream ifs( mFileDescriptor.filename, std::ios::binary | std::ios::ate );
+
+				if ( !ifs.good( ) )
+				{
+					std::cerr << "Error loading " << mFileDescriptor.filename << std::endl;
+					return;
+				}
 
 				std::streamsize const size = ifs.tellg( );
 
+				TRACE;
+
 				ifs.seekg( 0, std::ios::beg );
+
+				TRACE;
 
 				mBuffer = std::vector<char>( size );
 
+				TRACE;
+
 				ifs.read( mBuffer.data( ), size );
+
+				TRACE;
 
 				VBM_HEADER * header = (VBM_HEADER *) mBuffer.data( );
 
@@ -188,26 +207,34 @@ class VBMObject
 				unsigned int totalDataSize = 0;
 
 				// TODO: eliminate memcpy and just use buffer.data( ) ?
+				TRACE;
 				memcpy( &mHeader, header, sizeof( VBM_HEADER ) );
+
+				std::cout << "header->numberOfAttributes=" << header->numberOfAttributes << std::endl;
 
 				mAttributes = new VBM_ATTRIBUTE_HEADER[ header->numberOfAttributes ];
 
+				TRACE;
 				memcpy( &mAttributes, attributeHeader, header->numberOfAttributes * sizeof(VBM_ATTRIBUTE_HEADER ) );
 
 				mFrames = new VBM_FRAME_HEADER[ header->numberOfFrames ];
 
+				TRACE;
 				memcpy( &mFrames, frameHeader, header->numberOfFrames * sizeof( VBM_FRAME_HEADER ) );
 
 				glGenVertexArrays( 1, &mVAO );
 
+				TRACE;
 				(*this)([&]()
 				{
+					TRACE;
 					glGenBuffers( 1, &mAttributeBuffer );
 
 					glBindBuffer( GL_ARRAY_BUFFER, mAttributeBuffer );
 
 					for ( uint32_t ii = 0; ii < header->numberOfAttributes; ++ii )
 					{
+						TRACE;
 						int32_t attributeIndex = ii;
 
 						if ( attributeIndex == 0 )
@@ -223,24 +250,33 @@ class VBMObject
 							attributeIndex = mFileDescriptor.texCoord0Index;
 						}
 
+						TRACE;
+						if ( mAttributes == NULL ) { std::cout << "puke!!" << std::endl;  }
+						std::cout << "mAtttributes[ ii ].components "<< mAttributes[ ii ].components << std::endl;
 						glVertexAttribPointer( attributeIndex
 								     , mAttributes[ ii ].components
 								     , mAttributes[ ii ].type
 								     , GL_FALSE
 								     , 0
-								     , reinterpret_cast<GLvoid *>( totalDataSize )); // sketchy cast, originally was (GLVoid*) gave compiler err
-
-						glEnableVertexAttribArray( attributeIndex );
-
+								     , (GLvoid *)( totalDataSize )); // sketchy cast, 
+									           // originally was (GLVoid*) gave compiler err
 						totalDataSize += mAttributes[ ii ].components
 							       * sizeof( GLfloat )
 							       * header->numberOfVertices;
+
+						_checkForGLError( "glVertexAttribPointerafter." );
+
+						TRACE;
+						glEnableVertexAttribArray( attributeIndex );
+
+						TRACE;
 					}
 
 					glBufferData( GL_ARRAY_BUFFER, totalDataSize, rawData, GL_STATIC_DRAW );
 
 					if ( header->numberOfIndices > 0 )
 					{
+						TRACE;
 						glGenBuffers( 1, &mIndexBuffer );
 
 						glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mIndexBuffer );
@@ -266,6 +302,7 @@ class VBMObject
 
 					glBindVertexArray( 0 );
 				});
+				TRACE;
 			}
 		}
 

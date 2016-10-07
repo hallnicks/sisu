@@ -11,20 +11,30 @@ PHONY_SRC      := $(PHONY_OBJECTS:.o=.cpp)
 LINK_LIBRARIES := $(call prefixAll,$(TARGET_LIBS),-l)
 INCLUDE_PATHS  := $(call prefixAllPaths,$(INCLUDE_DIRS) $(SOURCE_DIRS),-I) 
 
-buildCommandExe     = $(shell $(CXX) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
-buildCommandStatic  = $(shell $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))
-buildCommandShared  = $(shell $(CXX) -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
+buildCommandExe     = \
+$(info $(CXX) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))\
+$(shell $(CXX) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
+
+buildCommandStatic  = \
+$(info $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))\
+$(shell $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))
+
+buildCommandShared  = \
+$(info $(CXX) -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))\
+$(shell $(CXX) -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
 
 coalesceEntryPoints = $(call coalesceObjects,$(OBJDIR),$(call getFiles,$(1),$(SOURCE_EXT)))
 
 $(TARGET_STATICLIB_NAME): $(PHONY_OBJECTS)
 	$(eval OBJECTS = $(PHONY_OBJECTS))
 	$(eval target = $(shell basename $@))
+	$(info STATIC += $@)
 	$(OUT)$(call buildCommandStatic,$(target))
 
 $(TARGET_SHAREDLIB_NAME): $(PHONY_OBJECTS)
 	$(eval target = $(shell basename $@))
 	$(eval OBJECTS = $(PHONY_OBJECTS))
+	$(info SHARED += $@)
 	$(OUT)$(call buildCommandShared,$(target))
 
 $(TARGET_EXE_NAME): $(PHONY_OBJECTS)
@@ -54,7 +64,7 @@ endif
 %.o: %.dep %.cpp
 	$(eval cpp_file = $(subst $(META_DIR),,$*.cpp))
 	$(info CPP += $(cpp_file))
-	$(OUT)$(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(cpp_file) $(CXX_OBJ_FLAG) $@
+	$(OUT)$(CXX) $(LINK_LIBRARIES) $(CXXFLAGS) $(CXX_FILE_FLAG) $(cpp_file) $(CXX_OBJ_FLAG) $@
 
 depclean:
 	$(foreach dep,$(PHONY_DEPS),$(shell rm -rf $(dep)))

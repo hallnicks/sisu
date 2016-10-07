@@ -7,6 +7,7 @@
 #include "Font.hpp"
 #include "VBM.hpp"
 #include "threadgears.hpp"
+#include "test.hpp" // strictly for debugging, remove!!
 
 #include <string>
 #include <iostream>
@@ -30,13 +31,13 @@
 
 #include <stdio.h>
 
-
 #include "Texture2D.hpp"
 #include "GLCharacterMap.hpp"
 #include "keyboard.hpp"
 #include "mouse.hpp"
 #include "memblock.hpp"
 #include "word.hpp"
+#include "sisumath.hpp"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -510,12 +511,14 @@ class SpriteShader : public SDLTestWindow
 				pixelData[ ii ].a = setData[ ii ].a;
 			}
 
+
 			return;
 		}
 
 		_RGBA * pixelData = reinterpret_cast<_RGBA*>( xRandomData );
-		for ( uint64_t ii = 0; ii < mW * mH; ii += 4 )
+		for ( uint64_t ii = 0; ii < mW * mH; ii += 4)
 		{
+
 			pixelData[ ii ].r = rand( ) % 255;
 			pixelData[ ii ].g = rand( ) % 255;
 			pixelData[ ii ].b = rand( ) % 255;
@@ -1358,8 +1361,6 @@ class SpriteShader : public SDLTestWindow
 };
 
 #define DEPTH_TEXTURE_SIZE 512
-#define _M_PI 3.14159265358979323846
-
 #define INSTANCE_COUNT 100
 
 #define FRUSTUM_DEPTH       800.0f
@@ -1466,7 +1467,7 @@ class RedbookCh04Shader : public SDLTestWindow
 			glEnable( GL_DEPTH_TEST );
 			glDepthFunc( GL_LEQUAL );
 
-			glm::mat4 scene_model_matrix 	  = glm::rotate(glm::mat4(1.0f),t * float(_M_PI*4), Y);
+			glm::mat4 scene_model_matrix 	  = glm::rotate(glm::mat4(1.0f),t * float(M_PI*4), Y);
 			glm::mat4 scene_view_matrix 	  = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -300.0f));
 			glm::mat4 scene_projection_matrix = glm::frustum(-1.0f, 1.0f, -mAspect, mAspect, 1.0f, FRUSTUM_DEPTH);
 
@@ -1543,7 +1544,7 @@ class RedbookCh04Shader : public SDLTestWindow
 			, mDepthTexture( 0 )
 			, mGroundVBO( 0 )
 			, mGroundVAO( 0 )
-			, mObject( VBMObjectFileDescriptor( "resources/armadillow_low.vbm", 0, 1, 2 ) )
+			, mObject( VBMObjectFileDescriptor( "resources/armadillo_low.vbm", 0, 1, 2 ) )
 		{
 			;
 		}
@@ -1564,6 +1565,7 @@ class RedbookCh04Shader : public SDLTestWindow
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
 			SDLTestWindow::initialize( xAttributes );
+			TRACE;
 			mAspect = mH / mW;
 
 			mShadowShader.initialize( );
@@ -1579,6 +1581,7 @@ class RedbookCh04Shader : public SDLTestWindow
 			mRenderSceneUniforms.materialSpecular 	   = mSceneShader.getUniforms( )[ "material_specular" ];
 			mRenderSceneUniforms.materialSpecularPower = mSceneShader.getUniforms( )[ "material_specular_power" ];
 
+			TRACE;
 			mSceneShader([&](){
 
 				glUniform1i( mSceneShader.getUniforms()[ "depth_texture" ], 0 );
@@ -1624,6 +1627,7 @@ class RedbookCh04Shader : public SDLTestWindow
 				        0.0f, 1.0f, 0.0f,
 				        0.0f, 1.0f, 0.0f
 				};
+				TRACE;
 
     				glGenVertexArrays(1, &mGroundVAO);
     				glGenBuffers(1, &mGroundVBO);;
@@ -1640,7 +1644,11 @@ class RedbookCh04Shader : public SDLTestWindow
 
 			});
 
+			TRACE;
+
 			mObject.initialize( );
+
+			BLOCK_EXECUTION;
 		}
 
 		virtual void run( )

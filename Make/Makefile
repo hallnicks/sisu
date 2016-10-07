@@ -28,8 +28,31 @@ TARGET_LIBS += tbb
 #ffmpeg
 TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample log m z iconv
 
+#opencv
+TARGET_LIBS += \
+ opencv_core310\
+ opencv_calib3d310\
+ opencv_features2d310\
+ opencv_flann310\
+ opencv_highgui310\
+ opencv_imgcodecs310\
+ opencv_imgproc310\
+ opencv_ml310\
+ opencv_objdetect310\
+ opencv_photo310\
+ opencv_shape310\
+ opencv_stitching310\
+ opencv_superres310\
+ opencv_video310\
+ opencv_videoio310\
+ opencv_videostab310
+
+
 #Extra's for fun (TODO: integrate)
 #TARGET_LIBS += curl twitcurl utp x264
+
+# OpenAL
+TARGET_LIBS += OpenAL32
 
 # for SDL
 SDL_CONFIG   := sdl2-config --prefix=/usr
@@ -50,8 +73,15 @@ LDFLAGS		+= $(FREEGLUT_FLAGS)
 #CXXFLAGS += -Wall -Wextra
 #LDFLAGS  += -Wall -Wextra
 #CXXFLAGS += -Werror -O3
-CXXFLAGS += -Wno-deprecated-declarations
 
+#for FFMPEG :( TODO: Use non-deprecated approachj
+CXXFLAGS += -Wno-deprecated-declarations 
+
+#for OpenAL:( TODO: Fix bugs in OpenAL example code
+CXXFLAGS += -Wno-pointer-arith -Wno-attributes
+
+#for Redbook 
+CXXFLAGS += -Wno-int-to-pointer-cast
 
 # for GLEW
 CXXFLAGS     += -I/usr/include

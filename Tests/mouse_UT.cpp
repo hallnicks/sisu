@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 #include "mouse.hpp"
 #include "Stopwatch.hpp"
@@ -131,3 +132,4 @@ TEST(mouse_UT, MouseHandlerCallback)
 		SDL_Quit( );
 	}
 }
+#endif

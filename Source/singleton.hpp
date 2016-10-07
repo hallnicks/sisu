@@ -40,7 +40,7 @@ class Singleton
 	static bool sIsMultiThreaded;
 
 	public:
-		static XClass * get(  ) 
+		static XClass * get(  )
 		{
 			if (sIsMultiThreaded)
 			{

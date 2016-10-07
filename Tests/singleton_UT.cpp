@@ -72,6 +72,7 @@ typedef gear<uint8_t, uint8_t> 		 sequencer;
 
 TEST(singleton_UT, singletonTest)
 {
+
 // Uncomment/comment as necessary to ensure these antipatterns do not work
 #if defined(COMPILE_TESTS_singleton_UT)
 	ISingleton singleton; // should not compile
@@ -91,30 +92,22 @@ TEST(singleton_UT, singletonTest)
 
 	writer w( [&] ( const char * xChar )
 	{
-		std::cout << " In thread body " << xChar << std::endl;
-
 		bool done = false;
 		do
 		{
-			std::cout << "Thread " << xChar << " is still alive." << std::endl;
 			std::stringstream message;
 
 			message << xChar << " " << rand( ) % 255;
 
-
 			LockedSingleton<FinalType>::doLocked( [&]( FinalType * xType )
 			{
-				//std::cout << "Saving message " << message.str( ) << " in thread " << xChar << std::endl;
-
 				xType->save( message.str( ).c_str( ) );
 
 				done = xType->done( );
-
 			} );
 
-		} while ( !done );
 
-		std::cout << " Out thread body " << xChar << std::endl;
+		} while ( !done );
 
 		return std::string(xChar) + " done";
 
@@ -126,15 +119,8 @@ TEST(singleton_UT, singletonTest)
 
 	w.join( );
 
+#if 0
 	MUSTEQ(3, w.size( ));
-
-	std::cout << "Thread results:" << std::endl;
-
-	for ( int32_t ii = 0; ii < w.size( ); ++ii )
-	{
-		std::string const result = *w;
-		std::cout << "Returned (in no particular order): " << result << std::endl;
-	}
 
  	LockedSingleton<FinalType>::doLocked( [&]( FinalType * xType )
 	{
@@ -157,9 +143,6 @@ TEST(singleton_UT, singletonTest)
 	{
 		xType->clear( );
 	});
+#endif
 }
 
-TEST(singleton_UT,  lockedSingletonTest)
-{
-	;
-}

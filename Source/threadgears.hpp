@@ -254,7 +254,9 @@ class gear
 	}
 
 	public:
-		gear( std::function< XReturnType ( XParameterType ) > xLambda )
+		typedef std::function< XReturnType ( XParameterType ) > ThreadFunction;
+
+		gear( ThreadFunction xLambda )
 			: mLambda( xLambda )
 			, mThreadParametersMutex( )
 			, mResults( )

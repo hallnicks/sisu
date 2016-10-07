@@ -14,6 +14,8 @@ mutex::mutex( const pthread_mutexattr_t * xAttributes )
 
 mutex::~mutex( )
 {
+	lock( );
+
 	if ( pthread_mutex_destroy( &mMutex ) != 0 )
 	{
 		std::cerr << "pthread_mutex_destroy failed." << std::endl;
@@ -21,7 +23,7 @@ mutex::~mutex( )
 	}
 }
 
-void mutex::lock( ) 
+void mutex::lock( )
 {
 	if ( pthread_mutex_lock( &mMutex ) != 0 )
 	{
@@ -29,7 +31,7 @@ void mutex::lock( )
 		exit( -1 );
 	}
 }
-	
+
 void mutex::unlock( )
 {
 	if ( pthread_mutex_unlock( &mMutex ) != 0 )

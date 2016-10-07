@@ -1,3 +1,4 @@
+#if 0
 #include "test.hpp"
 
 #include "threadgears.hpp"
@@ -8,10 +9,13 @@
 #include <iostream>
 
 #include <math.h>
+#include <limits>
 #include <map>
+#include <vector>
 
 #include "memblock.hpp"
 #include "Packet.hpp"
+#include "Stopwatch.hpp"
 
 using namespace sisu;
 
@@ -31,15 +35,15 @@ class sdl_AudioMixer_UT : public context
 		void Up( ) { }
 		void Down( ) { }
 };
-const char * sdl_AudioMixer_UT::sSounds[] = { "resources/sound01.wav"
+const char * sdl_AudioMixer_UT::sSounds[] = { "resources/sound05.wav"
                                             /*, "resources/sound02.wav"
                                             , "resources/sound03.wav"
                                             , "resources/sound04.wav" */};
 
 const uint8_t sdl_AudioMixer_UT::sSoundCount = sizeof( sSounds ) / sizeof( const char * );
 
-typedef gear<uint8_t, uint8_t> Thread;
-typedef Packet<384000> 	       AudioPacket;
+typedef gear<uint8_t, uint8_t> 			    Thread;
+typedef Packet<384000> 	       			    AudioPacket;
 typedef moodycamel::ConcurrentQueue< AudioPacket *> AudioQ;
 
 struct _SDLAudioMixerUserData
@@ -71,7 +75,8 @@ class SDLAudioMixer
 	AudioQ mQ;
 
 	mutex mLoadWAVMapMutex
-	    , mOpenAudioMapMutex;
+	    , mOpenAudioMapMutex
+	    , mSpawnThreadMutex;
 
 	UserDataStore mLoadWAVUserData
 		    , mOpenAudioUserData;
@@ -85,65 +90,121 @@ class SDLAudioMixer
 	       , mSamplesPerFrame
 	       , mmsPerFrame;
 
-	private:
-		static void _openAudioCallback( void * xUserData, uint8_t * xStream, int32_t xLength )
+	std::vector< Thread * > mThreads;
+
+	Thread * _spawnThread( Thread::ThreadFunction xLambda )
+	{
+		Thread * newThread = NULL;
+		mSpawnThreadMutex.run([&]() { mThreads.push_back( ( newThread = new Thread( xLambda ) ) ); } );
+		return newThread;
+	}
+
+	static void _openAudioCallback( void * xUserData, uint8_t * xStream, int32_t xLength )
+	{
+		_SDLAudioMixerUserData * ud = (_SDLAudioMixerUserData*)xUserData;
+
+		AudioPacket * ap = NULL;
+
+		if ( ud == NULL || ud->q == NULL || !ud->q->try_dequeue( ap ) || ap == NULL || xStream == NULL )
 		{
-			_SDLAudioMixerUserData * ud = (_SDLAudioMixerUserData*)xUserData;
-
-			AudioPacket * ap = NULL;
-
-			if ( ud == NULL || ud->q == NULL || !ud->q->try_dequeue( ap ) || ap == NULL || xStream == NULL )
-			{
-				return;
-			}
-
-			SDL_memcpy( xStream, ap->getBuffer( ), xLength );
-
-			delete ap; // TODO: Reuse objects for a lower / more predictable memory profile
+			return;
 		}
 
-		static void _loadWAVCallback( void * xUserData, uint8_t * xStream, int32_t xLength )
+		/*
+		float * dst = reinterpret_cast< float * > ( xStream );
+		float * src = reinterpret_cast< float * > ( ap->getBuffer( ) );
+
+		for ( uint32_t ii = 0; ii < xLength/sizeof(float); ++ii )
 		{
-			std::cout << __PRETTY_FUNCTION__ << std::endl;
+			double mixed = src[ ii ] + dst [ ii ];
+
+			double const min = std::numeric_limits<float>::min( );
+			double const max = std::numeric_limits<float>::max( );
+
+			dst[ ii ] = ( mixed >= max ? max : ( mixed <= min ? min : mixed ) );
+		}
+		*/
+
+		if ( ap->getSize( ) < xLength )
+		{
+			std::cerr << "Buffer underrun." << std::endl;
 		}
 
-		void _openAudio( _SDLAudioMixerUserData * xUD )
+		//SDL_memset( xStream, 0, xLength );
+		//SDL_MixAudioFormat( xStream, ap->getBuffer( ), AUDIO_F32, xLength, SDL_MIX_MAXVOLUME );
+		SDL_memcpy( xStream, ap->getBuffer( ), xLength );
+
+		delete ap; // TODO: Reuse objects for a lower / more predictable memory profile
+
+		std::cout << __PRETTY_FUNCTION__ << std::endl;
+	}
+
+	static void _loadWAVCallback( void * xUserData, uint8_t * xStream, int32_t xLength )
+	{
+		std::cout << __PRETTY_FUNCTION__ << std::endl;
+	}
+
+	void _openAudio( _SDLAudioMixerUserData * xUD )
+	{
+		mWant.freq 	= mSampleRate;
+		mWant.format 	= AUDIO_F32;
+		mWant.channels 	= 2;
+		mWant.samples 	= mFloatStreamLength;
+		mWant.callback 	= _openAudioCallback;
+		mWant.userdata  = static_cast<void*>( xUD );
+
+		if ( ( xUD->device = SDL_OpenAudioDevice( NULL, 0, &mWant, &mHave, SDL_AUDIO_ALLOW_FORMAT_CHANGE ) ) == 0 )
 		{
-			mWant.freq 	= mSampleRate;
-			mWant.format 	= AUDIO_F32;
-			mWant.channels 	= 2;
-			mWant.samples 	= mFloatStreamLength;
-			mWant.callback 	= _openAudioCallback;
-			mWant.userdata  = static_cast<void*>( xUD );
-
-			if ( ( xUD->device = SDL_OpenAudioDevice( NULL, 0, &mWant, &mHave, SDL_AUDIO_ALLOW_FORMAT_CHANGE ) ) == 0 )
-			{
-				std::cerr << "SDL_OpenAudioDevice( .. ) failed:" << SDL_GetError( ) << std::endl;
-				exit( -1 );
-			}
-
-			SDL_PauseAudioDevice( xUD->device, 0 );
-
-			mSampleRate 	   = mHave.freq;
-			mFloatStreamLength = mHave.size/4;
-			mSamplesPerFrame   = mSampleRate/mFrameRate;
-			mmsPerFrame	   = 1000/mFrameRate;
+			std::cerr << "SDL_OpenAudioDevice( .. ) failed:" << SDL_GetError( ) << std::endl;
+			exit( -1 );
 		}
 
-		void _loadWAV( _SDLAudioMixerUserData * xUD )
+		SDL_PauseAudioDevice( xUD->device, 0 );
+
+		mSampleRate 	   = mHave.freq;
+		mFloatStreamLength = mHave.size/4;
+		mSamplesPerFrame   = mSampleRate/mFrameRate;
+		mmsPerFrame	   = 1000/mFrameRate;
+	}
+
+	void _loadWAV( _SDLAudioMixerUserData * xUD )
+	{
+		SDL_AudioSpec want, have;
+
+		want.freq     = mSampleRate;
+		want.format   = AUDIO_F32;
+		want.channels = 2;
+		want.samples  = mFloatStreamLength;
+		want.callback = _loadWAVCallback;
+		want.userdata = static_cast<void*>( xUD );
+
+		if ( !SDL_LoadWAV( xUD->file, &want, &xUD->buffer, &xUD->bufferLength ) )
 		{
-			SDL_AudioSpec want, have;
-
-			want.callback = _loadWAVCallback;
-			want.userdata = static_cast<void*>( xUD );
-
-			if ( !SDL_LoadWAV( xUD->file, &want, &xUD->buffer, &xUD->bufferLength ) )
-			{
-				std::cerr << "SDL_LoadWav( .. ) failed: " << SDL_GetError( ) << std::endl;
-				exit( -1 );
-			}
+			std::cerr << "SDL_LoadWav( .. ) failed: " << SDL_GetError( ) << std::endl;
+			exit( -1 );
 		}
 
+		uint64_t bytesToQueue = xUD->bufferLength - 1;
+
+		uint64_t offset = 0;
+
+		while ( bytesToQueue > 0 )
+		{
+			AudioPacket * pAP = new AudioPacket( );
+
+			uint64_t const packetSize = pAP->getSize( ) - 1;
+			uint64_t const bytesWritten = packetSize > bytesToQueue ? bytesToQueue : packetSize;
+
+			pAP->writeBuffer(  (uint8_t*)( xUD->buffer + offset ), bytesWritten );
+
+			mQ.enqueue( pAP );
+
+			bytesToQueue -= bytesWritten;
+			offset 	     += bytesWritten;
+		}
+
+		SDL_FreeWAV( xUD->buffer );
+	}
 
 	static float _generateSignal( float const xHerz )
 	{
@@ -186,6 +247,8 @@ class SDLAudioMixer
 
 		~SDLAudioMixer( )
 		{
+			// TODO: Make thread that does this periodically
+			// to prevent abuse of play( )
 			auto cleanUserData = [&]( mutex xM, UserDataStore & xStore )
 			{
 				xM.run([&]( )
@@ -199,6 +262,15 @@ class SDLAudioMixer
 
 			cleanUserData( mLoadWAVMapMutex, mLoadWAVUserData );
 			cleanUserData( mOpenAudioMapMutex, mOpenAudioUserData );
+
+			mSpawnThreadMutex.run([&]()
+			{
+				for ( auto && thread : mThreads )
+				{
+					thread->join( );
+					delete thread;
+				}
+			});
 		}
 
 		void initialize( )
@@ -230,7 +302,6 @@ class SDLAudioMixer
 		// all play( ) methods are asynchronous and should return immediately.
 		void playWAVImmediately( const char * xPathToWav )
 		{
-			/*
 			_SDLAudioMixerUserData * udLoadWAV = new _SDLAudioMixerUserData( );
 
 			udLoadWAV->issued       = "_loadWAV";
@@ -247,43 +318,31 @@ class SDLAudioMixer
 
 			_loadWAV( udLoadWAV );
 
-			_SDLAudioMixerUserData * udOpenAudio = new _SDLAudioMixerUserData( );
-
-			udOpenAudio->issued 	  = "_OpenAudio";
-		        udOpenAudio->file   	  = xPathToWav;
-			udOpenAudio->eventCount   = 0;
-		        udOpenAudio->loadedLength = 0;
-		        udOpenAudio->bufferLength = udLoadWAV->bufferLength;
-			udOpenAudio->buffer       = udLoadWAV->buffer;
-			udOpenAudio->threadID     = ++mThreadIDFactory;
-			udOpenAudio->device       = 0;
-			udOpenAudio->datastore    = static_cast<void*>( &mOpenAudioUserData );
-
-			mOpenAudioMapMutex.run([&]( ){ mOpenAudioUserData[ udLoadWAV->threadID ] = udLoadWAV; });
-
-			_openAudio( udOpenAudio );
-
-			*/
 			std::cerr << __PRETTY_FUNCTION__ << "(" << xPathToWav << ")" << std::endl;
 		}
 
 		void playSineWave( double const xDuration )
 		{
-			event quit;
-
-			Thread enqueueSineWave( [ & ]( uint8_t )->uint8_t
+			Thread * enqueueSineWave = _spawnThread( [ & ]( uint8_t )->uint8_t
 			{
-				static uint32_t const sMaxHerz = 888;
-				static uint32_t const sMinHerz = 8;
+				static uint32_t const sMaxHerz = rand( ) % 888 + 500;
+				static uint32_t const sMinHerz = rand( ) % 8   + 5;
 			        static int32_t const step = 3000;
+
 			        int32_t stepper = 0;
 
 			        float herz = sMaxHerz;
+
 			        bool reverse = false;
 
+				double accum = 0.0;
 
-				while ( !quit.isSet( ) )
+				Stopwatch t;
+
+				for ( ;; )
 				{
+					t.startMs( );
+
 					uint32_t audioBufferSize = mHave.freq;
 
 					if ( audioBufferSize % mSamplesPerFrame )
@@ -298,26 +357,26 @@ class SDLAudioMixer
 					{
 						buffer[ ii ] = _generateSignal( herz );
 
-                                                if ( ++stepper % step == 0 )
+                                                if ( ++stepper % step != 0 )
+						{
+							continue;
+						}
+
+                                                if ( !reverse )
                                                 {
-                                                        if ( !reverse )
+
+                                                        if ( ( herz += 3.33 ) >= sMaxHerz)
                                                         {
-                                                                herz += 3.33;
-
-                                                                if ( herz >= sMaxHerz)
-                                                                {
-                                                                        reverse = true;
-                                                                }
-								continue;
-							}
-
-							herz -= 3.33;
-
-                                                        if( herz <= sMinHerz )
-                                                        {
-                                                                  reverse = false;
+                                                        	reverse = true;
                                                         }
-                                                }
+
+							continue;
+						}
+
+                                                if( ( herz -= 3.33 ) <= sMinHerz )
+                                                {
+                                                	reverse = false;
+						}
 					}
 
 					AudioPacket * pAP = new AudioPacket( );
@@ -333,29 +392,33 @@ class SDLAudioMixer
 					pAP->writeBuffer(  (uint8_t*)buffer, audioBufferSize*sizeof(float) );
 
 					mQ.enqueue( pAP );
+
+					if ( ( accum += t.stop( ) ) >= xDuration )
+					{
+						break;
+					}
 				}
 
 				return 0;
 			} );
 
-			enqueueSineWave( 0 );
+			(*enqueueSineWave)( 0 );
 
-			sleep::ms( xDuration );
-
-			quit.set( );
-
-			enqueueSineWave.join( );
 			std::cerr << __PRETTY_FUNCTION__ << "(" << xDuration << ")" << std::endl;
 		}
 
 		void playRandomNoise( double const xDuration )
 		{
-			event quit;
-
-			Thread enqueueRandomNoise( [ & ]( uint8_t )->uint8_t
+			Thread * enqueueRandomNoise = _spawnThread( [ & ]( uint8_t )->uint8_t
 			{
-				while ( !quit.isSet( ) )
+				Stopwatch t;
+
+				double accum = 0.0;
+
+				while ( 1 )
 				{
+					t.startMs( );
+
 					uint32_t audioBufferSize = mHave.freq;
 
 					if ( audioBufferSize % mSamplesPerFrame )
@@ -383,19 +446,20 @@ class SDLAudioMixer
 
 					pAP->writeBuffer(  (uint8_t*)buffer, audioBufferSize*sizeof(float) );
 
+					std::cout << "Enqueue random noise." << std::endl;
 					mQ.enqueue( pAP );
+
+					if ( ( accum += t.stop( ) ) >= xDuration )
+					{
+						break;
+					}
 				}
+
 
 				return 0;
 			});
 
-			enqueueRandomNoise( 0 );
-
-			sleep::ms( xDuration );
-
-			quit.set( );
-
-			enqueueRandomNoise.join( );
+			(*enqueueRandomNoise)( 0 );
 
 			std::cerr << __PRETTY_FUNCTION__ << "(" << xDuration << ")" << std::endl;
 		}
@@ -418,13 +482,13 @@ TEST(sdl_AudioMixer_UT, PlaySDLAudioWithoutExceptions)
 	{
 		while (!quit.isSet( ) )
 		{
-			//mixer.playWAVImmediately( _randomSound( ) );
+			mixer.playWAVImmediately( _randomSound( ) );
 
-			mixer.playSineWave( 15000.0 );
+			//mixer.playSineWave( 3000.0 );
 
-			mixer.playRandomNoise( 3000.0 );
+			//mixer.playRandomNoise( 3000.0 );
 
-			sleep::ms( rand( ) % 3000 );
+			sleep::ms( 10000 );
 		}
 	});
 
@@ -433,8 +497,9 @@ TEST(sdl_AudioMixer_UT, PlaySDLAudioWithoutExceptions)
 	while ( !quit.isSet( ) )
 	{
 		// do whatever
-		sleep::ms( 3000 ); 
+		sleep::ms( 3000 );
 	};
 
 	BLOCK_EXECUTION;
 }
+#endif
