@@ -1,3 +1,4 @@
+include $(SISU)/os.mk
 include $(SISU)/time.mk
 include $(SISU)/files.mk
 include $(SISU)/goals.mk

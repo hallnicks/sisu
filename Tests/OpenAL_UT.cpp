@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "sisumath.hpp"
@@ -89,4 +88,3 @@ TEST(OpenAL_UT, PlayAudioWithoutExceptions)
 	ALFWShutdownOpenAL();
 	ALFWShutdown();
 }
-#endif

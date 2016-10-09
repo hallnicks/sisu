@@ -8,20 +8,21 @@ PHONY_SRC      := $(PHONY_OBJECTS:.o=.cpp)
 #$(info PHONY_DEPS    = $(PHONY_DEPS))
 #$(info PHONY_SRC     = $(PHONY_SRC))
 
-LINK_LIBRARIES := $(call prefixAll,$(TARGET_LIBS),-l)
-INCLUDE_PATHS  := $(call prefixAllPaths,$(INCLUDE_DIRS) $(SOURCE_DIRS),-I) 
+LINK_LIBRARIES        := $(call prefixAll,$(TARGET_LIBS),-l)
+LINK_STATIC_LIBRARIES := $(call prefixAll,$(TARGET_STATIC_LIBS),-l)
+INCLUDE_PATHS  	      := $(call prefixAllPaths,$(INCLUDE_DIRS) $(SOURCE_DIRS),-I) 
 
 buildCommandExe     = \
-$(info $(CXX) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))\
-$(shell $(CXX) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
+$(info $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) -Wl,-Bdynamic $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))\
+$(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) -Wl,-Bdynamic $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
 
 buildCommandStatic  = \
 $(info $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))\
 $(shell $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))
 
 buildCommandShared  = \
-$(info $(CXX) -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))\
-$(shell $(CXX) -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
+$(info $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))\
+$(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
 
 coalesceEntryPoints = $(call coalesceObjects,$(OBJDIR),$(call getFiles,$(1),$(SOURCE_EXT)))
 
@@ -42,7 +43,7 @@ $(TARGET_EXE_NAME): $(PHONY_OBJECTS)
 	$(eval target = $(shell basename $@))
 	$(eval ENTRY_POINT = $(call coalesceEntryPoints,../$(target)Main))
 	$(shell mkdir -p $(dir $(ENTRY_POINT)))
-	$(shell $(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) ../$(target)Main/main_sisu.cpp $(CXX_OBJ_FLAG) $(ENTRY_POINT))
+	$(shell $(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) ../$(target)Main/main_sisu.cpp -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic   $(CXX_OBJ_FLAG) $(ENTRY_POINT))
 	$(eval OBJECTS = $(PHONY_OBJECTS) $(ENTRY_POINT))
 	$(OUT)$(call buildCommandExe,$(target))
 
@@ -64,7 +65,7 @@ endif
 %.o: %.dep %.cpp
 	$(eval cpp_file = $(subst $(META_DIR),,$*.cpp))
 	$(info CPP += $(cpp_file))
-	$(OUT)$(CXX) $(LINK_LIBRARIES) $(CXXFLAGS) $(CXX_FILE_FLAG) $(cpp_file) $(CXX_OBJ_FLAG) $@
+	$(OUT)$(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) $(cpp_file) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic $(LINK_LIBRARIES) $(CXX_OBJ_FLAG) $@
 
 depclean:
 	$(foreach dep,$(PHONY_DEPS),$(shell rm -rf $(dep)))

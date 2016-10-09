@@ -45,7 +45,8 @@ TARGET_LIBS += \
  opencv_superres310\
  opencv_video310\
  opencv_videoio310\
- opencv_videostab310
+ opencv_videostab310\
+ opencv_world310
 
 
 #Extra's for fun (TODO: integrate)

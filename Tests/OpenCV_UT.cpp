@@ -9,6 +9,16 @@
 #include <concurrentqueue.h>
 #include <iostream>
 
+#ifdef WIN32
+    #define WIN32_LEAN_AND_MEAN 1
+    #define NOMINMAX 1
+    #include <windows.h>
+#endif
+#if defined(_WIN64)
+    #include <windows.h>
+#endif
+
+#include <SDL2/SDL_opengl.h>
 #include <math.h>
 #include <limits>
 
@@ -20,10 +30,17 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
+#include "opencv2/core/opengl.hpp"
+#include "opencv2/core/cuda.hpp"
+#include "opencv2/highgui.hpp"
+
+#include "gltools.hpp"
 
 using namespace cv;
+using namespace cv::cuda;
 using namespace std;
 using namespace sisu;
+
 
 namespace {
 
@@ -35,6 +52,27 @@ class OpenCV_UT : public context
 		void Up( ) { }
 		void Down( ) { }
 };
+
+struct DrawData
+{
+    ogl::Arrays arr;
+    ogl::Texture2D tex;
+    ogl::Buffer indices;
+};
+
+void draw(void* userdata);
+
+void draw(void* userdata)
+{
+    DrawData* data = static_cast<DrawData*>(userdata);
+
+    glRotated(0.6, 0, 1, 0);
+
+    ogl::render(data->arr, data->indices, ogl::TRIANGLES);
+}
+
+const int win_width = 800;
+const int win_height = 640;
 
 } // namespace
 
@@ -79,4 +117,64 @@ TEST(OpenCV_UT, TestWebcam)
     }
     // the camera will be closed automatically upon exit
     // cap.close();
+}
+
+TEST(OpenCV_UT, TestOpenGL)
+{
+    string filename = "resources\\test.jpg";
+
+    Mat img = imread(filename);
+    if (img.empty())
+    {
+        cerr << "Can't open image " << filename << endl;
+	exit( -1 );
+    }
+
+    namedWindow("OpenGL", WINDOW_OPENGL);
+    resizeWindow("OpenGL", win_width, win_height);
+
+    Mat_<Vec2f> vertex(1, 4);
+    vertex << Vec2f(-1, 1), Vec2f(-1, -1), Vec2f(1, -1), Vec2f(1, 1);
+
+    Mat_<Vec2f> texCoords(1, 4);
+    texCoords << Vec2f(0, 0), Vec2f(0, 1), Vec2f(1, 1), Vec2f(1, 0);
+
+    Mat_<int> indices(1, 6);
+    indices << 0, 1, 2, 2, 3, 0;
+
+    DrawData data;
+
+    data.arr.setVertexArray(vertex);
+    data.arr.setTexCoordArray(texCoords);
+    data.indices.copyFrom(indices);
+    data.tex.copyFrom(img);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    perspectiveGL(45.0, (double)win_width / win_height, 0.1, 100.0);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    lookAtGL( { 0, 0, 3}, { 0, 0, 0 }, { 0, 1, 0 } );
+
+    glEnable(GL_TEXTURE_2D);
+    data.tex.bind();
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexEnvi(GL_TEXTURE_2D, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+    glDisable(GL_CULL_FACE);
+
+    setOpenGlDrawCallback("OpenGL", draw, &data);
+
+    for (;;)
+    {
+        updateWindow("OpenGL");
+        int key = waitKey(40);
+        if ((key & 0xff) == 27)
+            break;
+    }
+
+    setOpenGlDrawCallback("OpenGL", 0, 0);
+    destroyAllWindows();
 }
