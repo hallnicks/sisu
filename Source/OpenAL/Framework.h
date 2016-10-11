@@ -1,3 +1,4 @@
+#ifdef SISU_OPENAL
 #ifndef _FRAMEWORK_H_ // Win32 version
 #define _FRAMEWORK_H_
 
@@ -88,3 +89,4 @@ extern ALenum eXRAMSize, eXRAMFree;
 extern ALenum eXRAMAuto, eXRAMHardware, eXRAMAccessible;
 
 #endif // _FRAMEWORK_H_
+#endif // SISU_OPENAL

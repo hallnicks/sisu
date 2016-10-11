@@ -1,3 +1,4 @@
+#ifdef SISU_OPENAL
 // Waves.h: interface for the CWaves class.
 //
 //////////////////////////////////////////////////////////////////////
@@ -111,3 +112,4 @@ private:
 };
 
 #endif // _CWAVES_H_
+#endif // SISU_OPENAL

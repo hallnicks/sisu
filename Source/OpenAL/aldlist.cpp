@@ -1,3 +1,4 @@
+#ifdef SISU_OPENAL
 /*
  * Copyright (c) 2006, Creative Labs Inc.
  * All rights reserved.
@@ -23,7 +24,9 @@
  */
 
 #include "aldlist.h"
+#ifndef __linux__
 #include <windows.h>
+#endif
 #include "alc.h"
 
 
@@ -91,7 +94,7 @@ ALDeviceList::ALDeviceList()
 								ALDeviceInfo.pvstrExtensions->push_back("AL_EXT_LINEAR_DISTANCE");
 							if (ALFunction.alIsExtensionPresent("AL_EXT_EXPONENT_DISTANCE") == AL_TRUE)
 								ALDeviceInfo.pvstrExtensions->push_back("AL_EXT_EXPONENT_DISTANCE");
-							
+
 							if (ALFunction.alIsExtensionPresent("EAX2.0") == AL_TRUE)
 								ALDeviceInfo.pvstrExtensions->push_back("EAX2.0");
 							if (ALFunction.alIsExtensionPresent("EAX3.0") == AL_TRUE)
@@ -333,3 +336,4 @@ unsigned int ALDeviceList::GetMaxNumSources()
 
 	return iSourceCount;
 }
+#endif // SISU_OPENAL

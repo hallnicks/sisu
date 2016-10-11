@@ -1,3 +1,4 @@
+#ifdef SISU_OPENAL
 /*
  * Copyright (c) 2006, Creative Labs Inc.
  * All rights reserved.
@@ -312,3 +313,4 @@ ALboolean ALFWIsEFXSupported()
 
 	return bEFXSupport;
 }
+#endif // SISU_OPENAL

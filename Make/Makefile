@@ -22,7 +22,7 @@ TARGET_LIBS  += png z freetype
 TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32 Shlwapi gdi32
 
 TARGET_LIBS += tbb
-
+	
 #TARGET_LIBS += ncurses
 
 #ffmpeg
@@ -47,13 +47,16 @@ TARGET_LIBS += \
  opencv_videoio310\
  opencv_videostab310\
  opencv_world310
-
+# comment the line below to disable OpenCV 
+CXXFLAGS += -D SISU_OPENCV
 
 #Extra's for fun (TODO: integrate)
 #TARGET_LIBS += curl twitcurl utp x264
 
 # OpenAL
 TARGET_LIBS += OpenAL32
+# Comment the line below to disable OpenAL 
+CXXFLAGS += -D SISU_OPENAL
 
 # for SDL
 SDL_CONFIG   := sdl2-config --prefix=/usr

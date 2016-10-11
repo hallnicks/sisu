@@ -1,3 +1,4 @@
+#ifdef SISU_OPENAL
 /*
  * Copyright (c) 2006, Creative Labs Inc.
  * All rights reserved.
@@ -686,3 +687,4 @@ char *CWaves::GetErrorString(WAVERESULT wr, char *szErrorString, unsigned long n
 	szErrorString[nSizeOfErrorString-1] = '\0';
 	return szErrorString;
 }
+#endif // SISU_OPENAL

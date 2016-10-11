@@ -1,3 +1,4 @@
+#ifdef SISU_OPENAL
 /*
  * Copyright (c) 2006, Creative Labs Inc.
  * All rights reserved.
@@ -446,3 +447,4 @@ ALvoid UnloadOAL10Library()
 		g_hOpenALDLL = NULL;
 	}
 }
+#endif // SISU_OPENAL

@@ -1,3 +1,4 @@
+#ifdef SISU_OPENAL
 #ifndef ALDEVICELIST_H
 #define ALDEVICELIST_H
 
@@ -47,3 +48,4 @@ private:
 };
 
 #endif // ALDEVICELIST_H
+#endif // SISU_OPENAL

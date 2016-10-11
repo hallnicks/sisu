@@ -1,3 +1,4 @@
+#ifdef SISU_OPENAL
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "sisumath.hpp"
@@ -88,3 +89,4 @@ TEST(OpenAL_UT, PlayAudioWithoutExceptions)
 	ALFWShutdownOpenAL();
 	ALFWShutdown();
 }
+#endif // SISU_OPENAL

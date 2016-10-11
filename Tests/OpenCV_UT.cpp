@@ -1,3 +1,4 @@
+#ifdef SISU_OPENCV
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "sisumath.hpp"
@@ -119,6 +120,7 @@ TEST(OpenCV_UT, TestWebcam)
     // cap.close();
 }
 
+#if 0
 TEST(OpenCV_UT, TestOpenGL)
 {
     string filename = "resources\\test.jpg";
@@ -178,3 +180,5 @@ TEST(OpenCV_UT, TestOpenGL)
     setOpenGlDrawCallback("OpenGL", 0, 0);
     destroyAllWindows();
 }
+#endif
+#endif // SISU_OPENCV

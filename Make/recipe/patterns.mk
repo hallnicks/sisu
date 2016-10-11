@@ -12,17 +12,11 @@ LINK_LIBRARIES        := $(call prefixAll,$(TARGET_LIBS),-l)
 LINK_STATIC_LIBRARIES := $(call prefixAll,$(TARGET_STATIC_LIBS),-l)
 INCLUDE_PATHS  	      := $(call prefixAllPaths,$(INCLUDE_DIRS) $(SOURCE_DIRS),-I) 
 
-buildCommandExe     = \
-$(info $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) -Wl,-Bdynamic $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))\
-$(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) -Wl,-Bdynamic $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
+buildCommandExe     = $(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) -Wl,-Bdynamic $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
 
-buildCommandStatic  = \
-$(info $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))\
-$(shell $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))
+buildCommandStatic  = $(shell $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))
 
-buildCommandShared  = \
-$(info $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))\
-$(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
+buildCommandShared  = $(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
 
 coalesceEntryPoints = $(call coalesceObjects,$(OBJDIR),$(call getFiles,$(1),$(SOURCE_EXT)))
 
