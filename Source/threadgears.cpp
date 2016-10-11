@@ -14,7 +14,9 @@ mutex::mutex( const pthread_mutexattr_t * xAttributes )
 
 mutex::~mutex( )
 {
+#ifndef __linux__
 	lock( );
+#endif
 
 	if ( pthread_mutex_destroy( &mMutex ) != 0 )
 	{

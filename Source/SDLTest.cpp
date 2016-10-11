@@ -69,6 +69,7 @@ void _checkForGLError( const char * xAddendum )
 
 void SDLTestWindow::_setOpenGLAttributes( OpenGLAttributes const & xAttributes )
 {
+#ifndef OPENGLES
 	SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
 
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, xAttributes.mMajorGLVersion );
@@ -89,6 +90,8 @@ void SDLTestWindow::_setOpenGLAttributes( OpenGLAttributes const & xAttributes )
 
 	// TODO: add additional attributes as necessary.. eventually make configurable, etc
 	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+#endif
+
 }
 
 void SDLTestWindow::_hide( )
@@ -115,15 +118,17 @@ void SDLTestWindow::_stealContext( )
 
         if ( ! ( flags & SDL_WINDOW_MAXIMIZED ) )
         {
+#ifndef OPENGLES // has no concept of window focus since there is only one window and context
       	       SDL_MaximizeWindow( mMainWindow );
                SDL_RaiseWindow( mMainWindow );
                SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
 
 	       if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 	       {
-	              std::cerr << "Failed to get window focus." << std::endl;
+	              std::cerr << "Failed to get window focus: " << SDL_GetError( ) << std::endl;
 	              exit( -1 );
 	       }
+#endif
         }
 }
 
@@ -166,8 +171,8 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
         mMainWindow = SDL_CreateWindow( "SDL2 OpenGL"
                                         , SDL_WINDOWPOS_CENTERED
                                         , SDL_WINDOWPOS_CENTERED
-                                        , 1
-                                        , 1
+                                        , 1920 // hack, please remove after test
+                                        , 1080 // hack, do not commit!!!!
                                         , SDL_WINDOW_OPENGL      | SDL_WINDOW_BORDERLESS    |
                                           SDL_WINDOW_SHOWN       | SDL_WINDOW_INPUT_GRABBED |
                                           SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
@@ -186,7 +191,7 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
 	if ( mMainContext == NULL )
 	{
-		std::cerr << "Failed to create GL context from window." << std::endl;
+		std::cerr << "Failed to create GL context from window: " << SDL_GetError( ) << std::endl;
 		exit( -1 );
 	}
 
@@ -201,11 +206,13 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 		exit( -1 );
 	}
 
+#ifndef OPENGLES
         if ( SDL_GL_SetSwapInterval( xAttributes.mSwapInterval ) < 0 )
 	{
-		std::cerr << "Setup vsync failed." << std::endl;
+		std::cerr << "Setup vsync failed: " << SDL_GetError( ) << std::endl;
 		exit( -1 );
 	}
+#endif
 }
 
 } // namespace SISU

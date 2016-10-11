@@ -36,7 +36,7 @@ TEST(libpng_UT, writePNGFile)
 	ofs2 << test1;
 	ofs2.close( );
 
-	MUSTEQ(filesAreEqual( "render01.png", "render02.png" ), TRUE);
+	MUSTEQ(filesAreEqual( "render01.png", "render02.png" ), true);
 }
 
 TEST(libpng_UT, readPNGfile)

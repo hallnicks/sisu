@@ -20,12 +20,13 @@ void noise::note( eFreq xFreq )
 		ioctl( STDOUT_FILENO, KIOCSOUND, 1193180 / static_cast<int32_t>( xFreq ) );
 
 		usleep( 50000 ); // TODO: Replace with a reasonable value for linux
-#endif
+#elif defined WIN32
 		if ( !Beep( (DWORD)xFreq, 500 ) )
 		{
 			std::cerr << "Beep( .. ) failed." << std::endl;
 			exit( -1 );
 		}
+#endif
 	}
 }
 

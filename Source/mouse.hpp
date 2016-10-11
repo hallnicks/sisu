@@ -6,14 +6,13 @@
 #include <string>
 #include <iostream>
 #include <functional>
-#include <conio.h>
 
 #ifndef __linux__
 #include <Windows.h>
+#include <conio.h>
 #endif
 
 #include <SDL2/SDL.h>
-#include <SDL.h>
 
 
 namespace sisu {

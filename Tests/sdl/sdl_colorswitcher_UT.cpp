@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 
@@ -10,7 +9,7 @@
 #endif
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.H>
+#include <SDL2/SDL_opengl.h>
 
 using namespace sisu;
 
@@ -41,6 +40,7 @@ class SDLColorSwitcher : public SDLTestWindow
 					exit(-1);
 				}
 
+				TRACE;
 				if ( ! ( flags & SDL_WINDOW_MAXIMIZED ) )
 				{
 				        SDL_MaximizeWindow( mMainWindow );
@@ -48,12 +48,15 @@ class SDLColorSwitcher : public SDLTestWindow
 				        SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
 				}
 
+				#if 0
 			        if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 			        {
 			                std::cout << "Failed to get window focus." << std::endl;
 			                exit( -1 );
 			        }
+				#endif
 
+				TRACE;
 				glClearColor( _randomGLfloat( )
 					    , _randomGLfloat( )
 					    , _randomGLfloat( )
@@ -62,6 +65,8 @@ class SDLColorSwitcher : public SDLTestWindow
 				glClear( GL_COLOR_BUFFER_BIT );
 
 				SDL_GL_SwapWindow( mMainWindow );
+
+				TRACE;
 			}
 		public:
 			SDLColorSwitcher( )
@@ -84,11 +89,9 @@ class SDLColorSwitcher : public SDLTestWindow
 
 TEST(sdl_colorswitcher_UT, CreateSDLWindowWithoutExceptions)
 {
-
 	SDLColorSwitcher test;
 
 	test.initialize( { 3, 1, 1, false, false } );
 
 	test.run();
 }
-#endif

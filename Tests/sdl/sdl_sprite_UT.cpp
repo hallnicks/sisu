@@ -1,4 +1,4 @@
-#if 0
+#if 0 
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"
@@ -9,13 +9,9 @@
 #include <iostream>
 #include <functional>
 
-#ifndef __linux__
-#include <Windows.h>
-#endif
-
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
-#include <SDL2/SDL_opengl.H>
+#include <SDL2/SDL_opengl.h>
 #include <GL/glu.h>
 #include <stdio.h>
 #include <string>
@@ -37,15 +33,18 @@ class sdl_sprite_UT : public context
 TEST(sdl_sprite_UT, CreateSpriteShaderWindowWithoutPBO)
 {
 	{
+		TRACE;
 		SpriteShader window;
 
+		TRACE;
 		window.initialize( { 4, 4, 0, false, false } );
 
+		TRACE;
 		window.run( );
 	}
 
 }
-
+#if 0
 TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithPBO)
 {
 	{
@@ -57,3 +56,4 @@ TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithPBO)
 	}
 }
 #endif
+#endif // 0 

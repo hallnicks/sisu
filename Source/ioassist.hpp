@@ -10,9 +10,11 @@
 #include <iostream>
 #include <functional>
 
+#ifdef WIN32
 #include <Windows.h>
 #include <dirent.h>
 #include <Shlwapi.h>
+#endif
 
 namespace sisu {
 
@@ -73,11 +75,11 @@ static inline bool filesAreEqual( const char * xLeft, const char * xRight )
 	return true;
 }
 
-
 static void doPerFile( const char * xPath
                       , std::function<bool(const char*)> xFilter
                       , std::function<void(const char*)> xPerFile )
 {
+#ifdef WIN32
 	DIR * directory = NULL;
 
 	struct dirent * entry;
@@ -115,6 +117,10 @@ static void doPerFile( const char * xPath
 	}
 
 	closedir( directory );
+#else
+	std::cerr << __PRETTY_FUNCTION__ << " is not implemented on this platform." << std::endl;
+	exit( -1 );
+#endif
 }
 
 } // namespace

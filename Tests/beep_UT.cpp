@@ -1,6 +1,4 @@
-#if 0
 #include "test.hpp"
-
 #include "beep.hpp"
 
 using namespace sisu;
@@ -21,4 +19,3 @@ TEST(beep_UT, testBeep)
 {
 	noise::octave( );
 }
-#endif

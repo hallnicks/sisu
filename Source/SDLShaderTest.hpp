@@ -1,4 +1,3 @@
-
 #ifndef SDL_SHADER_TEST_DBB12D8670054D2E97E6A436C1F0EC51_HPP_
 #define SDL_SHADER_TEST_DBB12D8670054D2E97E6A436C1F0EC51_HPP_
 
@@ -24,7 +23,7 @@
 
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
-#include <SDL2/SDL_opengl.H>
+#include <SDL2/SDL_opengl.h>
 #include <GL/glu.h>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -330,10 +329,10 @@ class SpriteShader : public SDLTestWindow
 	        {
 	               ;
 	        }
-	        _RGBA2( uint8_t const xR
-	                    , uint8_t const xG
-	                    , uint8_t const xB
-	                    , uint8_t xA = 255 )
+	        _RGBA( uint8_t const xR
+	             , uint8_t const xG
+	             , uint8_t const xB
+	             , uint8_t xA = 255 )
 	        {
 	                r = xR;
 	                g = xG;
@@ -1243,12 +1242,14 @@ class SpriteShader : public SDLTestWindow
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
+		  	TRACE;
 			SDLTestWindow::initialize( xAttributes );
 
 			_initializeMouse( );
 
 			_initializeKeyboard( );
 
+			TRACE;
 			// Load ASCII
 		        for ( char c = '!'; c < '~'; c++ )
 			{
@@ -1340,14 +1341,19 @@ class SpriteShader : public SDLTestWindow
 			glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
 			glBindVertexArray( 0 );
+
+			TRACE;
 		}
 
 		virtual void run( )
 		{
 			while ( !mQuit.isSet( ) )
 			{
+#ifdef WIN32
 				ShowCursor( FALSE );
 				SetCursor( NULL );
+// TODO: Implement cursor hiding on all platforms
+#endif
 
 				render( );
 				SDL_GL_SwapWindow( mMainWindow );

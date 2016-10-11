@@ -46,7 +46,6 @@ void divide( word < XIntegralType > ( & xWord ) [ XSize ] )
 
 TEST(word_UT, words_cout)
 {
-#if 0
 	static int32_t const maxCount = 10;
 	int32_t count = 0;
 	for (int32_t i = 1; i != 0; i <<= 1 )
@@ -55,7 +54,7 @@ TEST(word_UT, words_cout)
 	count =0;
 	for (int32_t i = 1; i != 0; i >>= 1 )
 		{ ++count; std::cout << word< int32_t >( i ) << std::endl; if(count > maxCount) break; }
-#endif
+
 	#define W(xV) word< uint8_t >( xV )
 	static word< uint8_t > uint8[] = { W( 0xFF ), W( 0xE0 ), W( 0xBE ), W( 0xEA ), W( 0xCA ), W( 0xA1 ), W( 0x11 ) };
 	#undef W
@@ -97,13 +96,11 @@ TEST(word_UT, words_cout)
 					   , W( 0xCA13217397997799 )
 					   , W( 0x1391937197734969 ) };
 
-#if 0
 	std::cout << "uint64_t tables." << std::endl;
-	for ( size_t ii = 0; ii < sizeof(uint64)/sizeof(uint64_t); ++ii )
+	for ( size_t ii = 0; ii < sizeof(uint64)/sizeof(word< uint64_t >); ++ii )
 	{
 		std::cout << uint64[ ii ] << std::endl;
 	}
-#endif
 	#undef W
 
 	#define W(xV) word< int64_t >( xV )
@@ -116,14 +113,11 @@ TEST(word_UT, words_cout)
 					 , W( 0x1391937197734969 ) };
 	#undef W
 
-#if 0
 	std::cout << "int64_t tables." << std::endl;
-	for ( size_t ii = 0; ii < sizeof(int64)/sizeof(int64_t); ++ii )
+	for ( size_t ii = 0; ii < sizeof(int64)/sizeof(word< int64_t >); ++ii )
 	{
 		std::cout << int64[ ii ] << std::endl;
 	}
-#endif
-
 
 	#define W(xV) word< double >( xV )
 	static word< double > doubles[] = { W( 0xCEA5E1E550B57AC1 )
@@ -134,19 +128,19 @@ TEST(word_UT, words_cout)
 					  , W( 0xCA13217397997799 )
 					  , W( 0x1391937197734969 ) };
 	#undef W
-#if 0
-	std::cout << "double tables." << std::endl;
-	for ( size_t ii = 0; ii < sizeof(doubles)/sizeof(double); ++ii )
-	{
-		std::cout << doubles[ ii] << std::endl;
-	}
-#endif
 
-#if 0
+	std::cout << "double tables." << std::endl;
+	for ( size_t ii = 0; ii < sizeof(doubles)/sizeof(word< double >); ++ii )
+	{
+		std::cout << doubles[ ii ] << std::endl;
+	}
+
 	shift( uint8 );
 
 	shift( int8 );
 
+// TODO: Fix segfaults which occur when the following are executed.
+#if 0
 	shift( uint16 );
 
 	shift( int16 );
@@ -163,6 +157,7 @@ TEST(word_UT, words_cout)
 
 	divide( doubles );
 #endif
+
 }
 
 TEST(word_UT, words_set_bytes)

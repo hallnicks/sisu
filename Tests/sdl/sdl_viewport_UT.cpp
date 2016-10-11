@@ -7,13 +7,9 @@
 #include <iostream>
 #include <functional>
 
-#ifndef __linux__
-#include <Windows.h>
-#endif
-
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
-#include <SDL2/SDL_opengl.H>
+#include <SDL2/SDL_opengl.h>
 #include <GL/glu.h>
 #include <stdio.h>
 #include <string>

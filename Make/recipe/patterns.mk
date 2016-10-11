@@ -1,6 +1,7 @@
 
 CXXFLAGS       += $(INCLUDE_PATHS)
-PHONY_OBJECTS  := $(call coalesceObjects,..,$(call getFiles,$(SOURCE_DIRS),$(SOURCE_EXT))) 
+PHONY_OBJECTS  := $(call coalesceObjects,..,$(call getFiles,$(SOURCE_DIRS),$(SOURCE_EXT)))
+CLEAN_OBJECTS  := $(call coalesceObjects,..,$(call getFiles,../,$(SOURCE_EXT)))
 PHONY_DEPS     := $(PHONY_OBJECTS:.o=.dep)
 PHONY_SRC      := $(PHONY_OBJECTS:.o=.cpp)
 
@@ -10,13 +11,15 @@ PHONY_SRC      := $(PHONY_OBJECTS:.o=.cpp)
 
 LINK_LIBRARIES        := $(call prefixAll,$(TARGET_LIBS),-l)
 LINK_STATIC_LIBRARIES := $(call prefixAll,$(TARGET_STATIC_LIBS),-l)
-INCLUDE_PATHS  	      := $(call prefixAllPaths,$(INCLUDE_DIRS) $(SOURCE_DIRS),-I) 
+INCLUDE_PATHS  	      := $(call prefixAllPaths,$(INCLUDE_DIRS) $(SOURCE_DIRS),-I)
 
 buildCommandExe     = $(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) $(CXX_OBJ_FLAG) $(BIN_DIR)/$(1) $(OBJECTS) -Wl,-Bdynamic $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
 
 buildCommandStatic  = $(shell $(AR) rvs $(LIB_DIR)/$(1) $(OBJECTS) > $(NIL))
 
-buildCommandShared  = $(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS) $(LDFLAGS) $(LINK_LIBRARIES) > $(NIL))
+#TODO- Re-enable LDFLAGS for shared. Right now it is disabled since you can mix shared/static link targets to build both shared
+# and static libs. We need a separate var for each like LDFLAGS_SHARED, LDFLAGS_STATIC
+buildCommandShared  = $(shell $(CXX) -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic -shared $(CXX_OBJ_FLAG) $(LIB_DIR)/$(1) $(OBJECTS)  $(LINK_LIBRARIES) > $(NIL))
 
 coalesceEntryPoints = $(call coalesceObjects,$(OBJDIR),$(call getFiles,$(1),$(SOURCE_EXT)))
 
@@ -35,13 +38,13 @@ $(TARGET_SHAREDLIB_NAME): $(PHONY_OBJECTS)
 $(TARGET_EXE_NAME): $(PHONY_OBJECTS)
 	$(info EXE += $@)
 	$(eval target = $(shell basename $@))
+	$(info target = $(target))
 	$(eval ENTRY_POINT = $(call coalesceEntryPoints,../$(target)Main))
-	$(shell mkdir -p $(dir $(ENTRY_POINT)))
-	$(shell $(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) ../$(target)Main/main_sisu.cpp -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic   $(CXX_OBJ_FLAG) $(ENTRY_POINT))
-	$(eval OBJECTS = $(PHONY_OBJECTS) $(ENTRY_POINT))
+	$(shell $(CXX) $(CXXFLAGS) $(CXX_FILE_FLAG) ../$(target)Main/main_sisu.cpp -Wl,-Bstatic $(LINK_STATIC_LIBRARIES) -Wl,-Bdynamic $(CXX_OBJ_FLAG) ../$(target)Main/main_sisu.o)
+	$(eval OBJECTS = $(PHONY_OBJECTS) ../$(target)Main/main_sisu.o)
 	$(OUT)$(call buildCommandExe,$(target))
 
-%.dep: 
+%.dep:
 	$(OUT)mkdir -p $(@D)
 	$(eval cpp_file = $(subst $(META_DIR),,$*.cpp))
 	$(info DEP += $(cpp_file) )
@@ -65,7 +68,7 @@ depclean:
 	$(foreach dep,$(PHONY_DEPS),$(shell rm -rf $(dep)))
 
 clean: depclean
-	$(foreach object,$(PHONY_OBJECTS),$(shell rm -rf $(object)))
+	$(foreach object,$(CLEAN_OBJECTS),$(shell rm -rf $(object)))
 	$(call toTheVoid,$(BUILD_DIR))
 
 

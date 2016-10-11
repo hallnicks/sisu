@@ -13,6 +13,11 @@
 
 #include <SDL2/SDL_opengl.h>
 
+#ifdef __linux__
+#include <cstring>
+using std::memcpy;
+#endif
+
 namespace sisu
 {
 	struct _PNGImageDimensions

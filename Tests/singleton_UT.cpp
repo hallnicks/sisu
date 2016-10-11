@@ -119,7 +119,6 @@ TEST(singleton_UT, singletonTest)
 
 	w.join( );
 
-#if 0
 	MUSTEQ(3, w.size( ));
 
  	LockedSingleton<FinalType>::doLocked( [&]( FinalType * xType )
@@ -143,6 +142,4 @@ TEST(singleton_UT, singletonTest)
 	{
 		xType->clear( );
 	});
-#endif
 }
-

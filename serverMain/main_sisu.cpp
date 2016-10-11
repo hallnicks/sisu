@@ -11,7 +11,7 @@
 
 //    You should have received a copy of the GNU General Public License
 //    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 int main( int xArgc, char * xArgv[] )
 {

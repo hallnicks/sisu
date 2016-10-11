@@ -1,4 +1,3 @@
-#if 0
 // This file is part of sisu.
 
 // sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by
@@ -16,6 +15,8 @@
 #include "ttyc.hpp"
 #include "ttycolor.hpp"
 #include "memblock.hpp"
+
+#include <cstring>
 
 #include <concurrentqueue.h>
 
@@ -62,7 +63,7 @@ class Packet
 				exit( -1 );
 			}
 
-			memcpy( mHeapBuffer + mOffset, xData, xSize );
+			std::memcpy( mHeapBuffer + mOffset, xData, xSize );
 
 			mOffset += xSize;
 		}
@@ -163,4 +164,3 @@ TEST(tsq_UT, ThreadSafeQueueTrivial)
 	sleep::ms( 3000 );
 	quit.set( );
 }
-#endif

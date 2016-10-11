@@ -5,14 +5,13 @@
 #include <string>
 #include <iostream>
 #include <functional>
-#include <conio.h>
 
-#ifndef __linux__
+#ifdef WIN32
+#include <conio.h>
 #include <Windows.h>
 #endif
 
 #include <SDL2/SDL.h>
-#include <SDL.h>
 
 #include "keyboard.hpp"
 #include "Stopwatch.hpp"

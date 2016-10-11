@@ -40,7 +40,5 @@ TEST(sdl_RedBookCh03_UT, CreateSDLWindowWithoutExceptions)
 
 	window.initialize( { 4, 4, 1, true, true } );
 	window.run( );
-
-	BLOCK_EXECUTION;
 }
 #endif

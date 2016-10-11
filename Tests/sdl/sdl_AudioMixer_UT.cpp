@@ -499,7 +499,5 @@ TEST(sdl_AudioMixer_UT, PlaySDLAudioWithoutExceptions)
 		// do whatever
 		sleep::ms( 3000 );
 	};
-
-	BLOCK_EXECUTION;
 }
 #endif

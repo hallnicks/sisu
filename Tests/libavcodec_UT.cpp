@@ -1,4 +1,3 @@
-#if 0
 #include "test.hpp"
 
 #include "memblock.hpp"
@@ -174,8 +173,7 @@ typedef gear<uint8_t, uint8_t> Thread;
 
 } // namespace
 
-
-
+#if 0
 // Ensures writes are stateless ( at least for one iteration ) ..
 TEST(libavcodec_UT, writeAVCODECFile)
 {

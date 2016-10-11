@@ -5,14 +5,13 @@
 #include <string>
 #include <iostream>
 #include <functional>
-#include <conio.h>
 
 #ifndef __linux__
+#include <conio.h>
 #include <Windows.h>
 #endif
 
 #include <SDL2/SDL.h>
-#include <SDL.h>
 #include "Stopwatch.hpp"
 
 
@@ -294,8 +293,6 @@ static class KeyboardScancodeMap
 		{
 			return xShiftPressed ? sScanCodesShift[ xCode ] : sScanCodes[ xCode ];
 		}
-
-
 
 } sSDLKeyboardScancodeMap;
 

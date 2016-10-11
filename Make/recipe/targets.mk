@@ -5,11 +5,11 @@ endif
 
 ifneq (,$(findstring static,$(LINKMODES)))
 TARGET_STATICLIB_NAME   := $(foreach target,${TARGET_NAME},$(LIB_DIR)/lib$(target).a)
+LDFLAGS               += -fPIC
 endif
 
 ifneq (,$(findstring shared,$(LINKMODES)))
 TARGET_SHAREDLIB_NAME := $(foreach target,${TARGET_NAME},$(LIB_DIR)/lib$(target).so)
-LDFLAGS               += -fPIC
 endif
 
 CXXFLAGS += --std=c++11
