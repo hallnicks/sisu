@@ -1,9 +1,10 @@
 #ifndef SISUMATH_8AD50D39A6704E1587D5CAD907B48B35_HPP_
 #define SISUMATH_8AD50D39A6704E1587D5CAD907B48B35_HPP_
 
-namespace sisu {
-
 #include <SDL2/SDL.h>
+#include <cmath>
+
+namespace sisu {
 
 inline static double dRand( double const xMin, double const xMax )
 {
@@ -43,6 +44,6 @@ inline static uint8_t floatToByte( float const xFloat )
 	return (uint8_t)( xFloat * 255.0f );
 }
 
-} // namespace sisuu
+} // namespace sisu
 #endif // SISUMATH_8AD50D39A6704E1587D5CAD907B48B35_HPP_
 

@@ -30,11 +30,11 @@ TARGET_LIBS += tbb
 #TARGET_LIBS += ncurses
 
 #ffmpeg
+TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample m z
+
 ifeq ($(OS),Windows_NT)
     TARGET_LIBS += iconv log
 endif
-
-TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample m z
 
 #opencv
 ifeq ($(OS),Windows_NT)
@@ -126,7 +126,7 @@ CXXFLAGS += -Wno-int-to-pointer-cast
 CXXFLAGS     += -I/usr/include
 
 # for GLM, ssl, libavcodec
-CXXFLAGS     += -I/usr/local/include
+CXXFLAGS     += -I/usr/local/include -Wno-pragmas
 
 # for libPNG, libavocdec
 LDFLAGS      += -L/usr/local/lib
