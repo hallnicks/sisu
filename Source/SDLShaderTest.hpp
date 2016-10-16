@@ -6,7 +6,6 @@
 #include "Font.hpp"
 #include "VBM.hpp"
 #include "threadgears.hpp"
-#include "test.hpp" // strictly for debugging, remove!!
 
 #include <string>
 #include <iostream>
@@ -629,8 +628,6 @@ class SpriteShader : public SDLTestWindow
 
 	void _focusWindow( _SubWindow * xWindow )
 	{
-		std::cout << "fuck us window. " << std::endl;
-		TRACE;
 		if ( xWindow == NULL )
 		{
 			std::cerr << "Attempt to set null window as selected window." << std::endl;
@@ -1242,14 +1239,12 @@ class SpriteShader : public SDLTestWindow
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
-		  	TRACE;
 			SDLTestWindow::initialize( xAttributes );
 
 			_initializeMouse( );
 
 			_initializeKeyboard( );
 
-			TRACE;
 			// Load ASCII
 		        for ( char c = '!'; c < '~'; c++ )
 			{
@@ -1342,7 +1337,6 @@ class SpriteShader : public SDLTestWindow
 
 			glBindVertexArray( 0 );
 
-			TRACE;
 		}
 
 		virtual void run( )
@@ -1571,7 +1565,7 @@ class RedbookCh04Shader : public SDLTestWindow
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
 			SDLTestWindow::initialize( xAttributes );
-			TRACE;
+
 			mAspect = mH / mW;
 
 			mShadowShader.initialize( );
@@ -1587,7 +1581,6 @@ class RedbookCh04Shader : public SDLTestWindow
 			mRenderSceneUniforms.materialSpecular 	   = mSceneShader.getUniforms( )[ "material_specular" ];
 			mRenderSceneUniforms.materialSpecularPower = mSceneShader.getUniforms( )[ "material_specular_power" ];
 
-			TRACE;
 			mSceneShader([&](){
 
 				glUniform1i( mSceneShader.getUniforms()[ "depth_texture" ], 0 );
@@ -1633,7 +1626,6 @@ class RedbookCh04Shader : public SDLTestWindow
 				        0.0f, 1.0f, 0.0f,
 				        0.0f, 1.0f, 0.0f
 				};
-				TRACE;
 
     				glGenVertexArrays(1, &mGroundVAO);
     				glGenBuffers(1, &mGroundVBO);;
@@ -1649,8 +1641,6 @@ class RedbookCh04Shader : public SDLTestWindow
 				glEnableVertexAttribArray(1);
 
 			});
-
-			TRACE;
 
 			mObject.initialize( );
 
@@ -1726,7 +1716,7 @@ class RedbookCh03Shader : public SDLTestShaderWindow
 		}
 	public:
 		RedbookCh03Shader( )
-			: SDLTestShaderWindow( ShaderPathPair("resources/primitive_restart.vs.glsl", "resources/primitive_restart.fs.glsl") )
+			: 	SDLTestShaderWindow( ShaderPathPair("resources/primitive_restart.vs.glsl", "resources/primitive_restart.fs.glsl") )
 			, mAspect( 0.0f )
 			, mVBO( 0 )
 			, mVAO( 0 )

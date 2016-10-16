@@ -135,6 +135,6 @@ SOURCE_DIRS   := ../Source ../Tests
 
 #For OpenGLES... TODO: Make conditional or as config option.
 # For now, comment out if you are not running OpenGLES build
-#CXXFLAGS += -D OPENGLES
+CXXFLAGS += -D OPENGLES
 
 include $(SISU)/after.mk

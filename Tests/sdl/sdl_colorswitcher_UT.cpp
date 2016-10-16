@@ -15,20 +15,19 @@ using namespace sisu;
 
 namespace
 {
+	class sdl_colorswitcher_UT : public context
+	{
+		public:
+			sdl_colorswitcher_UT( ) : context( ) { }
+			void Up( ) { }
+			void Down( ) { }
+	};
 
-class sdl_colorswitcher_UT : public context
-{
-	public:
-		sdl_colorswitcher_UT( ) : context( ) { }
-		void Up( ) { }
-		void Down( ) { }
-};
-
-class SDLColorSwitcher : public SDLTestWindow
-{
+	class SDLColorSwitcher : public SDLTestWindow
+	{
 		protected:
 
-			virtual void render( ) 
+			virtual void render( )
 			{
 				SDL_Event event;
 
@@ -40,7 +39,6 @@ class SDLColorSwitcher : public SDLTestWindow
 					exit(-1);
 				}
 
-				TRACE;
 				if ( ! ( flags & SDL_WINDOW_MAXIMIZED ) )
 				{
 				        SDL_MaximizeWindow( mMainWindow );
@@ -48,15 +46,12 @@ class SDLColorSwitcher : public SDLTestWindow
 				        SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
 				}
 
-				#if 0
 			        if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 			        {
 			                std::cout << "Failed to get window focus." << std::endl;
 			                exit( -1 );
 			        }
-				#endif
 
-				TRACE;
 				glClearColor( _randomGLfloat( )
 					    , _randomGLfloat( )
 					    , _randomGLfloat( )
@@ -65,8 +60,6 @@ class SDLColorSwitcher : public SDLTestWindow
 				glClear( GL_COLOR_BUFFER_BIT );
 
 				SDL_GL_SwapWindow( mMainWindow );
-
-				TRACE;
 			}
 		public:
 			SDLColorSwitcher( )
@@ -82,7 +75,7 @@ class SDLColorSwitcher : public SDLTestWindow
 					render( );
 				}
 			}
-		}; // class
+	}; // class
 
 } // namespace
 
@@ -91,7 +84,11 @@ TEST(sdl_colorswitcher_UT, CreateSDLWindowWithoutExceptions)
 {
 	SDLColorSwitcher test;
 
+#ifndef OPENGLES
 	test.initialize( { 3, 1, 1, false, false } );
+#else
+	test.initialize( { 3, 0, 1, false, false } );
+#endif
 
 	test.run();
 }

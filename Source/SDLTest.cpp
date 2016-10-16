@@ -69,12 +69,17 @@ void _checkForGLError( const char * xAddendum )
 
 void SDLTestWindow::_setOpenGLAttributes( OpenGLAttributes const & xAttributes )
 {
-#ifndef OPENGLES
-	SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
+#ifdef OPENGLES
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES   );
+#else
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+#endif
 
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, xAttributes.mMajorGLVersion );
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, xAttributes.mMinorGLVersion );
-        SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK , SDL_GL_CONTEXT_PROFILE_CORE );
+
+#ifndef OPENGLES
+	SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL, 1 );
 
 	if ( xAttributes.mDoubleBufferingEnabled )
 	{
@@ -118,11 +123,11 @@ void SDLTestWindow::_stealContext( )
 
         if ( ! ( flags & SDL_WINDOW_MAXIMIZED ) )
         {
-#ifndef OPENGLES // has no concept of window focus since there is only one window and context
       	       SDL_MaximizeWindow( mMainWindow );
                SDL_RaiseWindow( mMainWindow );
                SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
 
+#ifndef OPENGLES // has no concept of window focus since there is only one window and context
 	       if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 	       {
 	              std::cerr << "Failed to get window focus: " << SDL_GetError( ) << std::endl;
@@ -206,13 +211,11 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 		exit( -1 );
 	}
 
-#ifndef OPENGLES
         if ( SDL_GL_SetSwapInterval( xAttributes.mSwapInterval ) < 0 )
 	{
 		std::cerr << "Setup vsync failed: " << SDL_GetError( ) << std::endl;
 		exit( -1 );
 	}
-#endif
 }
 
 } // namespace SISU
