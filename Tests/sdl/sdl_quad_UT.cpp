@@ -1,23 +1,5 @@
-#if 0
 #include "test.hpp"
-#include "SDLTest.hpp"
-#include "SDLShaderTest.hpp"
-#include "ioassist.hpp"
-
-#include <string>
-#include <iostream>
-#include <functional>
-
-#ifndef __linux__
-#include <Windows.h>
-#endif
-
-#include <SDL2/SDL.h>
-#include <GL/glew.h>
-#include <SDL2/SDL_opengl.H>
-#include <GL/glu.h>
-#include <stdio.h>
-#include <string>
+#include "SDLQuadShader.hpp"
 
 using namespace sisu;
 
@@ -35,13 +17,9 @@ class sdl_quad_UT : public context
 
 TEST(sdl_quad_UT, CreateSDLWindowWithoutExceptions)
 {
+	SDLQuadShader test;
 
-	{
-		SDLQuadShader test;
+	test.initialize( { 3, 1, 1, false, false } );
 
-		test.initialize( { 3, 1, 1, false, false } );
-
-		test.run( );
-	}
+	test.run( );
 }
-#endif

@@ -61,6 +61,8 @@ struct DrawData
     ogl::Buffer indices;
 };
 
+#ifndef OPENGLES
+
 void draw(void* userdata);
 
 void draw(void* userdata)
@@ -71,6 +73,7 @@ void draw(void* userdata)
 
     ogl::render(data->arr, data->indices, ogl::TRIANGLES);
 }
+#endif
 
 const int win_width = 800;
 const int win_height = 640;
@@ -121,6 +124,7 @@ TEST(OpenCV_UT, TestWebcam)
 }
 
 #if 0
+#ifndef OPENGLES
 TEST(OpenCV_UT, TestOpenGL)
 {
     string filename = "resources\\test.jpg";
@@ -180,5 +184,6 @@ TEST(OpenCV_UT, TestOpenGL)
     setOpenGlDrawCallback("OpenGL", 0, 0);
     destroyAllWindows();
 }
-#endif
+#endif // OPENGLES
+#endif // 0
 #endif // SISU_OPENCV

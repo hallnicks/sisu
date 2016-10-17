@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 
 namespace sisu {
+
+#ifndef OPENGLES
 // thanks to stack overflow/ nehe
 void perspectiveGL( GLdouble fovY, GLdouble aspect, GLdouble zNear, GLdouble zFar )
 {
@@ -59,7 +61,7 @@ void lookAtGL(glm::vec3 const & pos, glm::vec3 const & dir, glm::vec3 const & up
 
         glMultMatrixf(&mat[0]);
 }
-
+#endif
 
 } // namespace
 

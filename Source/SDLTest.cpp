@@ -5,54 +5,6 @@
 
 namespace sisu {
 
-void _printGLProgramLog( GLuint const xProgram )
-{
-	if ( !glIsProgram( xProgram ) )
-	{
-		std::cerr << "Parameter was not a valid GL program." << std::endl;
-		exit( -1 );
-	}
-
-	int32_t logLength = 0, maxLength = 0;
-
-	glGetProgramiv( xProgram, GL_INFO_LOG_LENGTH, &maxLength );
-
-        char * infoLog = new char[ maxLength ];
-
-        glGetProgramInfoLog( xProgram, maxLength, &logLength, infoLog );
-
-        if( logLength > 0 )
-        {
-		std::cout << infoLog << std::endl;
-        }
-
-        delete[] infoLog;
-}
-
-void _printGLShaderLog( GLuint const xShader )
-{
-	if ( !glIsShader( xShader ) )
-	{
-		std::cerr << "Parameter was not a valid GL shader." << std::endl;
-		exit( -1 );
-	}
-
-	int32_t logLength = 0, maxLength = 0;
-
-	glGetShaderiv( xShader, GL_INFO_LOG_LENGTH, &maxLength );
-
-        char * infoLog = new char[ maxLength ];
-
-        glGetShaderInfoLog( xShader, maxLength, &logLength, infoLog );
-
-        if( logLength > 0 )
-        {
-		std::cout << infoLog << std::endl;
-        }
-
-        delete[] infoLog;
-}
-
 void _checkForGLError( const char * xAddendum )
 {
 	GLenum const error = glGetError( );
@@ -200,16 +152,18 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 		exit( -1 );
 	}
 
+#ifndef OPENGLES
 	// Initialize GLEW with experimental extensions enabled
 	glewExperimental = true;
 
-	GLenum err = glewInit( );
+	GLenum const err = glewInit( );
 
 	if ( err != GLEW_OK )
 	{
-		std::cerr << "glewInit( ) failed." << std::endl;
+		std::cerr << "glewInit( ) failed: " << glewGetErrorString( err ) << std::endl;
 		exit( -1 );
 	}
+#endif
 
         if ( SDL_GL_SetSwapInterval( xAttributes.mSwapInterval ) < 0 )
 	{

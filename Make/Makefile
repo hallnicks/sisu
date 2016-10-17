@@ -21,10 +21,16 @@ TARGET_LIBS  += png z freetype
 
 #This is now windows specific. Need to test on linux again. For example, winsock, opengl32, glew32, gdi, etc, linked differently.
 ifeq ($(OS),Windows_NT)
-    TARGET_LIBS  += opengl32 freeglut glew32 Dbghelp ws2_32 Shlwapi gdi32
+# If using OpenGL, use this line
+#    TARGET_LIBS  += opengl32 freeglut glew32
+     TARGET_LIBS  += Dbghelp ws2_32 Shlwapi gdi32
 else
-    TARGET_LIBS += GL GLEW GLU
+#    TARGET_LIBS += GL GLEW GLU
 endif
+
+# If Using OpenGLES, use this line
+TARGET_LIBS  += GLESv2 EGL
+
 
 TARGET_LIBS += tbb
 #TARGET_LIBS += ncurses

@@ -62,7 +62,6 @@ class HelloTriangle : public SDLTestShaderWindow
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
 			SDLTestShaderWindow::initialize( xAttributes );
-
 			glClearColor( 1.0f, 1.0f, 1.0f, 1.0f );
 		}
 
@@ -86,9 +85,7 @@ class HelloTriangle : public SDLTestShaderWindow
 TEST(HelloTriangle_UT, HelloTriangle)
 {
 	HelloTriangle window;
-
-	window.initialize( { 3, 0, 0, false, false } );
-
+	window.initialize( { 3, 0, 1, false, false } );
 	window.run( );
 }
 #endif // OPENGLES

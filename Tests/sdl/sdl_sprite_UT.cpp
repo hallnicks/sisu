@@ -1,4 +1,4 @@
-#if 0 
+#if 0
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"

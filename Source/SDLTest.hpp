@@ -11,7 +11,13 @@
 
 //    You should have received a copy of the GNU General Public License
 //    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
+
+#ifndef OPENGLES
 #include <GL/glew.h>
+#else
+#include <GLES2/gl2.h>
+#endif
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <functional>
@@ -24,9 +30,6 @@ namespace sisu {
         {
 		return static_cast <GLfloat> ( rand( ) ) / static_cast <GLfloat> ( RAND_MAX );
         }
-
-	void _printGLProgramLog( GLuint const xProgram );
-	void _printGLShaderLog( GLuint const xProgram );
 
 	void _checkForGLError( const char * xAddendum = NULL );
 
