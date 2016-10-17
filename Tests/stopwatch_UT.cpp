@@ -92,7 +92,5 @@ TEST(stopwatch_UT, reUseStopwatchWorks)
 	}
 
 	std::cout << "elapsed ms = " << accum << std::endl;
-
-	BLOCK_EXECUTION;
 }
 #endif

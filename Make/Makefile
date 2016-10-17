@@ -22,14 +22,14 @@ TARGET_LIBS  += png z freetype
 #This is now windows specific. Need to test on linux again. For example, winsock, opengl32, glew32, gdi, etc, linked differently.
 ifeq ($(OS),Windows_NT)
 # If using OpenGL, use this line
-#    TARGET_LIBS  += opengl32 freeglut glew32
+    TARGET_LIBS  += opengl32 freeglut glew32
      TARGET_LIBS  += Dbghelp ws2_32 Shlwapi gdi32
 else
 #    TARGET_LIBS += GL GLEW GLU
 endif
 
 # If Using OpenGLES, use this line
-TARGET_LIBS  += GLESv2 EGL
+#TARGET_LIBS  += GLESv2 EGL
 
 
 TARGET_LIBS += tbb
@@ -141,6 +141,6 @@ SOURCE_DIRS   := ../Source ../Tests
 
 #For OpenGLES... TODO: Make conditional or as config option.
 # For now, comment out if you are not running OpenGLES build
-CXXFLAGS += -D OPENGLES
+#CXXFLAGS += -D OPENGLES
 
 include $(SISU)/after.mk

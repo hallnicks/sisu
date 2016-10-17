@@ -2,6 +2,7 @@
 #include "test.hpp"
 
 #include "SDLShaderTest.hpp"
+#include "Stopwatch.hpp"
 
 #include <iostream>
 
@@ -67,16 +68,29 @@ class HelloTriangle : public SDLTestShaderWindow
 
 		virtual void run( )
 		{
+			Stopwatch t;
+
+			double accum = 0.0;
+
 			do
 			{
+				t.startMs( );
+
 				render( );
 				_checkForGLError( );
 				SDL_PumpEvents( );
 				SDL_GL_SwapWindow( mMainWindow );
 
-			} while ( !mQuit.isSet( ) );
+				if ( ( accum += t.stop( ) ) >= 3000.0 )
+				{
+					break;
+				}
 
+			} while ( 1 );
+
+			TRACE;
 			_hide( );
+			TRACE;
 		}
 };
 
@@ -84,8 +98,15 @@ class HelloTriangle : public SDLTestShaderWindow
 
 TEST(HelloTriangle_UT, HelloTriangle)
 {
-	HelloTriangle window;
-	window.initialize( { 3, 0, 1, false, false } );
-	window.run( );
+	{
+		HelloTriangle window;
+		TRACE;
+		window.initialize( { 3, 0, 1, false, false } );
+		TRACE;
+		window.run( );
+		TRACE;
+	}
+	TRACE;
+	std::cout << "SDL_GetError( ): " << SDL_GetError( ) << std::endl;
 }
 #endif // OPENGLES

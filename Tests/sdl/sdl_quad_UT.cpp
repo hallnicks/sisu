@@ -1,3 +1,4 @@
+#ifndef OPENGLES
 #include "test.hpp"
 #include "SDLQuadShader.hpp"
 
@@ -23,3 +24,4 @@ TEST(sdl_quad_UT, CreateSDLWindowWithoutExceptions)
 
 	test.run( );
 }
+#endif

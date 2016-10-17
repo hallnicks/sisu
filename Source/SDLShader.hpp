@@ -1,14 +1,14 @@
 #ifndef SDL_SHADER_B8AD752008C64DC4A63B98A080A9E05E_HPP_
 #define SDL_SHADER_B8AD752008C64DC4A63B98A080A9E05E_HPP_
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
-
 #ifndef OPENGLES
 #include <GL/glew.h>
 #else
 #include <GLES2/gl2.h>
 #endif
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>

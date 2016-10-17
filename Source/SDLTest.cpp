@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string>
 
+#include "test.hpp" // delete me
+
 namespace sisu {
 
 void _checkForGLError( const char * xAddendum )
@@ -113,6 +115,7 @@ SDLTestWindow::~SDLTestWindow( )
 	SDL_GL_DeleteContext( mMainContext );
         SDL_DestroyWindow( mMainWindow );
         SDL_Quit();
+	TRACE;
 }
 
 void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )

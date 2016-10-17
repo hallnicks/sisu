@@ -42,6 +42,4 @@ void SDLTestShaderWindow::initialize( OpenGLAttributes const & xOpenGLAttributes
         _checkForGLError( );
 }
 
-
-
 } // namespace sisu
