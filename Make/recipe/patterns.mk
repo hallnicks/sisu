@@ -49,11 +49,6 @@ $(TARGET_EXE_NAME): $(PHONY_OBJECTS)
 	$(eval cpp_file = $(subst $(META_DIR),,$*.cpp))
 	$(info DEP += $(cpp_file) )
 	$(OUT)$(CXX) $(CXXFLAGS) -MT ' $*.cpp' -MM $(cpp_file) > $*.dep
-	$(OUT)sed -i 's/C:\/msys64//g' $*.dep
-	$(OUT)sed -i 's/\\//g' $*.dep
-	$(OUT)sed -i 's/  / /g' $*.dep
-	$(OUT)sed -i ':begin;$!N;s/\n/ /;tbegin' $*.dep
-	$(OUT)cat $*.dep
 
 ifneq (,$(findstring clean,$(MAKECMDGOALS)))
 	-include $(PHONY_DEPS)
