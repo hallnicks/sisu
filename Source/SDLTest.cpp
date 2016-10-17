@@ -85,7 +85,7 @@ void SDLTestWindow::_stealContext( )
 	       if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 	       {
 	              std::cerr << "Failed to get window focus: " << SDL_GetError( ) << std::endl;
-	             /exit( -1 );
+	             exit( -1 );
 	       }
 #endif
         }
