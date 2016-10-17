@@ -19,7 +19,11 @@
 #endif
 
 #include <SDL2/SDL.h>
+
+#ifndef OPENGLES
 #include <SDL2/SDL_opengl.h>
+#endif
+
 #include <functional>
 
 #include "threadgears.hpp"

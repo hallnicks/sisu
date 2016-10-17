@@ -81,11 +81,11 @@ void SDLTestWindow::_stealContext( )
                SDL_RaiseWindow( mMainWindow );
                SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
 
-#ifndef OPENGLES // has no concept of window focus since there is only one window and context
+#ifdef WIN32 // Never set on linux (!) bug?
 	       if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 	       {
 	              std::cerr << "Failed to get window focus: " << SDL_GetError( ) << std::endl;
-	              exit( -1 );
+	             /exit( -1 );
 	       }
 #endif
         }

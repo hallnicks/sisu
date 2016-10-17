@@ -1,7 +1,7 @@
 #ifdef OPENGLES
 #include "test.hpp"
 
-#include "SDLShaderTest.hpp"
+#include "SDLTestShaderWindow.hpp"
 #include "Stopwatch.hpp"
 
 #include <iostream>

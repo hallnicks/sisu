@@ -9,7 +9,12 @@
 #endif
 
 #include <SDL2/SDL.h>
+
+#ifdef OPENGLES
+#include <GLES2/gl2.h>
+#else
 #include <SDL2/SDL_opengl.h>
+#endif
 
 using namespace sisu;
 
@@ -46,11 +51,14 @@ namespace
 				        SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
 				}
 
+// TODO: Bug? Flag is never set on linux.
+#ifdef WIN32
 			        if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 			        {
 			                std::cout << "Failed to get window focus." << std::endl;
 			                exit( -1 );
 			        }
+#endif
 
 				glClearColor( _randomGLfloat( )
 					    , _randomGLfloat( )

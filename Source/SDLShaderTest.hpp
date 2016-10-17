@@ -1,3 +1,4 @@
+#ifndef OPENGLES
 #ifndef SDL_SHADER_TEST_DBB12D8670054D2E97E6A436C1F0EC51_HPP_
 #define SDL_SHADER_TEST_DBB12D8670054D2E97E6A436C1F0EC51_HPP_
 
@@ -27,7 +28,10 @@
 #include <GLES2/gl2.h>
 #endif
 
+#ifndef OPENGLES
 #include <SDL2/SDL_opengl.h>
+#endif
+
 #include <GL/glu.h>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -1251,3 +1255,4 @@ class SpriteShader : public SDLTestWindow
 } // namespace sisu
 
 #endif // SDL_SHADER_TEST_DBB12D8670054D2E97E6A436C1F0EC51_HPP_
+#endif // OPENGLES

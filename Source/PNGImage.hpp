@@ -11,7 +11,11 @@
 #include <fstream>
 #include <math.h>
 
+#ifdef OPENGLES
+#include <GLES2/gl2.h>
+#else
 #include <SDL2/SDL_opengl.h>
+#endif
 
 #ifdef __linux__
 #include <cstring>

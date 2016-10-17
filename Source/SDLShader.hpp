@@ -8,7 +8,9 @@
 #endif
 
 #include <SDL2/SDL.h>
+#ifndef OPENGLES
 #include <SDL2/SDL_opengl.h>
+#endif
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
