@@ -28,8 +28,9 @@ else
 #    TARGET_LIBS += GL GLEW GLU
 endif
 
-# If Using OpenGLES, use this line
-TARGET_LIBS  += GLESv2 EGL
+# If Using OpenGLES, use this line. DL is for OpenGLES extensions.
+# Technically, since we are using SDL for the context, EGL may not be necessary
+TARGET_LIBS  += GLESv2 EGL dl
 
 
 TARGET_LIBS += tbb
@@ -151,7 +152,7 @@ LDFLAGS      += -L/usr/local/lib
 #CXXFLAGS += -D OPENAL_UT
 #CXXFLAGS += -D OPENCV_UT
 #CXXFLAGS += -D OPENGLES_HELLOTRIANGLE_UT
-CXXFLAGS += -D OPENGLES_HELLOTEXTURE_UT
+CXXFLAGS  += -D OPENGLES_HELLOTEXTURE_UT
 #CXXFLAGS += -D PNG_IMAGE_STREAMER_UT
 #CXXFLAGS += -D POPEN_UT
 #CXXFLAGS += -D SDL_AUDIO_MIXER_UT

@@ -1198,7 +1198,6 @@ class SpriteShader : public SDLTestWindow
 			});
 
 
-			// TODO: Support more than one sprite!
 			static GLfloat const vertices[] = {
 						   	    // Pos      // Tex
 	  						    0.0f, 1.0f, 0.0f, 1.0f,
