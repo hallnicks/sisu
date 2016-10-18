@@ -1,3 +1,4 @@
+#ifdef MEMBLOCK_UT
 #include "test.hpp"
 
 #include "bits.hpp"
@@ -44,3 +45,4 @@ TEST(memblock_UT, memout)
 
 	delete[] block;
 }
+#endif // MEMBLOCK_UT

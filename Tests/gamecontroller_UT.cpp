@@ -1,4 +1,4 @@
-#if 0
+#ifdef GAMECONTROLLER_UT
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "word.hpp"
@@ -277,4 +277,4 @@ TEST(gameController_UT, GameControllerHandlerCallback)
 
 	}
 }
-#endif
+#endif // GAMECONTROLLER_UT

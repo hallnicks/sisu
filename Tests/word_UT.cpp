@@ -1,3 +1,4 @@
+#ifdef WORD_UT
 // TODO: Review file, reduce length of tests(!)
 #include "test.hpp"
 #include "word.hpp"
@@ -210,3 +211,4 @@ TEST(word_UT, words_set_bits)
 
 	std::cout << p2 << std::endl;
 }
+#endif // WORD_UT

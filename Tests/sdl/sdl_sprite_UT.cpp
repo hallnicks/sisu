@@ -1,4 +1,4 @@
-#if 0
+#ifdef SDL_SPRITE_UT
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "SDLShaderTest.hpp"
@@ -56,4 +56,4 @@ TEST(sdl_sprite_UT, CreatePBOSpriteShaderWithPBO)
 	}
 }
 #endif
-#endif // 0 
+#endif // SDL_SPRITE_UT

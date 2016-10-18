@@ -1,3 +1,4 @@
+#ifdef BEEP_UT
 #include "test.hpp"
 #include "beep.hpp"
 
@@ -19,3 +20,4 @@ TEST(beep_UT, testBeep)
 {
 	noise::octave( );
 }
+#endif // BEEP_UT

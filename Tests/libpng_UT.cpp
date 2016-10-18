@@ -1,5 +1,5 @@
-#if 0
-#include "test.hpp" 
+#ifdef LIBPNG_UT
+#include "test.hpp"
 
 // C style IO is necessary to talk to libpng. This could be seen as a wrapper between stl-style c++ and libpng
 
@@ -162,4 +162,4 @@ TEST(libpng_UT, writePNGByIndices)
 	ofs1 << image;
 	ofs1.close( );
 }
-#endif
+#endif // LIBPNG_UT

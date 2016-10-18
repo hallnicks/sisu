@@ -1,3 +1,4 @@
+#ifdef SDL_QUAD_UT
 #ifndef OPENGLES
 #include "test.hpp"
 #include "SDLQuadShader.hpp"
@@ -24,4 +25,5 @@ TEST(sdl_quad_UT, CreateSDLWindowWithoutExceptions)
 
 	test.run( );
 }
-#endif
+#endif // OPENGLES
+#endif // SDL_QUAD_UT

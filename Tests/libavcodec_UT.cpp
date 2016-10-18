@@ -1,3 +1,4 @@
+#ifdef LIBAVCODEC_UT
 #include "test.hpp"
 
 #include "memblock.hpp"
@@ -203,4 +204,5 @@ TEST(libavcodec_UT, writeAVCODECFile)
 		decodeThread.join( );
 	}
 }
-#endif
+#endif // 0
+#endif // LIBAVCODEC_UT

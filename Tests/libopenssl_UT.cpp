@@ -1,4 +1,4 @@
-#if 0
+#ifdef LIBOPENSSL_UT
 #include <fstream>
 #ifndef __linux__
 #include <winsock2.h>
@@ -1129,4 +1129,4 @@ TEST(libopenssl_UT, runNonBlockingSelectServerAndClient)
 
 	std::cout << "Main thread is out, next is dtors." << std::endl;
 }
-#endif
+#endif // LIBOPENSSL_UT

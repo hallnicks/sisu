@@ -1,3 +1,4 @@
+#ifdef OPENCV_UT
 #ifdef SISU_OPENCV
 #include "test.hpp"
 #include "threadgears.hpp"
@@ -187,3 +188,4 @@ TEST(OpenCV_UT, TestOpenGL)
 #endif // OPENGLES
 #endif // 0
 #endif // SISU_OPENCV
+#endif // OPENCV_UT

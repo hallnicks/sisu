@@ -22,14 +22,14 @@ TARGET_LIBS  += png z freetype
 #This is now windows specific. Need to test on linux again. For example, winsock, opengl32, glew32, gdi, etc, linked differently.
 ifeq ($(OS),Windows_NT)
 # If using OpenGL, use this line
-    TARGET_LIBS  += opengl32 freeglut glew32
-     TARGET_LIBS  += Dbghelp ws2_32 Shlwapi gdi32
+#    TARGET_LIBS  += opengl32 freeglut glew32
+    TARGET_LIBS  += Dbghelp ws2_32 Shlwapi gdi32
 else
 #    TARGET_LIBS += GL GLEW GLU
 endif
 
 # If Using OpenGLES, use this line
-#TARGET_LIBS  += GLESv2 EGL
+TARGET_LIBS  += GLESv2 EGL
 
 
 TARGET_LIBS += tbb
@@ -137,10 +137,48 @@ CXXFLAGS     += -I/usr/local/include -Wno-pragmas
 # for libPNG, libavocdec
 LDFLAGS      += -L/usr/local/lib
 
+# unit tests 
+#CXXFLAGS += -D BEEP_UT
+#CXXFLAGS += -D GAMECONTROLLER_UT
+#CXXFLAGS += -D KEYBOARD_UT
+#CXXFLAGS += -D LIBAVCODEC_UT
+#CXXFLAGS += -D LIBFREETYPE_UT
+#CXXFLAGS += -D LIBOPENSSL_UT
+#CXXFLAGS += -D LIBPNG_UT
+#CXXFLAGS += -D LOG_UT
+#CXXFLAGS += -D MEMBLOCK_UT
+#CXXFLAGS += -D MOUSE_UT
+#CXXFLAGS += -D OPENAL_UT
+#CXXFLAGS += -D OPENCV_UT
+#CXXFLAGS += -D OPENGLES_HELLOTRIANGLE_UT
+CXXFLAGS += -D OPENGLES_HELLOTEXTURE_UT
+#CXXFLAGS += -D PNG_IMAGE_STREAMER_UT
+#CXXFLAGS += -D POPEN_UT
+#CXXFLAGS += -D SDL_AUDIO_MIXER_UT
+#CXXFLAGS += -D SDL_COLOR_SWITCHER_UT
+#CXXFLAGS += -D SDL_FBO_UT
+#CXXFLAGS += -D SDL_MULTITHREADED_AUDIO_UT
+#CXXFLAGS += -D SDL_QUAD_UT
+#CXXFLAGS += -D SDL_RANDOMIZED_AUDIO_UT
+#CXXFLAGS += -D SDL_SIMPLE_WAVE_MIXER_UT
+#CXXFLAGS += -D SDL_SPRITE_UT
+#CXXFLAGS += -D SDL_VIEWPORT_UT
+#CXXFLAGS += -D SIGNAL_UT
+#CXXFLAGS += -D SINGLETON_UT
+#CXXFLAGS += -D SISU_UT
+#CXXFLAGS += -D STOPWATCH_UT
+#CXXFLAGS += -D THREADGEARS_UT
+#CXXFLAGS += -D THREAD_SAFE_QUEUE_UT
+#CXXFLAGS += -D TTYC_UT
+#CXXFLAGS += -D TTYCOLOR_UT
+#CXXFLAGS += -D WORD_UT
+#CXXFLAGS += ..
+
+
 SOURCE_DIRS   := ../Source ../Tests
 
 #For OpenGLES... TODO: Make conditional or as config option.
 # For now, comment out if you are not running OpenGLES build
-#CXXFLAGS += -D OPENGLES
+CXXFLAGS += -D OPENGLES
 
 include $(SISU)/after.mk

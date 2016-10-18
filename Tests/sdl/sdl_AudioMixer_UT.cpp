@@ -1,4 +1,4 @@
-#if 0
+#ifdef SDL_ADUIO_MIXER_UT
 #include "test.hpp"
 
 #include "threadgears.hpp"
@@ -500,4 +500,4 @@ TEST(sdl_AudioMixer_UT, PlaySDLAudioWithoutExceptions)
 		sleep::ms( 3000 );
 	};
 }
-#endif
+#endif // SDL_AUDIO_MIXER_UT

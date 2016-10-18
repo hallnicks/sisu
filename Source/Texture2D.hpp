@@ -48,12 +48,16 @@ class Texture2D
 		}
 
 		void initialize( GLuint const xWidth
-			     , GLuint const xHeight
-			     , uint8_t * const xData )
+			       , GLuint const xHeight
+			       , uint8_t * const xData )
 		{
 			mWidth  = xWidth;
 			mHeight = xHeight;
 			mData = xData;
+
+#ifdef OPENGLES
+			glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+#endif
 
 			glGenTextures( 1, &mID );
 
@@ -94,6 +98,10 @@ class Texture2D
 
 		void operator( )( std::function<void(void)> xLambda )
 		{
+// TODO: Handle texture units..
+#ifdef OPENGLES
+			glActiveTexture( GL_TEXTURE0 );
+#endif
 			glBindTexture( GL_TEXTURE_2D, mID );
 			xLambda( );
 			glBindTexture( GL_TEXTURE_2D, 0 );

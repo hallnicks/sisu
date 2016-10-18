@@ -85,7 +85,7 @@ void SDLTestWindow::_stealContext( )
 	       if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 	       {
 	              std::cerr << "Failed to get window focus: " << SDL_GetError( ) << std::endl;
-	             exit( -1 );
+	              exit( -1 );
 	       }
 #endif
         }
@@ -113,8 +113,15 @@ SDLTestWindow::SDLTestWindow( )
 SDLTestWindow::~SDLTestWindow( )
 {
 	SDL_GL_DeleteContext( mMainContext );
+
+	mMainContext = NULL;
+
         SDL_DestroyWindow( mMainWindow );
+
+	mMainWindow = NULL;
+
         SDL_Quit();
+
 	TRACE;
 }
 
@@ -129,13 +136,13 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
         _setOpenGLAttributes( xAttributes );
 
         mMainWindow = SDL_CreateWindow( "SDL2 OpenGL"
-                                        , SDL_WINDOWPOS_CENTERED
-                                        , SDL_WINDOWPOS_CENTERED
-                                        , 1920 // hack, please remove after test
-                                        , 1080 // hack, do not commit!!!!
-                                        , SDL_WINDOW_OPENGL      | SDL_WINDOW_BORDERLESS    |
-                                          SDL_WINDOW_SHOWN       | SDL_WINDOW_INPUT_GRABBED |
-                                          SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
+                                       , SDL_WINDOWPOS_CENTERED
+                                       , SDL_WINDOWPOS_CENTERED
+                                       , 1
+                                       , 1
+                                       , SDL_WINDOW_OPENGL      | SDL_WINDOW_BORDERLESS    |
+                                         SDL_WINDOW_SHOWN       | SDL_WINDOW_INPUT_GRABBED |
+                                         SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
 	if( mMainWindow == NULL )
         {
         	std::cout << "SDL_CreateWindow() failed." << std::endl;
@@ -152,6 +159,12 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 	if ( mMainContext == NULL )
 	{
 		std::cerr << "Failed to create GL context from window: " << SDL_GetError( ) << std::endl;
+		exit( -1 );
+	}
+
+	if ( SDL_GL_MakeCurrent( mMainWindow, mMainContext ) != 0 )
+	{
+		std::cerr << "Failed to make GL context current: " << SDL_GetError( ) << std::endl;
 		exit( -1 );
 	}
 

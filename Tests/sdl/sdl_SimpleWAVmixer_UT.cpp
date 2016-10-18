@@ -1,4 +1,4 @@
-#if 0
+#ifdef SDL_SIMPLE_WAVE_MIXER_UT
 #include "test.hpp"
 #include "threadgears.hpp"
 #include <string>
@@ -82,4 +82,4 @@ TEST(sdl_SimpleWAVMixer_UT, PlaySDLAudioWithoutExceptions)
 
 	SDL_FreeWAV( wav_buffer );
 }
-#endif
+#endif // SDL_SIMPLE_WAVE_MIXER_UT

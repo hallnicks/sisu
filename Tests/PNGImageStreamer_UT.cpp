@@ -1,4 +1,4 @@
-#if 0
+#ifdef PNG_IMAGE_STREAMER_UT
 #include "test.hpp"
 #include "SDLShaderTest.hpp"
 
@@ -113,4 +113,4 @@ TEST(PNGImageStreamer_UT, loadPNGFiles)
 
 	quit.set( );
 }
-#endif
+#endif // PNG_IMAGE_STREAMER_UT

@@ -1,3 +1,4 @@
+#ifdef TTYCOLOR_UT
 #include "test.hpp"
 #include "bits.hpp"
 #include "memblock.hpp"
@@ -128,3 +129,4 @@ TEST(TTYColor_UT, IterateUnicode)
 
 	std::setlocale( LC_ALL, locale );
 }
+#endif // TTYCOLOR_UT

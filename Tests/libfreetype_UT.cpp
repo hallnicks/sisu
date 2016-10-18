@@ -1,4 +1,4 @@
-#if 0
+#ifdef LIBFREETYPE_UT
 #include "test.hpp"
 
 #include "GLCharacterMap.hpp"
@@ -74,4 +74,4 @@ TEST(libfreetype_UT, loadFontFromMemory)
 		ofs.close( );
 	}
 }
-#endif
+#endif // LIBFREETYPE_UT

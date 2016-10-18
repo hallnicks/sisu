@@ -25,7 +25,6 @@ using sisu::eModBold;
 
 int main( int xArgc, char * xArgv[] )
 {
-	cout << "Hello, world." << endl; 
 	srand( time( NULL ) );
 
 	// TODO - get and save original color. For now, screw you!

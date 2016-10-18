@@ -1,3 +1,4 @@
+#ifdef THREADGEARS_UT
 // This file is part of sisu.
 
 // sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by
@@ -253,3 +254,4 @@ TEST(tg_UT, ThreadLambdaCute2)
 	}
 	std::cout << "scope cleared." << std::endl;
 }
+#endif // THREADGEARS_UT

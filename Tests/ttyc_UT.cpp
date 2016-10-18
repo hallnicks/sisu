@@ -1,3 +1,4 @@
+#ifdef TTYC_UT
 #include "test.hpp"
 #include "ttyc.hpp"
 
@@ -190,3 +191,4 @@ TEST(TTYCUT, TTYCTransform)
 }
 
 #endif
+#endif // TTYC_UT

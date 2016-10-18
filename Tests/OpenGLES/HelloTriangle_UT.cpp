@@ -1,3 +1,4 @@
+#ifdef OPENGLES_HELLOTRIANGLE_UT
 #ifdef OPENGLES
 #include "test.hpp"
 
@@ -78,7 +79,15 @@ class HelloTriangle : public SDLTestShaderWindow
 
 				render( );
 				_checkForGLError( );
-				SDL_PumpEvents( );
+
+				SDL_Event event;
+
+				if ( SDL_PollEvent( &event ) )
+				{
+					// do stuff
+				}
+
+				//SDL_PumpEvents( );
 				SDL_GL_SwapWindow( mMainWindow );
 
 				if ( ( accum += t.stop( ) ) >= 3000.0 )
@@ -88,9 +97,7 @@ class HelloTriangle : public SDLTestShaderWindow
 
 			} while ( 1 );
 
-			TRACE;
 			_hide( );
-			TRACE;
 		}
 };
 
@@ -98,15 +105,10 @@ class HelloTriangle : public SDLTestShaderWindow
 
 TEST(HelloTriangle_UT, HelloTriangle)
 {
-	{
-		HelloTriangle window;
-		TRACE;
-		window.initialize( { 3, 0, 1, false, false } );
-		TRACE;
-		window.run( );
-		TRACE;
-	}
-	TRACE;
-	std::cout << "SDL_GetError( ): " << SDL_GetError( ) << std::endl;
+	HelloTriangle * window = new HelloTriangle;
+	window->initialize( { 3, 0, 1, false, false } );
+	window->run( );
+	delete window;
 }
 #endif // OPENGLES
+#endif // OPENGLES_HELLOTRIANGLE_UT

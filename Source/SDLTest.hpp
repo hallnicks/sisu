@@ -41,7 +41,7 @@ namespace sisu {
 	{
 		uint8_t  const mMajorGLVersion;
 		uint8_t  const mMinorGLVersion;
-		uint32_t const mSwapInterval;
+		int32_t  const mSwapInterval;
 		bool 	 const mDoubleBufferingEnabled;
 		bool 	 const mMultisampleBufferingEnabled;
 	};

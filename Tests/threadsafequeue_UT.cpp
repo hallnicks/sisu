@@ -1,4 +1,4 @@
-#if 0
+#ifdef THREAD_SAFE_QUEUE_UT
 // This file is part of sisu.
 
 // sisu is free software: you can redistribute it and/or modify // it under the terms of the GNU General Public License as published by
@@ -165,4 +165,4 @@ TEST(tsq_UT, ThreadSafeQueueTrivial)
 	sleep::ms( 3000 );
 	quit.set( );
 }
-#endif
+#endif // THREAD_SAFE_QUEUE_UT

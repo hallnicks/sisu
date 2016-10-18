@@ -1,3 +1,4 @@
+#ifdef SDL_COLOR_SWITCHER_UT
 #include "test.hpp"
 #include "SDLTest.hpp"
 
@@ -100,3 +101,4 @@ TEST(sdl_colorswitcher_UT, CreateSDLWindowWithoutExceptions)
 
 	test.run();
 }
+#endif // SDL_COLOR_SWITCHER_UT

@@ -1,4 +1,4 @@
-#if 0
+#ifdef SDL_FBO_UT
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "threadgears.hpp"
@@ -336,4 +336,4 @@ TEST(sdl_FBO_UT, CreateWindowWithoutExceptions)
 
 	BLOCK_EXECUTION;
 }
-#endif
+#endif // SDL_FBO_UT

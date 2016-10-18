@@ -1,3 +1,4 @@
+#ifdef STOPWATCH_UT
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "Stopwatch.hpp"
@@ -92,3 +93,4 @@ TEST(stopwatch_UT, reUseStopwatchWorks)
 
 	std::cout << "elapsed ms = " << accum << std::endl;
 }
+#endif // STOPWATCH_UT

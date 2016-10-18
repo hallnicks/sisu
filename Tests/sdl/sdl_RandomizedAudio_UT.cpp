@@ -1,4 +1,4 @@
-#if 0
+#ifdef SDL_RANDOMIZED_AUDIO_UT
 #include "test.hpp"
 #include "threadgears.hpp"
 #include <string>
@@ -245,4 +245,4 @@ TEST(sdl_RandomizedAudio_UT, PlaySDLAudioWithoutExceptions)
 
 	MUSTEQ(*audioThread, true);
 }
-#endif
+#endif // SDL_RANDOMIZED_AUDIO_UT

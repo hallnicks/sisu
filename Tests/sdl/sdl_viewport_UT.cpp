@@ -1,4 +1,4 @@
-#if 0
+#ifdef SDL_VIEWPORT_UT
 #include "test.hpp"
 #include "SDLTest.hpp"
 #include "ioassist.hpp"
@@ -204,4 +204,4 @@ TEST(sdl_viewport_UT, CreateSDLWindowWithoutExceptions)
 	}
 
 }
-#endif
+#endif // SDL_VIEWPORT_UT

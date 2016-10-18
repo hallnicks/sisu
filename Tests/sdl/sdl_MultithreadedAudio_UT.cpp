@@ -1,4 +1,4 @@
-#if 0
+#ifdef SDL_MULTITHREADED_AUDIO_UT
 #include "test.hpp"
 #include "threadgears.hpp"
 #include "memblock.hpp"
@@ -278,4 +278,4 @@ TEST(sdl_MultiThreadedAudio_UT, OrchestrateAudioFromBackgroundThread)
 
 	BLOCK_EXECUTION;
 }
-#endif
+#endif // SDL_MULTITHREADED_AUDIO_UT
