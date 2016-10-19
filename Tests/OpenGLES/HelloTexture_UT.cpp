@@ -30,13 +30,13 @@
 
 namespace sisu {
 
-PFNGLBINDVERTEXARRAYOESPROC    glBindVertexArrayOES;
-PFNGLDELETEVERTEXARRAYSOESPROC glDeleteVertexArraysOES;
-PFNGLGENVERTEXARRAYSOESPROC    glGenVertexArraysOES;
-PFNGLISVERTEXARRAYOESPROC      glIsVertexArrayOES;
+static PFNGLBINDVERTEXARRAYOESPROC    glBindVertexArrayOES;
+static PFNGLDELETEVERTEXARRAYSOESPROC glDeleteVertexArraysOES;
+static PFNGLGENVERTEXARRAYSOESPROC    glGenVertexArraysOES;
+static PFNGLISVERTEXARRAYOESPROC      glIsVertexArrayOES;
 
 #ifndef GLBINDVERTEXARRAYOES
- #define GLBINDVERTEXARRAYOES    "glBindVertexArray"
+ #define GLBINDVERTEXARRAYOES "glBindVertexArray"
 #endif
 
 #ifndef GLDELETEVERTEXARRAYSOES
@@ -44,11 +44,11 @@ PFNGLISVERTEXARRAYOESPROC      glIsVertexArrayOES;
 #endif
 
 #ifndef GLGENVERTEXARRAYSOES
- #define GLGENVERTEXARRAYSOES    "glGenVertexArrays"
+ #define GLGENVERTEXARRAYSOES "glGenVertexArrays"
 #endif
 
 #ifndef GLISVERTEXARRAYOES
- #define GLISVERTEXARRAYOES      "glIsVertexArray"
+ #define GLISVERTEXARRAYOES "glIsVertexArray"
 #endif
 
 static class OpenGLESExtensions

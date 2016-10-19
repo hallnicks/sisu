@@ -20,7 +20,6 @@ class HelloTriangle_UT : public context
 		void Down( ) { }
 };
 
-
 class HelloTriangle : public SDLTestShaderWindow
 {
 	protected:
@@ -30,12 +29,11 @@ class HelloTriangle : public SDLTestShaderWindow
 			       	                             -0.5f, -0.5f, 0.0f,
 			                                      0.5f, -0.5f, 0.0f
 			                                   };
-
 			glViewport( 0, 0, mW, mH );
 
 			glClear( GL_COLOR_BUFFER_BIT );
 
-			mShader([&]() {
+			mShader([&](){
 				glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, vVertices );
 				glEnableVertexAttribArray( 0 );
 				glDrawArrays( GL_TRIANGLES, 0, 3 );
@@ -44,12 +42,12 @@ class HelloTriangle : public SDLTestShaderWindow
 
 	public:
 		HelloTriangle( )
-			: SDLTestShaderWindow( ShaderSourcePair("#version 300 es                          \n"
-							        "layout(location = 0) in vec4 vPosition;  \n"
-							        "void main()                              \n"
-							        "{                                        \n"
-							        "   gl_Position = vPosition;              \n"
-							        "}                                        \n"
+			: SDLTestShaderWindow( ShaderSourcePair("#version 300 es                         \n"
+							        "layout(location = 0) in vec4 vPosition; \n"
+							        "void main()                             \n"
+							        "{                                       \n"
+							        "   gl_Position = vPosition;             \n"
+							        "}                                       \n"
 							      , "#version 300 es                              \n"
 							        "precision mediump float;                     \n"
 							        "out vec4 fragColor;                          \n"
@@ -78,17 +76,12 @@ class HelloTriangle : public SDLTestShaderWindow
 				t.startMs( );
 
 				render( );
+
+				SDL_GL_SwapWindow( mMainWindow );
+
 				_checkForGLError( );
 
-				SDL_Event event;
-
-				if ( SDL_PollEvent( &event ) )
-				{
-					// do stuff
-				}
-
-				//SDL_PumpEvents( );
-				SDL_GL_SwapWindow( mMainWindow );
+				SDL_PumpEvents( );
 
 				if ( ( accum += t.stop( ) ) >= 3000.0 )
 				{

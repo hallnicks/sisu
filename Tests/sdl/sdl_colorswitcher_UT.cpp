@@ -35,8 +35,6 @@ namespace
 
 			virtual void render( )
 			{
-				SDL_Event event;
-
 				uint32_t const flags = SDL_GetWindowFlags( mMainWindow );
 
 				if ( ! ( flags & SDL_WINDOW_BORDERLESS ) )
@@ -83,6 +81,8 @@ namespace
 				{
 					render( );
 				}
+
+				_hide( );
 			}
 	}; // class
 
