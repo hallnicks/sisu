@@ -3,7 +3,9 @@
 #include <iostream>
 #include <string>
 
-#include "test.hpp" // delete me
+#ifdef LINUX
+#include <X11/Xlib.h>
+#endif
 
 namespace sisu {
 
@@ -121,8 +123,6 @@ SDLTestWindow::~SDLTestWindow( )
 	mMainWindow = NULL;
 
         SDL_Quit();
-
-	TRACE;
 }
 
 void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
@@ -135,11 +135,23 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
         _setOpenGLAttributes( xAttributes );
 
+	uint32_t w = 1, h = 1;
+
+#ifdef LINUX
+	Display * d = XOpenDisplay( NULL );
+	Screen *  s = DefaultScreenOfDisplay( d );
+
+	w = s->width;
+	h = s->height;
+
+	XCloseDisplay( d );
+#endif
+
         mMainWindow = SDL_CreateWindow( "SDL2 OpenGL"
                                        , SDL_WINDOWPOS_CENTERED
                                        , SDL_WINDOWPOS_CENTERED
-                                       , 1
-                                       , 1
+                                       , w
+                                       , h
                                        , SDL_WINDOW_OPENGL      | SDL_WINDOW_BORDERLESS    |
                                          SDL_WINDOW_SHOWN       | SDL_WINDOW_INPUT_GRABBED |
                                          SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
@@ -180,7 +192,6 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 		exit( -1 );
 	}
 #endif
-
         if ( SDL_GL_SetSwapInterval( xAttributes.mSwapInterval ) < 0 )
 	{
 		std::cerr << "Setup vsync failed: " << SDL_GetError( ) << std::endl;

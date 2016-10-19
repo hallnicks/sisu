@@ -32,6 +32,10 @@ endif
 # Technically, since we are using SDL for the context, EGL may not be necessary
 TARGET_LIBS  += GLESv2 EGL dl
 
+UNAME := $(shell uname -s)
+ifeq ($(UNAME),Linux)
+   TARGET_LIBS += X11
+endif
 
 TARGET_LIBS += tbb
 #TARGET_LIBS += ncurses
@@ -83,7 +87,7 @@ TARGET_LIBS += \
 # opencv_videostab
 endif
 
-# comment the line below to disable OpenCV 
+# comment the line below to disable OpenCV
 CXXFLAGS += -D SISU_OPENCV
 
 #Extra's for fun (TODO: integrate)
@@ -92,16 +96,19 @@ CXXFLAGS += -D SISU_OPENCV
 # OpenAL
 ifeq ($(OS),Windows_NT)
     TARGET_LIBS += OpenAL32
+    CXXFLAGS += -D SISU_OPENAL
 else
     TARGET_LIBS += openal
+    #TODO: Integrate OpenAL on linux
+    #CXXFLAGS += -D SISU_OPENAL
 endif
 # Comment the line below to disable OpenAL
-CXXFLAGS += -D SISU_OPENAL
 
 # for SDL
 SDL_CONFIG   := sdl2-config --prefix=/usr
 CXXFLAGS     += $(shell $(SDL_CONFIG) --cflags)
 LDFLAGS      += $(shell $(SDL_CONFIG) --libs)
+
 
 # for freetype
 FREETYPE_CONFIG := freetype-config
@@ -126,7 +133,7 @@ CXXFLAGS += -Wno-deprecated-declarations
 #for OpenAL:( TODO: Fix bugs in OpenAL example code
 CXXFLAGS += -Wno-pointer-arith -Wno-attributes
 
-#for Redbook 
+#for Redbook
 CXXFLAGS += -Wno-int-to-pointer-cast
 
 # for GLEW
@@ -138,7 +145,7 @@ CXXFLAGS     += -I/usr/local/include -Wno-pragmas
 # for libPNG, libavocdec
 LDFLAGS      += -L/usr/local/lib
 
-# unit tests 
+# unit tests
 #CXXFLAGS += -D BEEP_UT
 #CXXFLAGS += -D GAMECONTROLLER_UT
 #CXXFLAGS += -D KEYBOARD_UT
@@ -146,13 +153,13 @@ LDFLAGS      += -L/usr/local/lib
 #CXXFLAGS += -D LIBFREETYPE_UT
 #CXXFLAGS += -D LIBOPENSSL_UT
 #CXXFLAGS += -D LIBPNG_UT
-#CXXFLAGS += -D LOG_UT
+CXXFLAGS  += -D LOG_UT
 #CXXFLAGS += -D MEMBLOCK_UT
 #CXXFLAGS += -D MOUSE_UT
 #CXXFLAGS += -D OPENAL_UT
 #CXXFLAGS += -D OPENCV_UT
-#CXXFLAGS += -D OPENGLES_HELLOTRIANGLE_UT
-CXXFLAGS  += -D OPENGLES_HELLOTEXTURE_UT
+CXXFLAGS  += -D OPENGLES_HELLOTRIANGLE_UT
+#CXXFLAGS += -D OPENGLES_HELLOTEXTURE_UT
 #CXXFLAGS += -D PNG_IMAGE_STREAMER_UT
 #CXXFLAGS += -D POPEN_UT
 #CXXFLAGS += -D SDL_AUDIO_MIXER_UT

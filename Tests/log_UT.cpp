@@ -44,6 +44,8 @@ static class SDLLogHandler
 	public:
 		SDLLogHandler( )
 		{
+
+			SDL_LogSetPriority( SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO );
 			mOfs.open( LOG_NAME );
 
 			SDL_LogSetOutputFunction( _SDL_LogOutputFunction, &mOfs );
@@ -62,6 +64,5 @@ static class SDLLogHandler
 TEST(log_UT, UseSDLLoggingSystem)
 {
 	SDL_LogCritical( SDL_LOG_CATEGORY_APPLICATION, "%s", "Test" );
-	BLOCK_EXECUTION;
 }
 #endif // LOG_UT
