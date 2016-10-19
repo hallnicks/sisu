@@ -2,7 +2,8 @@
 #ifdef OPENGLES
 #include "test.hpp"
 
-#include "SDLTestShaderWindow.hpp"
+#include "SDLTest.hpp"
+#include "SDLShader.hpp"
 #include "Stopwatch.hpp"
 #include "Texture2D.hpp"
 #include "PNGImage.hpp"
@@ -108,10 +109,11 @@ class HelloTexture_UT : public context
 };
 
 
-class HelloTexture : public SDLTestShaderWindow
+class HelloTexture : public SDLTestWindow
 {
 	Texture2D mTexture;
 	PNGImage mPNGImage;
+	SDLShader mShader;
 
 	GLuint mQuadVBO, mQuadVAO;
 
@@ -178,26 +180,27 @@ class HelloTexture : public SDLTestShaderWindow
 
 	public:
 		HelloTexture( )
-			: SDLTestShaderWindow( ShaderSourcePair("#version 300 es                            			  \n"
-      								"layout(location = 0) in vec4 vertex;       			  \n"
-							        "out vec2 TexCoords;                        			  \n"
-							        "uniform mat4 model;                        			  \n"
-							        "uniform mat4 projection;                   			  \n"
-							        "void main()                               			  \n"
-							        "{                                          			  \n"
-							        "   TexCoords = vertex.zw;                  			  \n"
-							        "   gl_Position = projection * model * vec4(vertex.xy, 0.0, 1.0); \n"
-							        "}                                          			  \n"
-							      ,"#version 300 es                                                \n"
-							        "precision mediump float;				       \n"
-   	  		  			                "in vec2 TexCoords;				               \n"
-   	  		  			                "out vec4 color;				               \n"
-							        "uniform sampler2D image; 				       \n"
-							        "uniform vec3 spriteColor;                                     \n"
-							        "void main()                                                   \n"
-							        "{                                                             \n"
-							        "  color = vec4(spriteColor, 1.0) * texture(image, TexCoords); \n"
-							        "}                                                             \n") )
+			: SDLTestWindow( )
+			, mShader( ShaderSourcePair("#version 300 es                            			  \n"
+      						    "layout(location = 0) in vec4 vertex;       			  \n"
+						    "out vec2 TexCoords;                        			  \n"
+						    "uniform mat4 model;                        			  \n"
+						    "uniform mat4 projection;                   			  \n"
+						    "void main()                               			  \n"
+						    "{                                          			  \n"
+						    "   TexCoords = vertex.zw;                  			  \n"
+						    "   gl_Position = projection * model * vec4(vertex.xy, 0.0, 1.0); \n"
+						    "}                                          			  \n"
+						   ,"#version 300 es                                                \n"
+						    "precision mediump float;				       \n"
+   	  		  			    "in vec2 TexCoords;				               \n"
+   	  		  			    "out vec4 color;				               \n"
+						    "uniform sampler2D image; 				       \n"
+						    "uniform vec3 spriteColor;                                     \n"
+						    "void main()                                                   \n"
+						    "{                                                             \n"
+						    "  color = vec4(spriteColor, 1.0) * texture(image, TexCoords); \n"
+						    "}                                                             \n") )
 			, mTexture( )
 			, mPNGImage( "resources/testinput/testinput01.png" )
 			, mQuadVAO( 0 )
@@ -208,7 +211,9 @@ class HelloTexture : public SDLTestShaderWindow
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
-			SDLTestShaderWindow::initialize( xAttributes );
+			SDLTestWindow::initialize( xAttributes );
+
+			mShader.initialize( );
 
                         glm::mat4 projection = glm::ortho(  0.0f
                                                          , static_cast<GLfloat>( mW )
