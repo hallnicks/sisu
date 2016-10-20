@@ -9,6 +9,8 @@
 #include "PNGImage.hpp"
 #include "sisumath.hpp"
 #include "GLESBook/esShapes.hpp"
+#include "mouse.hpp"
+#include "keyboard.hpp"
 
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
@@ -113,7 +115,8 @@ class HelloInstancing : public SDLTestWindow
     	static GLfloat const sVertices[5*6*6];
 	static glm::vec3 const sCubePositions[];
 
-
+	Mouse mMouse;
+	Keyboard mKeyboard;
 	Texture2D mTexture, mSecondTexture, mThirdTexture;
 	PNGImage mPNGImage, mSecondPNGImage, mThirdPNGImage;
 	SDLShader mSpriteShader, m3DCameraShader;
@@ -275,6 +278,122 @@ class HelloInstancing : public SDLTestWindow
 				       , dRand( 0.0f, 1.0f )
                                        , dRand( 0.0f, 1.0f ) ) );
 	}
+
+
+	void _render3DScene( )
+	{
+		m3DCameraShader([&]( ) {
+			glm::mat4 view        = glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
+
+			glm::mat4 projection  = glm::perspective( mFov, (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
+
+			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , view );
+
+			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("projection", projection );
+
+			_checkForGLError( "After set view and rpojection" );
+
+			glActiveTexture( GL_TEXTURE1 );
+
+			mThirdTexture([&]( )
+			{
+				glActiveTexture( GL_TEXTURE2 );
+
+				mSecondTexture([&]( )
+				{
+
+					glBindVertexArray( mCubeVAO );
+
+					GLint const modelLoc = m3DCameraShader.getUniforms( )["model"];
+
+					for ( GLuint i = 0; i < 10; i++ )
+					{
+						glm::mat4 model;
+
+						model = glm::translate( model, sCubePositions[ i ] );
+
+						GLfloat angle = 20.0f * i;
+
+						model = glm::rotate( model, angle, glm::vec3( 1.0f, 0.3f, 0.5f ) );
+
+						m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
+
+						_checkForGLError( "After set model" );
+
+						glDrawArrays( GL_TRIANGLES, 0, 6 * 6 );
+					}
+
+					glBindVertexArray( 0 );
+				} );
+			} );
+
+			_checkForGLError( "After render 3d" );
+		} );
+
+	}
+
+	void _initialize3DScene( )
+	{
+		mLastX = mW / 2.0;
+		mLastY = mH / 2.0;
+
+ 		glGenVertexArrays(1, &mCubeVAO);
+   		glGenBuffers(1, &mCubeVBO);
+
+    		glBindVertexArray(mCubeVAO);
+
+    		glBindBuffer(GL_ARRAY_BUFFER, mCubeVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof( sVertices), sVertices, GL_STATIC_DRAW);
+
+    		// Position attribute
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+    		glEnableVertexAttribArray(0);
+    		// TexCoord attribute
+    		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    		glEnableVertexAttribArray(2);
+
+    		glBindVertexArray(0); // Unbind VAO
+
+		_checkForGLError( "After set vertices" );
+
+		if ( !mSecondPNGImage.getIsValid( ) )
+		{
+			std::cerr << "Unit test resource testinput02.png not found or is corrupt." << std::endl;
+			exit( -1 );
+		}
+
+		mSecondTexture.initialize( mSecondPNGImage.getWidth( )
+				         , mSecondPNGImage.getHeight( )
+				         , mSecondPNGImage.toGLTextureBuffer( ) );
+
+		if ( !mThirdPNGImage.getIsValid( ) )
+		{
+			std::cerr << "Unit test resource testinput03.png not found or is corrupt." << std::endl;
+			exit( -1 );
+		}
+
+		mThirdTexture.initialize( mThirdPNGImage.getWidth( )
+				         , mThirdPNGImage.getHeight( )
+				         , mThirdPNGImage.toGLTextureBuffer( ) );
+
+		_checkForGLError( "After initialize texture" );
+
+		m3DCameraShader([&](){
+			auto __initializeTextureUnit = [&]( GLenum const xTextureUnit, Texture2D & xTexture, const char * xName, GLint const xValue )
+			{
+				glActiveTexture( xTextureUnit );
+				_checkForGLError( "glActiveTexture" );
+				xTexture([&]( ) {
+					m3DCameraShader.getUniforms( ).setUniform1i( xName, xValue );
+				} );
+			};
+
+			__initializeTextureUnit( GL_TEXTURE1, mSecondTexture, "ourTexture1", 1);
+
+			__initializeTextureUnit( GL_TEXTURE2, mThirdTexture, "ourTexture2", 2);
+		});
+	}
+
 	protected:
 		virtual void render( )
 		{
@@ -286,56 +405,7 @@ class HelloInstancing : public SDLTestWindow
 
 		        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-			m3DCameraShader([&]( ) {
-
-				glm::mat4 view        = glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
-
-				glm::mat4 projection  = glm::perspective( mFov, (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
-
-				m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , view );
-
-				m3DCameraShader.getUniforms( ).setUniformMatrix4fv("projection", projection );
-
-				_checkForGLError( "After set view and rpojection" );
-
-				glActiveTexture( GL_TEXTURE1 );
-
-				mThirdTexture([&]( )
-				{
-					glActiveTexture( GL_TEXTURE2 );
-
-					mSecondTexture([&]( )
-					{
-
-
-						glBindVertexArray( mCubeVAO );
-
-						GLint const modelLoc = m3DCameraShader.getUniforms( )["model"];
-
-						for ( GLuint i = 0; i < 10; i++ )
-						{
-							glm::mat4 model;
-
-							model = glm::translate( model, sCubePositions[ i ] );
-
-							GLfloat angle = 20.0f * i;
-
-							model = glm::rotate( model, angle, glm::vec3( 1.0f, 0.3f, 0.5f ) );
-
-							m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
-
-							_checkForGLError( "After set model" );
-
-							glDrawArrays( GL_TRIANGLES, 0, 6 * 6 );
-						}
-						glBindVertexArray( 0 );
-					} );
-				} );
-
-
-				_checkForGLError( "After render 3d" );
-
-			} );
+			_render3DScene( );
 
 			_render2DOverlay( );
 
@@ -387,11 +457,12 @@ class HelloInstancing : public SDLTestWindow
 							    "{                                                                                     \n"
 					    		    "    color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), 0.2); \n"
 					 		    "}                                                                                     \n" ) )
+			, mMouse( )
 			, mTexture( )
 			, mSecondTexture( )
-			, mPNGImage( "resources/testinput/testinput01.png" )
-			, mSecondPNGImage( "resources/testinput/testinput02.png" )
-			, mThirdPNGImage( "resources/testinput/testinput03.png" )
+			, mPNGImage( "resources/testinput/testinput05.png" )
+			, mSecondPNGImage( "resources/testinput/testinput06.png" )
+			, mThirdPNGImage( "resources/testinput/testinput07.png" )
 			// 2D Render Data
 			, mQuadVAO( 0 )
 			, mQuadVBO( 0 )
@@ -419,70 +490,81 @@ class HelloInstancing : public SDLTestWindow
 			SDLTestWindow::initialize( xAttributes );
 
 			mSpriteShader.initialize( );
-
-			m3DCameraShader.initialize( );
-
 			_initialize2DOverlay( );
 
-			mLastX = mW / 2.0;
-			mLastY = mH / 2.0;
+			m3DCameraShader.initialize( );
+			_initialize3DScene( );
 
-    			glGenVertexArrays(1, &mCubeVAO);
-    			glGenBuffers(1, &mCubeVBO);
+			bool firstMouse = true;
 
-    			glBindVertexArray(mCubeVAO);
+			mMouse.registerCallback([&](MouseEventInfo const & xEvent){
 
-    			glBindBuffer(GL_ARRAY_BUFFER, mCubeVBO);
-			glBufferData(GL_ARRAY_BUFFER, sizeof( sVertices), sVertices, GL_STATIC_DRAW);
-
-    			// Position attribute
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
-    			glEnableVertexAttribArray(0);
-    			// TexCoord attribute
-    			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    			glEnableVertexAttribArray(2);
-
-    			glBindVertexArray(0); // Unbind VAO
-
-			_checkForGLError( "After set vertices" );
-
-			if ( !mSecondPNGImage.getIsValid( ) )
-			{
-				std::cerr << "Unit test resource testinput02.png not found or is corrupt." << std::endl;
-				exit( -1 );
-			}
-
-			mSecondTexture.initialize( mSecondPNGImage.getWidth( )
-					         , mSecondPNGImage.getHeight( )
-					         , mSecondPNGImage.toGLTextureBuffer( ) );
-
-			if ( !mThirdPNGImage.getIsValid( ) )
-			{
-				std::cerr << "Unit test resource testinput03.png not found or is corrupt." << std::endl;
-				exit( -1 );
-			}
-
-			mThirdTexture.initialize( mThirdPNGImage.getWidth( )
-					         , mThirdPNGImage.getHeight( )
-					         , mThirdPNGImage.toGLTextureBuffer( ) );
-
-			_checkForGLError( "After initialize texture" );
-
-			m3DCameraShader([&](){
-				auto __initializeTextureUnit = [&]( GLenum const xTextureUnit, Texture2D & xTexture, const char * xName, GLint const xValue )
+				if( firstMouse )
 				{
-					glActiveTexture( xTextureUnit );
-					_checkForGLError( "glActiveTexture" );
+					mLastX = xEvent.x;
+					mLastY = xEvent.y;
+					firstMouse = false;
+				}
 
-					xTexture([&]( ) {
-						m3DCameraShader.getUniforms( ).setUniform1i( xName, xValue );
-					} );
-				};
+				GLfloat xoffset = xEvent.x - mLastX;
 
-				__initializeTextureUnit( GL_TEXTURE1, mSecondTexture, "ourTexture1", 1);
+				GLfloat yoffset = mLastY - xEvent.y; // Reversed since y-coordinates go from bottom to left
 
-				__initializeTextureUnit( GL_TEXTURE2, mThirdTexture, "ourTexture2", 2);
+				mLastX = xEvent.x;
+				mLastY = xEvent.y;
+
+				GLfloat sensitivity = 0.05;	// Change this value to your liking
+				xoffset *= sensitivity;
+				yoffset *= sensitivity;
+
+				mYaw   += xoffset;
+				mPitch += yoffset;
+
+				// Make sure that when pitch is out of bounds, screen doesn't get flipped
+				if (mPitch > 89.0f)
+				    mPitch = 89.0f;
+				if (mPitch < -89.0f)
+				    mPitch = -89.0f;
+
+				glm::vec3 front;
+				front.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPitch));
+				front.y = sin(glm::radians(mPitch));
+				front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
+				mCameraFront = glm::normalize(front);
+
+				float const scrollOffset = xEvent.wheelHasMovedUp( ) ? 1 : -1;
+
+				if (mFov >= 1.0f && mFov <= 45.0f)
+				    mFov -= scrollOffset;
+				if (mFov <= 1.0f)
+				    mFov = 1.0f;
+				if (mFov >= 45.0f)
+				    mFov = 45.0f;
 			});
+
+			mMouse.listen( );
+
+			mKeyboard.registerCallback( [&]( KeyboardEvent const & xEvent )
+			{
+				    // Camera controls
+				GLfloat cameraSpeed = 0.3f; /*5.0f * mDeltaTime*/;
+
+				switch ( xEvent.getScanCode( ) )
+				{
+					case SDL_SCANCODE_W:
+	        				{ mCameraPos += cameraSpeed * mCameraFront; break; }
+					case SDL_SCANCODE_S:
+					        { mCameraPos -= cameraSpeed * mCameraFront; break; }
+					case SDL_SCANCODE_A:
+	        				{ mCameraPos -= glm::normalize(glm::cross(mCameraFront, mCameraUp)) * cameraSpeed; break; }
+					case SDL_SCANCODE_D:
+	        				{ mCameraPos += glm::normalize(glm::cross(mCameraFront, mCameraUp)) * cameraSpeed; break; }
+					default:
+						break;
+				}
+			} );
+
+			mKeyboard.listen( );
 		}
 
 		virtual void run( )
@@ -503,12 +585,12 @@ class HelloInstancing : public SDLTestWindow
 
 				SDL_GL_SwapWindow( mMainWindow );
 
-				if ( ( accum += t.stop( ) ) >= 30000.0 )
-				{
-					break;
-				}
+				mDeltaTime = t.stop( );
 
 			} while ( 1 );
+
+			mMouse.stopListening( );
+			mKeyboard.stopListening( );
 
 			_hide( );
 		}
