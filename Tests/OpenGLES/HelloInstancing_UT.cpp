@@ -115,7 +115,7 @@ class HelloInstancing : public SDLTestWindow
 
 
 	Texture2D mTexture, mSecondTexture, mThirdTexture;
-	PNGImage mPNGImage, mSecondPNGImage;
+	PNGImage mPNGImage, mSecondPNGImage, mThirdPNGImage;
 	SDLShader mSpriteShader, m3DCameraShader;
 
 	// 2D Render Data
@@ -125,7 +125,6 @@ class HelloInstancing : public SDLTestWindow
 	GLuint mQuadVBO, mQuadVAO;
 
 	GLuint mCubeVBO, mCubeVAO;
-
 
 	// 3D Render data
 	// Camera
@@ -299,28 +298,40 @@ class HelloInstancing : public SDLTestWindow
 
 				_checkForGLError( "After set view and rpojection" );
 
-				glBindVertexArray( mCubeVAO );
+				glActiveTexture( GL_TEXTURE1 );
 
-				GLint const modelLoc = m3DCameraShader.getUniforms( )["model"];
-
-				for ( GLuint i = 0; i < 10; i++ )
+				mThirdTexture([&]( )
 				{
-					glm::mat4 model;
+					glActiveTexture( GL_TEXTURE2 );
 
-					model = glm::translate( model, sCubePositions[ i ] );
+					mSecondTexture([&]( )
+					{
 
-					GLfloat angle = 20.0f * i;
 
-					model = glm::rotate( model, angle, glm::vec3( 1.0f, 0.3f, 0.5f ) );
+						glBindVertexArray( mCubeVAO );
 
-					m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
+						GLint const modelLoc = m3DCameraShader.getUniforms( )["model"];
 
-					_checkForGLError( "After set model" );
+						for ( GLuint i = 0; i < 10; i++ )
+						{
+							glm::mat4 model;
 
-					glDrawArrays( GL_TRIANGLES, 0, 6 * 6 );
-				}
+							model = glm::translate( model, sCubePositions[ i ] );
 
-				glBindVertexArray( 0 );
+							GLfloat angle = 20.0f * i;
+
+							model = glm::rotate( model, angle, glm::vec3( 1.0f, 0.3f, 0.5f ) );
+
+							m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
+
+							_checkForGLError( "After set model" );
+
+							glDrawArrays( GL_TRIANGLES, 0, 6 * 6 );
+						}
+						glBindVertexArray( 0 );
+					} );
+				} );
+
 
 				_checkForGLError( "After render 3d" );
 
@@ -380,6 +391,7 @@ class HelloInstancing : public SDLTestWindow
 			, mSecondTexture( )
 			, mPNGImage( "resources/testinput/testinput01.png" )
 			, mSecondPNGImage( "resources/testinput/testinput02.png" )
+			, mThirdPNGImage( "resources/testinput/testinput03.png" )
 			// 2D Render Data
 			, mQuadVAO( 0 )
 			, mQuadVBO( 0 )
@@ -444,6 +456,16 @@ class HelloInstancing : public SDLTestWindow
 					         , mSecondPNGImage.getHeight( )
 					         , mSecondPNGImage.toGLTextureBuffer( ) );
 
+			if ( !mThirdPNGImage.getIsValid( ) )
+			{
+				std::cerr << "Unit test resource testinput03.png not found or is corrupt." << std::endl;
+				exit( -1 );
+			}
+
+			mThirdTexture.initialize( mThirdPNGImage.getWidth( )
+					         , mThirdPNGImage.getHeight( )
+					         , mThirdPNGImage.toGLTextureBuffer( ) );
+
 			_checkForGLError( "After initialize texture" );
 
 			m3DCameraShader([&](){
@@ -457,9 +479,9 @@ class HelloInstancing : public SDLTestWindow
 					} );
 				};
 
-				__initializeTextureUnit( GL_TEXTURE0, mTexture      , "ourTexture1", 0);
+				__initializeTextureUnit( GL_TEXTURE1, mSecondTexture, "ourTexture1", 1);
 
-				__initializeTextureUnit( GL_TEXTURE1, mSecondTexture, "ourTexture2", 1);
+				__initializeTextureUnit( GL_TEXTURE2, mThirdTexture, "ourTexture2", 2);
 			});
 		}
 
