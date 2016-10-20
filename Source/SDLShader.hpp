@@ -12,6 +12,8 @@
 #include <SDL2/SDL_opengl.h>
 #endif
 
+#include "SDLTest.hpp"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -75,27 +77,33 @@ class SDLShader
                         public:
                                 GLint operator [ ] ( const char * xName )
                                 {
-                                        return glGetUniformLocation( mProgramID, xName );
+                                        GLint const ret = glGetUniformLocation( mProgramID, xName );
+					_checkForGLError( __PRETTY_FUNCTION__ );
+					return ret;
                                 }
 
                                 void setUniform1i( const char * xName, GLint const xValue )
                                 {
                                         glUniform1i( (*this)[ xName ], xValue );
+					_checkForGLError( __PRETTY_FUNCTION__ );
                                 }
 
                                 void setUniform1f( const char * xName, GLfloat const xValue )
                                 {
                                         glUniform1f( (*this)[ xName ], xValue );
+					_checkForGLError( __PRETTY_FUNCTION__ );
                                 }
 
                                 void setUniformMatrix4fv( const char * xName, glm::mat4 const & xMatrix )
                                 {
                                         glUniformMatrix4fv( (*this)[ xName ], 1, GL_FALSE, glm::value_ptr( xMatrix ) );
+					_checkForGLError( __PRETTY_FUNCTION__ );
                                 }
 
                                 void setUniformVector3f( const char * xName, glm::vec3 const & xValue )
                                 {
                                         glUniform3f( (*this)[ xName ], xValue.x, xValue.y, xValue.z );
+					_checkForGLError( __PRETTY_FUNCTION__ );
                                 }
                 };
 

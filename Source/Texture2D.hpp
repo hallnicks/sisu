@@ -78,6 +78,8 @@ class Texture2D
 
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mFilterMin );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mFilterMax );
+
+				glGenerateMipmap( GL_TEXTURE_2D );
 			} );
 
 		}
@@ -98,10 +100,6 @@ class Texture2D
 
 		void operator( )( std::function<void(void)> xLambda )
 		{
-// TODO: Handle texture units..
-#ifdef OPENGLES
-			glActiveTexture( GL_TEXTURE0 );
-#endif
 			glBindTexture( GL_TEXTURE_2D, mID );
 			xLambda( );
 			glBindTexture( GL_TEXTURE_2D, 0 );

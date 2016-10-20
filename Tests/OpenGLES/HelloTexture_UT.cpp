@@ -7,6 +7,7 @@
 #include "Stopwatch.hpp"
 #include "Texture2D.hpp"
 #include "PNGImage.hpp"
+#include "sisumath.hpp"
 
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -89,7 +90,6 @@ static class OpenGLESExtensions
 				dlclose( mHandle );
 			}
 		}
-
 } sOpenGLESExtensions;
 
 } // namespace sisu;
@@ -114,6 +114,8 @@ class HelloTexture : public SDLTestWindow
 	Texture2D mTexture;
 	PNGImage mPNGImage;
 	SDLShader mShader;
+	int32_t mScaleW, mScaleH;
+	bool mReverseScale;
 
 	GLuint mQuadVBO, mQuadVAO;
 
@@ -171,11 +173,36 @@ class HelloTexture : public SDLTestWindow
 				rotate = 0.0f;
 			}
 
+			static uint32_t const sStep = 25;
+
+			if ( !mReverseScale )
+			{
+				mScaleW -= sStep;
+				mScaleH -= sStep;
+			}
+			else
+			{
+			 	mScaleW += sStep;
+				mScaleH += sStep;
+			}
+
+			if ( mScaleW <= 0  || mScaleH <= 0  )
+			{
+				mReverseScale = true;
+				mScaleW = mScaleH = 0;
+			}
+			else if ( mScaleW >= mTexture.getWidth( ) || mScaleH >= mTexture.getHeight( ) )
+			{
+				mReverseScale = false;
+			}
+
 			_drawTexture( mTexture
 				    , glm::vec2( 0, 0 )
-				    , glm::vec2( mTexture.getWidth( ), mTexture.getHeight( ) )
+				    , glm::vec2( mScaleW, mScaleH )
 				    , rotate
-				    , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+				    , glm::vec3( dRand( 0.0f, 1.0f )
+					       , dRand( 0.0f, 1.0f )
+                                               , dRand( 0.0f, 1.0f ) ) );
 		}
 
 	public:
@@ -205,6 +232,9 @@ class HelloTexture : public SDLTestWindow
 			, mPNGImage( "resources/testinput/testinput01.png" )
 			, mQuadVAO( 0 )
 			, mQuadVBO( 0 )
+			, mScaleW( 0 )
+			, mScaleH( 0 )
+			, mReverseScale( false )
 		{
 			;
 		}
@@ -214,6 +244,7 @@ class HelloTexture : public SDLTestWindow
 			SDLTestWindow::initialize( xAttributes );
 
 			mShader.initialize( );
+
 
                         glm::mat4 projection = glm::ortho(  0.0f
                                                          , static_cast<GLfloat>( mW )
@@ -263,7 +294,9 @@ class HelloTexture : public SDLTestWindow
 				exit( -1 );
 			}
 
-			mTexture.initialize( mPNGImage.getWidth( ), mPNGImage.getHeight( ), mPNGImage.toGLTextureBuffer( ) );
+			mTexture.initialize( ( mScaleW = mPNGImage.getWidth( )  )
+					   , ( mScaleH = mPNGImage.getHeight( ) )
+					   , mPNGImage.toGLTextureBuffer( ) );
 		}
 
 		virtual void run( )
@@ -281,7 +314,7 @@ class HelloTexture : public SDLTestWindow
 				SDL_PumpEvents( );
 				SDL_GL_SwapWindow( mMainWindow );
 
-				if ( ( accum += t.stop( ) ) >= 3000.0 )
+				if ( ( accum += t.stop( ) ) >= 30000.0 )
 				{
 					break;
 				}
