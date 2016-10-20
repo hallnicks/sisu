@@ -183,7 +183,6 @@ class HelloInstancing : public SDLTestWindow
 
 	void _initialize2DOverlay( )
 	{
-		/*
 		glm::mat4 projection = glm::ortho(  0.0f
                                                   , static_cast<GLfloat>( mW )
                                                   , static_cast<GLfloat>( mH )
@@ -224,7 +223,6 @@ class HelloInstancing : public SDLTestWindow
                 glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
 		glBindVertexArrayOES( 0 );
-		*/
 
 		if ( !mPNGImage.getIsValid( ) )
 		{
@@ -328,10 +326,9 @@ class HelloInstancing : public SDLTestWindow
 
 			} );
 
-			//_render2DOverlay( );
+			_render2DOverlay( );
 
 			_checkForGLError( "After render 2d" );
-
 		}
 
 	public:
@@ -409,7 +406,7 @@ class HelloInstancing : public SDLTestWindow
 		{
 			SDLTestWindow::initialize( xAttributes );
 
-			//mSpriteShader.initialize( );
+			mSpriteShader.initialize( );
 
 			m3DCameraShader.initialize( );
 
@@ -449,19 +446,21 @@ class HelloInstancing : public SDLTestWindow
 
 			_checkForGLError( "After initialize texture" );
 
-			auto __initializeTextureUnit = [&]( GLenum const xTextureUnit, Texture2D & xTexture, const char * xName, GLint const xValue )
-			{
-				glActiveTexture( xTextureUnit );
-				_checkForGLError( "glActiveTexture" );
+			m3DCameraShader([&](){
+				auto __initializeTextureUnit = [&]( GLenum const xTextureUnit, Texture2D & xTexture, const char * xName, GLint const xValue )
+				{
+					glActiveTexture( xTextureUnit );
+					_checkForGLError( "glActiveTexture" );
 
-				xTexture([&]( ) {
-					m3DCameraShader.getUniforms( ).setUniform1i( xName, xValue );
-				} );
-			};
+					xTexture([&]( ) {
+						m3DCameraShader.getUniforms( ).setUniform1i( xName, xValue );
+					} );
+				};
 
-			__initializeTextureUnit( GL_TEXTURE0, mTexture      , "ourTexture1", 0);
+				__initializeTextureUnit( GL_TEXTURE0, mTexture      , "ourTexture1", 0);
 
-			__initializeTextureUnit( GL_TEXTURE1, mSecondTexture, "ourTexture2", 1);
+				__initializeTextureUnit( GL_TEXTURE1, mSecondTexture, "ourTexture2", 1);
+			});
 		}
 
 		virtual void run( )
