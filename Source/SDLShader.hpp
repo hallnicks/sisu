@@ -105,6 +105,12 @@ class SDLShader
                                         glUniform3f( (*this)[ xName ], xValue.x, xValue.y, xValue.z );
 					_checkForGLError( __PRETTY_FUNCTION__ );
                                 }
+
+                                void setUniformVector4f( const char * xName, glm::vec4 const & xValue )
+                                {
+                                        glUniform4f( (*this)[ xName ], xValue.x, xValue.y, xValue.z, xValue.w );
+					_checkForGLError( __PRETTY_FUNCTION__ );
+                                }
                 };
 
                 virtual void initialize( );

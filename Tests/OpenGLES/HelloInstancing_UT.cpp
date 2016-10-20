@@ -8,7 +8,6 @@
 #include "Texture2D.hpp"
 #include "PNGImage.hpp"
 #include "sisumath.hpp"
-#include "GLESBook/esShapes.hpp"
 #include "mouse.hpp"
 #include "keyboard.hpp"
 
@@ -95,6 +94,125 @@ static class OpenGLESExtensions
 		}
 } sOpenGLESExtensions;
 
+
+class Overlay2D
+{
+	SDLShader mSpriteShader;
+	GLuint mQuadVBO, mQuadVAO;
+
+	public:
+		Overlay2D( )
+			: mSpriteShader( ShaderSourcePair("#version 300 es                            			    \n"
+      				   			  "layout(location = 0) in vec4 vertex;       			    \n"
+	 	 				          "out vec2 TexCoords;                        			    \n"
+						          "uniform mat4 model;                        			    \n"
+						    	  "uniform mat4 projection;                   			    \n"
+						    	  "void main()                               			    \n"
+						    	  "{                                          			    \n"
+						    	  "   TexCoords = vertex.zw;                  			    \n"
+						    	  "   gl_Position = projection * model * vec4(vertex.xy, 0.0, 1.0); \n"
+						    	  "}                                          			    \n"
+						   	 ,"#version 300 es                                                  \n"
+						    	  "precision mediump float;				            \n"
+   	  		  			    	  "in vec2 TexCoords;				                    \n"
+   	  		  			    	  "out vec4 color;				                    \n"
+						    	  "uniform sampler2D image; 				            \n"
+						    	  "uniform vec4 spriteColor;                                        \n"
+						    	  "void main()                                                      \n"
+						    	  "{                                                                \n"
+						    	  "  color = spriteColor * texture(image, TexCoords);    \n"
+						    	  "}                                                                \n") )
+			, mQuadVBO( 0 )
+			, mQuadVAO( 0 )
+
+		{
+			;
+		}
+
+		void initialize( uint32_t const xW, uint32_t const xH )
+		{
+			mSpriteShader.initialize( );
+
+			glm::mat4 projection = glm::ortho(  0.0f
+	                                                  , static_cast<GLfloat>( xW )
+	                                                  , static_cast<GLfloat>( xH )
+	                                                  ,  0.0f
+	                                                  , -1.0f
+	                                                  ,  1.0f );
+
+	                mSpriteShader( [ & ]( )
+        	        {
+				mSpriteShader.getUniforms( ).setUniform1i( "image", 0 );
+				mSpriteShader.getUniforms( ).setUniformMatrix4fv( "projection", projection );
+			});
+
+			static GLfloat const vertices[] = { // Pos      // Tex
+							    0.0f, 1.0f, 0.0f, 1.0f,
+							    1.0f, 0.0f, 1.0f, 0.0f,
+							    0.0f, 0.0f, 0.0f, 0.0f,
+
+							    0.0f, 1.0f, 0.0f, 1.0f,
+							    1.0f, 1.0f, 1.0f, 1.0f,
+							    1.0f, 0.0f, 1.0f, 0.0f
+	                                                   };
+
+			glGenVertexArraysOES( 1, &mQuadVAO );
+
+			glGenBuffers( 1, &mQuadVBO );
+
+			glBindBuffer( GL_ARRAY_BUFFER, mQuadVBO );
+
+        	        glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
+
+	                glBindVertexArrayOES( mQuadVAO );
+
+        	        glEnableVertexAttribArray( 0 );
+
+	                glVertexAttribPointer( 0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof( GLfloat ), ( GLvoid* )0 );
+
+        	        glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+			glBindVertexArrayOES( 0 );
+		}
+
+	        void drawTexture( Texture2D & xTexture
+	                        , glm::vec2 const xPosition
+	                        , glm::vec2 const xSize
+	                        , GLfloat xRotate
+	                        , glm::vec4 const xColor )
+	        {
+        	        mSpriteShader( [ & ] ( )
+	                {
+	                        glm::mat4 model;
+
+        	                model = glm::translate( model, glm::vec3( xPosition, 0.0f ) );
+
+	                        model = glm::translate( model, glm::vec3( 0.5f * xSize.x, 0.5f * xSize.y, 0.0f ) );
+
+	                        model = glm::rotate(    model, xRotate, glm::vec3( 0.0f, 0.0f, 1.0f ) );
+
+        	                model = glm::translate( model, glm::vec3( -0.5f * xSize.x, -0.5f * xSize.y, 0.0f ) );
+
+                	        model = glm::scale(     model, glm::vec3( xSize, 1.0f ) );
+
+	                        mSpriteShader.getUniforms( ).setUniformMatrix4fv( "model", model );
+
+        	                mSpriteShader.getUniforms( ).setUniformVector4f( "spriteColor", xColor );
+
+	                        glActiveTexture( GL_TEXTURE0 );
+
+	                        xTexture( [ & ]( )
+        	                {
+	                                glBindVertexArrayOES( mQuadVAO );
+
+                	                glDrawArrays( GL_TRIANGLES, 0, 6 );
+
+	                                glBindVertexArrayOES( 0 );
+	                        } );
+	                } );
+	        }
+};
+
 } // namespace sisu;
 
 
@@ -117,15 +235,16 @@ class HelloInstancing : public SDLTestWindow
 
 	Mouse mMouse;
 	Keyboard mKeyboard;
+
+	Overlay2D mOverlay2D;
+
 	Texture2D mTexture, mSecondTexture, mThirdTexture;
 	PNGImage mPNGImage, mSecondPNGImage, mThirdPNGImage;
-	SDLShader mSpriteShader, m3DCameraShader;
 
+	SDLShader m3DCameraShader;
 	// 2D Render Data
 	int32_t mScaleW, mScaleH;
 	bool mReverseScale;
-
-	GLuint mQuadVBO, mQuadVAO;
 
 	GLuint mCubeVBO, mCubeVAO;
 
@@ -135,96 +254,34 @@ class HelloInstancing : public SDLTestWindow
 		, mCameraFront
 		, mCameraUp;
 
+
+	enum eMovementDirection
+	{
+		eMovementDirection_None,
+		eMovementDirection_W,
+		eMovementDirection_A,
+		eMovementDirection_S,
+		eMovementDirection_D,
+	} mMovementDirection;
+
+
 	GLfloat mYaw
 	      , mPitch
 	      , mLastX
 	      , mLastY
-	      , mFov;
+	      , mFov
+	      , mCameraSpeed;
 
 	bool mKeys[1024];
 
 	// Deltatime
 	GLfloat mDeltaTime, mLastFrame;
 
-        void _drawTexture( Texture2D & xTexture
-                         , glm::vec2 const xPosition
-                         , glm::vec2 const xSize
-                         , GLfloat xRotate
-                         , glm::vec3 const xColor )
-        {
-                mSpriteShader( [ & ] ( )
-                {
-                        glm::mat4 model;
-
-                        model = glm::translate( model, glm::vec3( xPosition, 0.0f ) );
-
-                        model = glm::translate( model, glm::vec3( 0.5f * xSize.x, 0.5f * xSize.y, 0.0f ) );
-
-                        model = glm::rotate(    model, xRotate, glm::vec3( 0.0f, 0.0f, 1.0f ) );
-
-                        model = glm::translate( model, glm::vec3( -0.5f * xSize.x, -0.5f * xSize.y, 0.0f ) );
-
-                        model = glm::scale(     model, glm::vec3( xSize, 1.0f ) );
-
-                        mSpriteShader.getUniforms( ).setUniformMatrix4fv( "model", model );
-
-                        mSpriteShader.getUniforms( ).setUniformVector3f( "spriteColor", xColor );
-
-                        glActiveTexture( GL_TEXTURE0 );
-
-                        xTexture( [ & ]( )
-                        {
-                                glBindVertexArrayOES( mQuadVAO );
-
-                                glDrawArrays( GL_TRIANGLES, 0, 6 );
-
-                                glBindVertexArrayOES( 0 );
-                        } );
-                } );
-        }
+	Stopwatch mDeltaWatch;
 
 	void _initialize2DOverlay( )
 	{
-		glm::mat4 projection = glm::ortho(  0.0f
-                                                  , static_cast<GLfloat>( mW )
-                                                  , static_cast<GLfloat>( mH )
-                                                  ,  0.0f
-                                                  , -1.0f
-                                                  ,  1.0f );
-
-                mSpriteShader( [ & ]( )
-                {
-			mSpriteShader.getUniforms( ).setUniform1i( "image", 0 );
-			mSpriteShader.getUniforms( ).setUniformMatrix4fv( "projection", projection );
-		});
-
-		static GLfloat const vertices[] = { // Pos      // Tex
-						    0.0f, 1.0f, 0.0f, 1.0f,
-						    1.0f, 0.0f, 1.0f, 0.0f,
-						    0.0f, 0.0f, 0.0f, 0.0f,
-
-						    0.0f, 1.0f, 0.0f, 1.0f,
-						    1.0f, 1.0f, 1.0f, 1.0f,
-						    1.0f, 0.0f, 1.0f, 0.0f
-                                                   };
-
-		glGenVertexArraysOES( 1, &mQuadVAO );
-
-		glGenBuffers( 1, &mQuadVBO );
-
-		glBindBuffer( GL_ARRAY_BUFFER, mQuadVBO );
-
-                glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
-
-                glBindVertexArrayOES( mQuadVAO );
-
-                glEnableVertexAttribArray( 0 );
-
-                glVertexAttribPointer( 0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof( GLfloat ), ( GLvoid* )0 );
-
-                glBindBuffer( GL_ARRAY_BUFFER, 0 );
-
-		glBindVertexArrayOES( 0 );
+		mOverlay2D.initialize( mW, mH );
 
 		if ( !mPNGImage.getIsValid( ) )
 		{
@@ -235,7 +292,6 @@ class HelloInstancing : public SDLTestWindow
 		mTexture.initialize( ( mScaleW = mPNGImage.getWidth( ) )
 				   , ( mScaleH = mPNGImage.getHeight( ) )
 				   , mPNGImage.toGLTextureBuffer( ) );
-
 	}
 
 	void _render2DOverlay( )
@@ -270,13 +326,14 @@ class HelloInstancing : public SDLTestWindow
 			mReverseScale = false;
 		}
 
-		_drawTexture( mTexture
-			    , glm::vec2( 0, 0 )
-			    , glm::vec2( mScaleW, mScaleH )
-			    , rotate
-			    , glm::vec3( dRand( 0.0f, 1.0f )
-				       , dRand( 0.0f, 1.0f )
-                                       , dRand( 0.0f, 1.0f ) ) );
+		mOverlay2D.drawTexture( mTexture
+	 			      , glm::vec2( 0, 0 )
+ 	  		 	      , glm::vec2( mScaleW, mScaleH )
+				      , rotate
+			    	      , glm::vec4( dRand( 0.0f, 1.0f )
+				       		 , dRand( 0.0f, 1.0f )
+                                       		 , dRand( 0.0f, 1.0f )
+				       		 , 0.1f ) );
 	}
 
 
@@ -301,7 +358,6 @@ class HelloInstancing : public SDLTestWindow
 
 				mSecondTexture([&]( )
 				{
-
 					glBindVertexArray( mCubeVAO );
 
 					GLint const modelLoc = m3DCameraShader.getUniforms( )["model"];
@@ -415,26 +471,6 @@ class HelloInstancing : public SDLTestWindow
 	public:
 		HelloInstancing( )
 			: SDLTestWindow( )
-			, mSpriteShader( ShaderSourcePair("#version 300 es                            			    \n"
-      				   			  "layout(location = 0) in vec4 vertex;       			    \n"
-	 	 				          "out vec2 TexCoords;                        			    \n"
-						          "uniform mat4 model;                        			    \n"
-						    	  "uniform mat4 projection;                   			    \n"
-						    	  "void main()                               			    \n"
-						    	  "{                                          			    \n"
-						    	  "   TexCoords = vertex.zw;                  			    \n"
-						    	  "   gl_Position = projection * model * vec4(vertex.xy, 0.0, 1.0); \n"
-						    	  "}                                          			    \n"
-						   	 ,"#version 300 es                                                  \n"
-						    	  "precision mediump float;				            \n"
-   	  		  			    	  "in vec2 TexCoords;				                    \n"
-   	  		  			    	  "out vec4 color;				                    \n"
-						    	  "uniform sampler2D image; 				            \n"
-						    	  "uniform vec3 spriteColor;                                        \n"
-						    	  "void main()                                                      \n"
-						    	  "{                                                                \n"
-						    	  "  color = vec4(spriteColor, 1.0) * texture(image, TexCoords);    \n"
-						    	  "}                                                                \n") )
 			, m3DCameraShader( ShaderSourcePair("#version 300 es                                                      \n"
 		 					    "layout (location = 0) in vec3 position;                              \n"
 							    "layout (location = 2) in vec2 texCoord;                              \n"
@@ -455,17 +491,15 @@ class HelloInstancing : public SDLTestWindow
 					  		    "uniform sampler2D ourTexture2;                                                        \n"
 					  		    "void main()                                                                           \n"
 							    "{                                                                                     \n"
-					    		    "    color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), 0.2); \n"
+					    		    "    color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), 0.5); \n"
 					 		    "}                                                                                     \n" ) )
 			, mMouse( )
 			, mTexture( )
 			, mSecondTexture( )
-			, mPNGImage( "resources/testinput/testinput05.png" )
-			, mSecondPNGImage( "resources/testinput/testinput06.png" )
-			, mThirdPNGImage( "resources/testinput/testinput07.png" )
+			, mPNGImage( "resources/testinput/testinput16.png" )
+			, mSecondPNGImage( "resources/testinput/testinput14.png" )
+			, mThirdPNGImage( "resources/testinput/testinput15.png" )
 			// 2D Render Data
-			, mQuadVAO( 0 )
-			, mQuadVBO( 0 )
 			, mScaleW( 0 )
 			, mScaleH( 0 )
 			, mReverseScale( false )
@@ -473,6 +507,7 @@ class HelloInstancing : public SDLTestWindow
 			, mCameraPos( glm::vec3(0.0f, 0.0f,  3.0f) )
 			, mCameraFront( glm::vec3(0.0f, 0.0f, -1.0f) )
 			, mCameraUp( glm::vec3(0.0f, 1.0f,  0.0f) )
+			, mMovementDirection( eMovementDirection_None )
 			, mYaw(  -90.0f ) // Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
 			, mPitch( 0.0f )
 			, mLastX( 0 )
@@ -481,6 +516,7 @@ class HelloInstancing : public SDLTestWindow
 			, mKeys( )
 			, mDeltaTime( 0.0f )
 			, mLastFrame( 0.0f )
+			, mDeltaWatch( )
 		{
 			;
 		}
@@ -489,7 +525,6 @@ class HelloInstancing : public SDLTestWindow
 		{
 			SDLTestWindow::initialize( xAttributes );
 
-			mSpriteShader.initialize( );
 			_initialize2DOverlay( );
 
 			m3DCameraShader.initialize( );
@@ -532,7 +567,8 @@ class HelloInstancing : public SDLTestWindow
 				front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
 				mCameraFront = glm::normalize(front);
 
-				float const scrollOffset = xEvent.wheelHasMovedUp( ) ? 1 : -1;
+				// TODO: Fix. Event has no 'offset' given, just whether the wheel has moved up or down.
+				float const scrollOffset = xEvent.wheelHasMovedUp( ) ? xEvent.y : ( xEvent.wheelHasMovedDown( ) ? -xEvent.y : 0.0f );
 
 				if (mFov >= 1.0f && mFov <= 45.0f)
 				    mFov -= scrollOffset;
@@ -544,24 +580,39 @@ class HelloInstancing : public SDLTestWindow
 
 			mMouse.listen( );
 
+			mDeltaWatch.startS( );
+
 			mKeyboard.registerCallback( [&]( KeyboardEvent const & xEvent )
 			{
-				    // Camera controls
-				GLfloat cameraSpeed = 0.3f; /*5.0f * mDeltaTime*/;
+				// Camera controls
+				GLfloat const currentFrame = mDeltaWatch.stop( );
+
+				mDeltaTime = currentFrame - mLastFrame;
+
+				mLastFrame = currentFrame;
+
+				mCameraSpeed = 1.0f * mDeltaTime;
+
+				if ( xEvent.getKeyUp( ) )
+				{
+      					mMovementDirection = eMovementDirection_None;
+					return;
+				}
 
 				switch ( xEvent.getScanCode( ) )
 				{
 					case SDL_SCANCODE_W:
-	        				{ mCameraPos += cameraSpeed * mCameraFront; break; }
+	        				{ mMovementDirection = eMovementDirection_W; break; }
 					case SDL_SCANCODE_S:
-					        { mCameraPos -= cameraSpeed * mCameraFront; break; }
+	        				{ mMovementDirection = eMovementDirection_S; break; }
 					case SDL_SCANCODE_A:
-	        				{ mCameraPos -= glm::normalize(glm::cross(mCameraFront, mCameraUp)) * cameraSpeed; break; }
+	        				{ mMovementDirection = eMovementDirection_A; break; }
 					case SDL_SCANCODE_D:
-	        				{ mCameraPos += glm::normalize(glm::cross(mCameraFront, mCameraUp)) * cameraSpeed; break; }
+	        				{ mMovementDirection = eMovementDirection_D; break; }
 					default:
-						break;
+	        				{ mMovementDirection = eMovementDirection_None; break; }
 				}
+
 			} );
 
 			mKeyboard.listen( );
@@ -577,6 +628,20 @@ class HelloInstancing : public SDLTestWindow
 			{
 				t.startMs( );
 
+				switch ( mMovementDirection )
+				{
+					case eMovementDirection_W:
+	        				{ mCameraPos += mCameraSpeed * mCameraFront; break; }
+					case eMovementDirection_S:
+					        { mCameraPos -= mCameraSpeed * mCameraFront; break; }
+					case eMovementDirection_A:
+	        				{ mCameraPos -= glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed; break; }
+					case eMovementDirection_D:
+	        				{ mCameraPos += glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed; break; }
+					default:
+						break;
+				}
+
 				render( );
 
 				_checkForGLError( );
@@ -585,7 +650,10 @@ class HelloInstancing : public SDLTestWindow
 
 				SDL_GL_SwapWindow( mMainWindow );
 
-				mDeltaTime = t.stop( );
+				if ( ( accum += t.stop( ) ) >= 30000.0 )
+				{
+					break;
+				}
 
 			} while ( 1 );
 
@@ -597,8 +665,8 @@ class HelloInstancing : public SDLTestWindow
 };
 
     // Set up vertex data (and buffer(s)) and attribute pointers
-    GLfloat const HelloInstancing::sVertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+GLfloat const HelloInstancing::sVertices[] = {
+       	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
          0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -606,10 +674,10 @@ class HelloInstancing : public SDLTestWindow
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
         -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+       	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
          0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+       	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
         -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
         -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
@@ -617,31 +685,32 @@ class HelloInstancing : public SDLTestWindow
         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
         -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+       	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
          0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
          0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+       	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
          0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
          0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
          0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+       	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
          0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+       	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
         -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-    glm::vec3 const HelloInstancing::sCubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f),
+};
+
+glm::vec3 const HelloInstancing::sCubePositions[] = {
+       	glm::vec3( 0.0f,  0.0f,  0.0f),
         glm::vec3( 2.0f,  5.0f, -15.0f),
         glm::vec3(-1.5f, -2.2f, -2.5f),
         glm::vec3(-3.8f, -2.0f, -12.3f),
@@ -651,8 +720,7 @@ class HelloInstancing : public SDLTestWindow
         glm::vec3( 1.5f,  2.0f, -2.5f),
         glm::vec3( 1.5f,  0.2f, -1.5f),
         glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
-
+};
 
 } // namespace
 

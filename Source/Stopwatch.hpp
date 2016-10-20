@@ -62,10 +62,18 @@ class Stopwatch
 		}
 
 #ifdef WIN32
+		void startS( )  { _start( 1.0 ); 	  }
+
 		void startMs( ) { _start( 1000.0 ); 	  }
 
 		void startNs( ) { _start( 1000000000.0 ); }
 #else
+		void startS(  )
+		{
+			std::cerr << __PRETTY_FUNCTION__ << " is not implemented on this platform." << std::endl;
+			exit( -1 );
+		}
+
 		void startMs( ) { _start( false ); 	  }
 
 		void startNs( ) { _start( true  );        }

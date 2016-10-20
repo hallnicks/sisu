@@ -23,14 +23,14 @@ class Texture2D
 	uint8_t * mData;
 
 	public:
-		Texture2D( )
+		Texture2D( GLenum const xWrap = GL_REPEAT )
 			: mID( 0 )
 			, mWidth( 0 )
 			, mHeight( 0 )
 			, mInternalFormat( GL_RGBA )
 			, mImageFormat( GL_RGBA )
-			, mWrapS( GL_REPEAT )
-			, mWrapT( GL_REPEAT )
+			, mWrapS( xWrap )
+			, mWrapT( xWrap )
 			, mFilterMin( GL_LINEAR )
 			, mFilterMax( GL_LINEAR )
 			, mInitialized( false )
@@ -73,7 +73,8 @@ class Texture2D
 					     , GL_UNSIGNED_BYTE
 					     , xData );
 
-#ifndef OPENGLES
+// TODO: Make this configurable by parameter object ..
+#if 1
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, mWrapS );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, mWrapT );
 #else
