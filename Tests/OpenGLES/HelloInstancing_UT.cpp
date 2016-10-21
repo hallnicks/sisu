@@ -254,7 +254,6 @@ class HelloInstancing : public SDLTestWindow
 		, mCameraFront
 		, mCameraUp;
 
-
 	enum eMovementDirection
 	{
 		eMovementDirection_None,
@@ -264,6 +263,19 @@ class HelloInstancing : public SDLTestWindow
 		eMovementDirection_D,
 	} mMovementDirection;
 
+	enum eHorizontalCameraRotation
+	{
+		eHorizontalCameraRotation_None,
+		eHorizontalCameraRotation_Left,
+		eHorizontalCameraRotation_Right,
+	} mHorizontalCameraRotation;
+
+	enum eVerticalCameraRotation
+	{
+		eVerticalCameraRotation_None,
+		eVerticalCameraRotation_Up,
+		eVerticalCameraRotation_Down,
+	} mVerticalCameraRotation;
 
 	GLfloat mYaw
 	      , mPitch
@@ -272,7 +284,7 @@ class HelloInstancing : public SDLTestWindow
 	      , mFov
 	      , mCameraSpeed;
 
-	bool mKeys[1024];
+	bool mFirstMouse;
 
 	// Deltatime
 	GLfloat mDeltaTime, mLastFrame;
@@ -390,6 +402,8 @@ class HelloInstancing : public SDLTestWindow
 
 	void _initialize3DScene( )
 	{
+		m3DCameraShader.initialize( );
+
 		mLastX = mW / 2.0;
 		mLastY = mH / 2.0;
 
@@ -448,6 +462,169 @@ class HelloInstancing : public SDLTestWindow
 
 			__initializeTextureUnit( GL_TEXTURE2, mThirdTexture, "ourTexture2", 2);
 		});
+	}
+
+	void _rotateCamera( GLfloat xXOffset, GLfloat xYOffset )
+	{
+		GLfloat sensitivity = 0.05;	// Change this value to your liking // TODO: Make this a member var configurable from settings screen
+		xXOffset *= sensitivity;
+		xYOffset *= sensitivity;
+
+		mYaw   += xXOffset;
+		mPitch += xYOffset;
+
+		// Make sure that when pitch is out of bounds, screen doesn't get flipped
+		if (mPitch > 89.0f)
+		{
+		    mPitch = 89.0f;
+		}
+
+		if (mPitch < -89.0f)
+		{
+		    mPitch = -89.0f;
+		}
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPitch));
+		front.y = sin(glm::radians(mPitch));
+		front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
+		mCameraFront = glm::normalize(front);
+	}
+
+	void _moveCamera( )
+	{
+		switch ( mMovementDirection )
+		{
+			case eMovementDirection_W:
+		    	{
+				mCameraPos += mCameraSpeed * mCameraFront;
+				break;
+			}
+
+			case eMovementDirection_S:
+			{
+				mCameraPos -= mCameraSpeed * mCameraFront;
+				break;
+			}
+
+			case eMovementDirection_A:
+	        	{
+				mCameraPos -= glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed;
+				break;
+			}
+
+			case eMovementDirection_D:
+	        	{
+				mCameraPos += glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed;
+				break;
+			}
+
+			default:
+				break;
+		}
+
+	}
+
+	void _handleCameraRotation( )
+	{
+		static GLfloat const sMovementSpeed = 10.0f;
+
+		switch ( mHorizontalCameraRotation )
+		{
+			case eHorizontalCameraRotation_Left:
+			{
+				_rotateCamera( -sMovementSpeed, 0 );
+				break;
+			}
+
+			case eHorizontalCameraRotation_Right:
+			{
+				_rotateCamera( sMovementSpeed, 0 );
+				break;
+			}
+
+			case eHorizontalCameraRotation_None:
+			default:
+				break;
+
+		}
+
+		switch ( mVerticalCameraRotation )
+		{
+			case eVerticalCameraRotation_Up:
+			{
+				_rotateCamera( 0, -sMovementSpeed );
+				break;
+			}
+
+			case eVerticalCameraRotation_Down:
+			{
+				_rotateCamera( 0, sMovementSpeed );
+				break;
+			}
+
+			case eVerticalCameraRotation_None:
+			default:
+				break;
+		}
+	}
+
+	void _onMouseEvent( MouseEventInfo const & xEvent )
+	{
+		if( mFirstMouse )
+		{
+			mLastX = xEvent.x;
+			mLastY = xEvent.y;
+			mFirstMouse = false;
+		}
+
+		GLfloat xoffset = 0.0f;
+
+		xoffset = xEvent.x - mLastX;
+
+		if ( xEvent.x <= 0 ) // Cursor is on the left side of the screen
+		{
+			mHorizontalCameraRotation = eHorizontalCameraRotation_Left;
+		}
+		else if( xEvent.x >= ( mW - 1 ) ) // Cursor is on the right of the screen
+		{
+			mHorizontalCameraRotation = eHorizontalCameraRotation_Right;
+		}
+		else
+		{
+			mHorizontalCameraRotation = eHorizontalCameraRotation_None;
+		}
+
+		if ( xEvent.y <= 0 ) // Cursor is at the top of the screen
+		{
+			mVerticalCameraRotation = eVerticalCameraRotation_Down;
+		}
+		else if( xEvent.y >= ( mH - 1 ) ) // Cursor is at the right of the screen
+		{
+			mVerticalCameraRotation = eVerticalCameraRotation_Up;
+		}
+		else
+		{
+			mVerticalCameraRotation = eVerticalCameraRotation_None;
+		}
+
+		GLfloat yoffset = mLastY - xEvent.y; // Reversed since y-coordinates go from bottom to left
+
+		mLastX = xEvent.x;
+		mLastY = xEvent.y;
+
+		_rotateCamera( xoffset, yoffset );
+
+		// TODO: Fix. Event has no 'offset' given, just whether the wheel has moved up or down.
+		float const scrollOffset = xEvent.wheelHasMovedUp( ) ? xEvent.y : ( xEvent.wheelHasMovedDown( ) ? -xEvent.y : 0.0f );
+
+		if (mFov >= 1.0f && mFov <= 45.0f)
+		    mFov -= scrollOffset;
+		if (mFov <= 1.0f)
+		    mFov = 1.0f;
+		if (mFov >= 45.0f)
+		    mFov = 45.0f;
+
 	}
 
 	protected:
@@ -513,10 +690,12 @@ class HelloInstancing : public SDLTestWindow
 			, mLastX( 0 )
 			, mLastY( 0 )
 			, mFov( 45.0f )
-			, mKeys( )
 			, mDeltaTime( 0.0f )
 			, mLastFrame( 0.0f )
 			, mDeltaWatch( )
+			, mFirstMouse( true )
+			, mHorizontalCameraRotation( eHorizontalCameraRotation_None )
+			, mVerticalCameraRotation( eVerticalCameraRotation_None )
 		{
 			;
 		}
@@ -527,55 +706,10 @@ class HelloInstancing : public SDLTestWindow
 
 			_initialize2DOverlay( );
 
-			m3DCameraShader.initialize( );
 			_initialize3DScene( );
 
-			bool firstMouse = true;
-
 			mMouse.registerCallback([&](MouseEventInfo const & xEvent){
-
-				if( firstMouse )
-				{
-					mLastX = xEvent.x;
-					mLastY = xEvent.y;
-					firstMouse = false;
-				}
-
-				GLfloat xoffset = xEvent.x - mLastX;
-
-				GLfloat yoffset = mLastY - xEvent.y; // Reversed since y-coordinates go from bottom to left
-
-				mLastX = xEvent.x;
-				mLastY = xEvent.y;
-
-				GLfloat sensitivity = 0.05;	// Change this value to your liking
-				xoffset *= sensitivity;
-				yoffset *= sensitivity;
-
-				mYaw   += xoffset;
-				mPitch += yoffset;
-
-				// Make sure that when pitch is out of bounds, screen doesn't get flipped
-				if (mPitch > 89.0f)
-				    mPitch = 89.0f;
-				if (mPitch < -89.0f)
-				    mPitch = -89.0f;
-
-				glm::vec3 front;
-				front.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPitch));
-				front.y = sin(glm::radians(mPitch));
-				front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
-				mCameraFront = glm::normalize(front);
-
-				// TODO: Fix. Event has no 'offset' given, just whether the wheel has moved up or down.
-				float const scrollOffset = xEvent.wheelHasMovedUp( ) ? xEvent.y : ( xEvent.wheelHasMovedDown( ) ? -xEvent.y : 0.0f );
-
-				if (mFov >= 1.0f && mFov <= 45.0f)
-				    mFov -= scrollOffset;
-				if (mFov <= 1.0f)
-				    mFov = 1.0f;
-				if (mFov >= 45.0f)
-				    mFov = 45.0f;
+				_onMouseEvent( xEvent );
 			});
 
 			mMouse.listen( );
@@ -585,14 +719,6 @@ class HelloInstancing : public SDLTestWindow
 			mKeyboard.registerCallback( [&]( KeyboardEvent const & xEvent )
 			{
 				// Camera controls
-				GLfloat const currentFrame = mDeltaWatch.stop( );
-
-				mDeltaTime = currentFrame - mLastFrame;
-
-				mLastFrame = currentFrame;
-
-				mCameraSpeed = 1.0f * mDeltaTime;
-
 				if ( xEvent.getKeyUp( ) )
 				{
       					mMovementDirection = eMovementDirection_None;
@@ -602,15 +728,34 @@ class HelloInstancing : public SDLTestWindow
 				switch ( xEvent.getScanCode( ) )
 				{
 					case SDL_SCANCODE_W:
-	        				{ mMovementDirection = eMovementDirection_W; break; }
+	        			{
+						mMovementDirection = eMovementDirection_W;
+						break;
+					}
+
 					case SDL_SCANCODE_S:
-	        				{ mMovementDirection = eMovementDirection_S; break; }
+	        			{
+						mMovementDirection = eMovementDirection_S;
+						break;
+					}
+
 					case SDL_SCANCODE_A:
-	        				{ mMovementDirection = eMovementDirection_A; break; }
+	        			{
+						mMovementDirection = eMovementDirection_A;
+						break;
+					}
+
 					case SDL_SCANCODE_D:
-	        				{ mMovementDirection = eMovementDirection_D; break; }
+	        			{
+						mMovementDirection = eMovementDirection_D;
+						break;
+					}
+
 					default:
-	        				{ mMovementDirection = eMovementDirection_None; break; }
+	        			{
+						mMovementDirection = eMovementDirection_None;
+						break;
+					}
 				}
 
 			} );
@@ -628,19 +773,17 @@ class HelloInstancing : public SDLTestWindow
 			{
 				t.startMs( );
 
-				switch ( mMovementDirection )
-				{
-					case eMovementDirection_W:
-	        				{ mCameraPos += mCameraSpeed * mCameraFront; break; }
-					case eMovementDirection_S:
-					        { mCameraPos -= mCameraSpeed * mCameraFront; break; }
-					case eMovementDirection_A:
-	        				{ mCameraPos -= glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed; break; }
-					case eMovementDirection_D:
-	        				{ mCameraPos += glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed; break; }
-					default:
-						break;
-				}
+				GLfloat const currentFrame = mDeltaWatch.stop( );
+
+				mDeltaTime = currentFrame - mLastFrame;
+
+				mLastFrame = currentFrame;
+
+				mCameraSpeed = 1.0f * mDeltaTime;
+
+				_moveCamera( );
+
+				_handleCameraRotation( );
 
 				render( );
 
