@@ -384,6 +384,10 @@ class HelloInstancing : public SDLTestWindow
 
 						model = glm::rotate( model, angle, glm::vec3( 1.0f, 0.3f, 0.5f ) );
 
+		                	        model = glm::scale( model, glm::vec3( dRand( 1.0f, 2.0f )
+										    , dRand( 1.0f, 2.0f )
+										    , dRand( 1.0f, 2.0f ) ) );
+
 						m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
 
 						_checkForGLError( "After set model" );
@@ -403,6 +407,14 @@ class HelloInstancing : public SDLTestWindow
 	void _initialize3DScene( )
 	{
 		m3DCameraShader.initialize( );
+
+		glEnable( GL_BLEND );
+
+		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+		glEnable( GL_DEPTH_TEST );
+
+		glDepthFunc( GL_LEQUAL );
 
 		mLastX = mW / 2.0;
 		mLastY = mH / 2.0;
@@ -619,12 +631,19 @@ class HelloInstancing : public SDLTestWindow
 		float const scrollOffset = xEvent.wheelHasMovedUp( ) ? xEvent.y : ( xEvent.wheelHasMovedDown( ) ? -xEvent.y : 0.0f );
 
 		if (mFov >= 1.0f && mFov <= 45.0f)
+		{
 		    mFov -= scrollOffset;
-		if (mFov <= 1.0f)
-		    mFov = 1.0f;
-		if (mFov >= 45.0f)
-		    mFov = 45.0f;
+		}
 
+		if (mFov <= 1.0f)
+		{
+		    mFov = 1.0f;
+		}
+
+		if (mFov >= 45.0f)
+		{
+		    mFov = 45.0f;
+		}
 	}
 
 	protected:
@@ -853,7 +872,6 @@ GLfloat const HelloInstancing::sVertices[] = {
 };
 
 glm::vec3 const HelloInstancing::sCubePositions[] = {
-       	glm::vec3( 0.0f,  0.0f,  0.0f),
         glm::vec3( 2.0f,  5.0f, -15.0f),
         glm::vec3(-1.5f, -2.2f, -2.5f),
         glm::vec3(-3.8f, -2.0f, -12.3f),
