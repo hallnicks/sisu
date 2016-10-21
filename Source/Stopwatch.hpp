@@ -17,7 +17,12 @@ class Stopwatch
 	__int64 mCounterStart;
 #else
 	timespec mStart;
-	bool mNs;
+	enum eStopwatchMode
+	{
+		eStopwatchMode_Ns,
+		eStopwatchMode_Ms,
+		eStopwatchMode_S,
+	} mStopwatchMode;
 #endif
 
 
@@ -40,11 +45,11 @@ class Stopwatch
 
 	}
 #else
-	void _start( bool const xNs )
+	void _start( eStopwatchMode const xMode )
 	{
 		clock_gettime( CLOCK_REALTIME, &mStart );
 
-		mNs = xNs;
+		mStopwatchMode = xMode;
 	}
 #endif
 
@@ -55,7 +60,7 @@ class Stopwatch
 			, mCounterStart( 0 )
 #else
 			: mStart( { 0, 0 } )
-			, mNs( false )
+			, mStopwatchMode( eStopwatchMode_S )
 #endif
 		{
 			;
@@ -68,15 +73,11 @@ class Stopwatch
 
 		void startNs( ) { _start( 1000000000.0 ); }
 #else
-		void startS(  )
-		{
-			std::cerr << __PRETTY_FUNCTION__ << " is not implemented on this platform." << std::endl;
-			exit( -1 );
-		}
+		void startS( )  { _start( eStopwatchMode_S ); 	}
 
-		void startMs( ) { _start( false ); 	  }
+		void startMs( ) { _start( eStopwatchMode_Ms ); 	}
 
-		void startNs( ) { _start( true  );        }
+		void startNs( ) { _start( eStopwatchMode_Ns  ); }
 #endif
 
 		double stop( )
@@ -95,7 +96,21 @@ class Stopwatch
 			time_t const dSec  = end.tv_sec  - mStart.tv_sec;
 			long   const dNSec = end.tv_nsec - mStart.tv_nsec;
 
-			return mNs ? double( dSec*1000000000.0 + dNSec ) :  double( dSec * 1000.0 + dNSec / 1000000.0 );
+			double ret = 0.0;
+
+			switch ( mStopwatchMode )
+			{
+				case eStopwatchMode_Ns:
+					ret = double( dSec*1000000000.0 + dNSec ); break;
+				case eStopwatchMode_Ms:
+					ret = double( dSec * 1000.0 + dNSec / 1000000.0 ); break;
+				case eStopwatchMode_S:
+					ret = double( dSec  + dNSec / 1000000000.0 ); break;
+				default:
+					break;
+			}
+
+			return ret;
 #endif
 		}
 };
