@@ -1,3 +1,4 @@
+
 #ifdef OPENGLES_HELLOINSTANCING_UT
 #ifdef OPENGLES
 #include "test.hpp"
@@ -10,6 +11,7 @@
 #include "sisumath.hpp"
 #include "mouse.hpp"
 #include "keyboard.hpp"
+#include "GLCharacterMap.hpp"
 
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
@@ -17,7 +19,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-
+#include <vector>
 #include <iostream>
 
 // begin GLESext header
@@ -272,10 +274,12 @@ class Oscillator
 class CubeRenderer
 {
     	static GLfloat const sVertices[5*6*6];
-	static glm::vec3 const sCubePositions[];
+	static glm::vec3 const sCubePositions[10];
 
 	Texture2D mSecondTexture, mThirdTexture;
 	PNGImage mSecondPNGImage, mThirdPNGImage;
+
+	std::vector< Oscillator< GLfloat > > mOscillators;
 
 	SDLShader m3DCameraShader;
 	GLuint mCubeVBO, mCubeVAO;
@@ -380,6 +384,7 @@ class CubeRenderer
 			, mThirdTexture( )
 			, mSecondPNGImage( "resources/testinput/testinput14.png" ) // TODO:  Make textures dynamic!
 			, mThirdPNGImage( "resources/testinput/testinput15.png" )
+			, mOscillators( sizeof( sCubePositions ) / sizeof( glm::vec3 ), Oscillator<GLfloat>( 1.0f, 1.0f, 2.0f, 0.025f ) )
 			, mCameraPos( glm::vec3(0.0f, 0.0f,  3.0f) )
 			, mCameraFront( glm::vec3(0.0f, 0.0f, -1.0f) )
 			, mCameraUp( glm::vec3(0.0f, 1.0f,  0.0f) )
@@ -410,8 +415,8 @@ class CubeRenderer
 
 			glEnable( GL_BLEND );
 
+			//glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-			//glBlendFunc( GL_SRC_ALPHA, GL_SRC_ALPHA );
 
 			glEnable( GL_DEPTH_TEST );
 
@@ -674,24 +679,29 @@ class CubeRenderer
 			}
 		}
 
+	void _render( std::function<void(void)> xLambda )
+	{
+		m3DCameraShader([&]( ) {
+			glm::mat4 view        = glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
+
+			glm::mat4 projection  = glm::perspective( mFov, (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
+
+			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , view );
+
+			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("projection", projection );
+
+			xLambda( );
+
+			_checkForGLError( "After render 3d" );
+		} );
+	}
+
 		// TODO: Parameterize this so that translate, rotate, and scale are parameters.
 		// We will draw a single cube instead (less efficient but more to our use case.)
 		// Or specify a list of N cubes and their positions (better )
 		void render3DScene( )
 		{
-			m3DCameraShader([&]( ) {
-				glm::mat4 view        = glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
-
-				glm::mat4 projection  = glm::perspective( mFov, (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
-
-				m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , view );
-
-				m3DCameraShader.getUniforms( ).setUniformMatrix4fv("projection", projection );
-
-				_checkForGLError( "After set view and rpojection" );
-
-				glActiveTexture( GL_TEXTURE1 );
-
+			_render( [&]() {
 				mThirdTexture([&]( )
 				{
 					glActiveTexture( GL_TEXTURE2 );
@@ -702,23 +712,23 @@ class CubeRenderer
 
 						GLint const modelLoc = m3DCameraShader.getUniforms( )["model"];
 
-						for ( GLuint i = 0; i < 10; i++ )
+						for ( GLuint ii = 0; ii <  sizeof( sCubePositions ) / sizeof( glm::vec3 ); ii++ )
 						{
 							glm::mat4 model;
 
-							model = glm::translate( model, sCubePositions[ i ] );
+							model = glm::translate( model, sCubePositions[ ii ] );
 
-							GLfloat angle = 20.0f * i;
+							GLfloat const angle = 20.0f * ii;
 
 							model = glm::rotate( model, angle, glm::vec3( 1.0f, 0.3f, 0.5f ) );
 
-			                	        model = glm::scale( model, glm::vec3( dRand( 1.0f, 2.0f )
-											    , dRand( 1.0f, 2.0f )
-											    , dRand( 1.0f, 2.0f ) ) );
+							GLfloat const scale = ++mOscillators[ ii ];
+
+			                	        model = glm::scale( model, glm::vec3( scale
+											    , scale
+											    , scale ) );
 
 							m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
-
-							_checkForGLError( "After set model" );
 
 							glDrawArrays( GL_TRIANGLES, 0, 6 * 6 );
 						}
@@ -726,9 +736,7 @@ class CubeRenderer
 						glBindVertexArray( 0 );
 					} );
 				} );
-
-				_checkForGLError( "After render 3d" );
-			} );
+			});
 		}
 };
 
@@ -789,6 +797,164 @@ glm::vec3 const CubeRenderer::sCubePositions[] = {
         glm::vec3(-1.3f,  1.0f, -1.5f)
 };
 
+class  Sprite
+{
+	public:
+		Sprite( )
+			: tex( )
+                        , texData( NULL )
+			, w( 0 )
+			, h( 0 )
+			, x( 0 )
+			, y( 0 )
+			, initialized( false )
+		{
+                        ;
+                }
+
+		virtual ~Sprite( )
+		{
+			if (texData != NULL )
+			{
+				free( texData );
+			}
+		}
+
+		bool initialized;
+
+		Texture2D tex;
+
+		GLubyte * texData;
+
+		uint32_t w, h, x, y;
+
+		void initialize( )
+		{
+			if ( texData == NULL )
+			{
+				std::cerr << "Attempted to initialize sprite with null data. " << std::endl;
+				exit( -1 );
+			}
+
+			tex.initialize( w, h, texData );
+			initialized = true;
+		}
+};
+
+
+
+class TextRenderer
+{
+	GLCharacterMap mDefaultWriter;
+
+	typedef std::map< char, Sprite * > SpriteFont;
+	SpriteFont mSpriteFont;
+
+	uint32_t mW, mH;
+
+        static Sprite * _loadGLCharacterIntoFont( SpriteFont & xMap, GLCharacter * xGLChar )
+        {
+                if ( xGLChar == NULL )
+                {
+                        std::cerr << "GLCharacter was NULL." << std::endl;
+                        exit( -1 );
+                }
+
+                if ( xMap.find( xGLChar->getCharacter( ) ) != xMap.end( ) )
+                {
+                        // character already loaded!
+                        return xMap[ xGLChar->getCharacter( ) ];
+                }
+
+                Sprite * pT = new Sprite( );
+
+                pT->texData = xGLChar->allocGLBuffer( );
+
+                pT->tex.initialize( ( pT->w = xGLChar->getWidth( )  )
+                                  , ( pT->h = xGLChar->getHeight( ) )
+                                  , ( uint8_t* )pT->texData );
+
+                xMap[ xGLChar->getCharacter( ) ] = pT;
+
+                return pT;
+        }
+
+
+	public:
+		TextRenderer( )
+			: mDefaultWriter( "resources/terminus.ttf"
+					, 32
+					, "" )
+			, mSpriteFont( )
+			, mW( 0 )
+			, mH( 0 )
+		{
+	                for ( auto && ii : mSpriteFont )
+                        {
+                                delete ii.second;
+                        }
+		}
+
+		void initialize( uint32_t const xW, uint32_t const xH )
+		{
+			mW = xW;
+			mH = xH;
+
+                        for ( char c = '!'; c < '~'; c++ )
+			{
+				_loadGLCharacterIntoFont( mSpriteFont, mDefaultWriter[ c ] );
+			}
+		}
+
+		void drawString( Overlay2D * xOverlay
+				, const char * xString
+			        , glm::vec2 const & xPosition )
+		{
+			GLuint offsetx = xPosition.x, offsety = xPosition.y;
+
+			for ( size_t ii = 0; ii < strlen( xString ); ++ii )
+			{
+				//mDefaultWriter[ ii ];
+				char const c = xString[ ii ];
+
+				Sprite * pT = _loadGLCharacterIntoFont( mSpriteFont, mDefaultWriter[ c ] );
+
+                                if ( c == '\n' )
+                                {
+                                        offsety += pT->h;
+                                        offsetx = xPosition.x;
+                                        continue;
+                                }
+
+                                if ( c == '\t' )
+                                {
+                                        offsetx += pT->w * 8;
+                                        continue;
+                                }
+
+                                xOverlay->drawTexture( pT->tex
+                                          	     , glm::vec2( offsetx, offsety )
+	                                             , glm::vec2( pT->w, pT->h )
+         	                                     , 0.0f
+                  	                             , glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+
+                                if ( ( offsetx += pT->w ) >= mW )
+                                {
+                                        offsetx = xPosition.x;
+                                        offsety += pT->h;
+                                }
+			}
+		}
+
+		void drawString( CubeRenderer * xCubeRenderer
+				, const char * xString
+				, glm::vec3 const & xPosition
+				, GLfloat const xRotate
+				, glm::vec3 const & xScale )
+		{
+			;
+		}
+};
 
 } // namespace sisu;
 
@@ -812,6 +978,7 @@ class HelloInstancing : public SDLTestWindow
 
 	Overlay2D mOverlay2D;
 	CubeRenderer mCubeRenderer;
+	TextRenderer mTextRenderer;
 
 	Texture2D mTexture;
 	PNGImage mPNGImage;
@@ -836,17 +1003,6 @@ class HelloInstancing : public SDLTestWindow
 				   , mPNGImage.toGLTextureBuffer( ) );
 	}
 
-	void _render2DOverlay( )
-	{
-		mOverlay2D.drawTexture( mTexture
-	 			      , glm::vec2( 0, 0 )
- 	  		 	      , glm::vec2( ++mOscW, ++mOscH )
-				      , ++mOscR
-			    	      , glm::vec4( dRand( 0.0f, 1.0f )
-				       		 , dRand( 0.0f, 1.0f )
-                                       		 , dRand( 0.0f, 1.0f )
-				       		 , 0.1f ) );
-	}
 
 	protected:
 		virtual void render( )
@@ -861,7 +1017,18 @@ class HelloInstancing : public SDLTestWindow
 
 			mCubeRenderer.render3DScene( );
 
-			_render2DOverlay( );
+			mOverlay2D.drawTexture( mTexture
+		 			      , glm::vec2( 0, 0 )
+ 	  			 	      , glm::vec2( ++mOscW, ++mOscH )
+					      , ++mOscR
+			    		      , glm::vec4( dRand( 0.0f, 1.0f )
+					       		 , dRand( 0.0f, 1.0f )
+	                                       		 , dRand( 0.0f, 1.0f )
+					       		 , 0.1f ) );
+
+			mTextRenderer.drawString( &mOverlay2D
+						, " Open GL ES 3.0 !!"
+					        , glm::vec2( mW / 2, mH / 2 ) );
 
 			_checkForGLError( "After render 2d" );
 		}
@@ -873,6 +1040,7 @@ class HelloInstancing : public SDLTestWindow
 			, mTexture( )
 			, mOverlay2D( )
 			, mCubeRenderer( )
+			, mTextRenderer( )
 			, mPNGImage( "resources/testinput/testinput16.png" )
 			, mOscW( 0, 0, 0, 25 )
 			, mOscH( 0, 0, 0, 25 )
@@ -888,6 +1056,7 @@ class HelloInstancing : public SDLTestWindow
 			_initialize2DOverlay( );
 
 			mCubeRenderer.initialize( mW, mH );
+			mTextRenderer.initialize( mW, mH );
 
 			mOscW.setMinMax( 0, mW );
 			mOscH.setMinMax( 0, mH );
