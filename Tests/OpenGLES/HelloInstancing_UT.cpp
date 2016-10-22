@@ -1,4 +1,3 @@
-
 #ifdef OPENGLES_HELLOINSTANCING_UT
 #ifdef OPENGLES
 #include "test.hpp"
@@ -236,8 +235,17 @@ class CubeRenderer
     	static GLfloat const sVertices[5*6*6];
 	static glm::vec3 const sCubePositions[10];
 
-	Texture2D mSecondTexture, mThirdTexture, mFourthTexture;
-	PNGImage mSecondPNGImage, mThirdPNGImage, mFourthPNGImage;
+	Texture2D mSecondTexture
+		, mThirdTexture
+		, mFourthTexture
+		, mFifthTexture
+		, mSixthTexture;
+
+	PNGImage mSecondPNGImage
+	       , mThirdPNGImage
+	       , mFourthPNGImage
+	       , mFifthPNGImage
+	       , mSixthPNGImage;
 
 	std::vector< Oscillator< GLfloat > > mOscillators;
 
@@ -372,6 +380,21 @@ class CubeRenderer
 
 	}
 
+	void _drawCube( glm::vec3 const & xPosition
+  		      , GLfloat const xAngle
+		      , glm::vec3 const & xScale )
+	{
+
+		_setModelMatrix( xPosition, xAngle, xScale );
+
+		glBindVertexArray( mCubeVAO );
+
+		glDrawArrays( GL_TRIANGLES, 0, 6 * 6 );
+
+		glBindVertexArray( 0 );
+
+	}
+
 	public:
 		CubeRenderer( )
 			: m3DCameraShader( ShaderSourcePair("#version 300 es                                                      \n"
@@ -399,11 +422,15 @@ class CubeRenderer
 			, mSecondTexture( )
 			, mThirdTexture( )
 			, mFourthTexture( )
+			, mFifthTexture( )
+			, mSixthTexture( )
 			, mSecondPNGImage( "resources/testinput/testinput14.png" ) // TODO:  Make textures dynamic! Add PBOs, etc
 			, mThirdPNGImage( "resources/testinput/testinput15.png" )
 			, mFourthPNGImage( "resources/testinput/testinput05.png" )
+			, mFifthPNGImage( "resources/testinput/testinput17.png" )
+			, mSixthPNGImage( "resources/testinput/testinput18.png" )
 			, mOscillators( sizeof( sCubePositions ) / sizeof( glm::vec3 ), Oscillator<GLfloat>( 1.0f, 1.0f, 2.0f, 0.025f ) )
-			, mCameraPos( glm::vec3(0.0f, 0.0f,  3.0f) )
+			, mCameraPos( glm::vec3(0.0f, 0.0f,  -3.0f) )
 			, mCameraFront( glm::vec3(0.0f, 0.0f, -1.0f) )
 			, mCameraUp( glm::vec3(0.0f, 1.0f,  0.0f) )
 			, mMovementDirection( eMovementDirection_None )
@@ -462,35 +489,24 @@ class CubeRenderer
 
 			_checkForGLError( "After set vertices" );
 
-			if ( !mSecondPNGImage.getIsValid( ) )
+			auto __initializeTex = [&]( PNGImage & xImage, Texture2D & xTex )
 			{
-				std::cerr << "Unit test resource testinput02.png not found or is corrupt." << std::endl;
-				exit( -1 );
-			}
+				if ( !xImage.getIsValid( ) )
+				{
+					std::cerr << "Failed to load PNG image resource." << std::endl;
+					exit( -1 );
+				}
 
-			mSecondTexture.initialize( mSecondPNGImage.getWidth( )
-					         , mSecondPNGImage.getHeight( )
-					         , mSecondPNGImage.toGLTextureBuffer( ) );
+				xTex.initialize( xImage.getWidth( )
+					       , xImage.getHeight( )
+					       , xImage.toGLTextureBuffer( ) );
+			};
 
-			if ( !mThirdPNGImage.getIsValid( ) )
-			{
-				std::cerr << "Unit test resource testinput03.png not found or is corrupt." << std::endl;
-				exit( -1 );
-			}
-
-			mThirdTexture.initialize( mThirdPNGImage.getWidth( )
-					         , mThirdPNGImage.getHeight( )
-					         , mThirdPNGImage.toGLTextureBuffer( ) );
-
-			if ( !mFourthPNGImage.getIsValid( ) )
-			{
-				std::cerr << "Unit test resource testinput01.png not found or is corrupt." << std::endl;
-				exit( -1 );
-			}
-
-			mFourthTexture.initialize( mFourthPNGImage.getWidth( )
-					         , mFourthPNGImage.getHeight( )
-					         , mFourthPNGImage.toGLTextureBuffer( ) );
+			__initializeTex( mSecondPNGImage, mSecondTexture );
+			__initializeTex( mThirdPNGImage , mThirdTexture  );
+			__initializeTex( mFourthPNGImage, mFourthTexture );
+			__initializeTex( mFifthPNGImage , mFifthTexture  );
+			__initializeTex( mSixthPNGImage , mSixthTexture  );
 
 			_checkForGLError( "After initialize texture" );
 
@@ -704,8 +720,9 @@ class CubeRenderer
 		{
 			_render( [&]() {
 
+
 				_setModelMatrix( glm::vec3( -5, 0, 0 )
-					       , 90
+					       , 180
 					       , glm::vec3( 100.0f
  						          , 100.0f
 						          , 100.0f ) );
@@ -725,6 +742,24 @@ class CubeRenderer
 						_drawCubes( 20.0f );
 					} );
 				} );
+
+				glActiveTexture( GL_TEXTURE1 );
+
+				auto __drawCubeSeries = [&]( Texture2D & xTex, GLint const xPosition )
+				{
+					xTex([&]( )
+					{
+						_drawCube( glm::vec3( xPosition, -5, -5 )
+							 , 0
+							 , glm::vec3( 1.0f, 1.0f, 1.0f ) );
+					} );
+				};
+
+				__drawCubeSeries( mSecondTexture, -1 );
+				__drawCubeSeries( mThirdTexture , -2 );
+				__drawCubeSeries( mFourthTexture, -3 );
+				__drawCubeSeries( mFifthTexture , -4 );
+				__drawCubeSeries( mSixthTexture , -5 );
 			});
 		}
 };
