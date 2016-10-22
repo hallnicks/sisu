@@ -46,7 +46,7 @@ inline static void BREAK( )
 template < typename XType, size_t XSize >
 inline static size_t sizeofarray( XType const ( & xDest ) [ XSize ] ) { return XSize; }
 
-inline unsigned int Time( )
+inline unsigned int _Time( )
 {
 	static struct And
 	{
@@ -75,7 +75,7 @@ void const_memcopy( XType ( & xDestination ) [ XDestSize ], XType const ( & xSou
 	xDestination[ i < XDestSize - 1 ? i + 1 : XDestSize - 1 ] = '\0';
 }
 
-template< typename XType, size_t XSize = Time( ) >
+template< typename XType, size_t XSize = _Time( ) >
 class constmemory
 {
 	XType mDest[ XSize ];
