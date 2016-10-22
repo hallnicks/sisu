@@ -6,7 +6,7 @@
 #ifdef WIN32
 #include <Windows.h>
 #elif defined(LINUX)
-#include <X11/X1lib.h>
+#include <X11/Xlib.h>
 #endif
 
 #include "SDLTest.hpp"
@@ -977,11 +977,32 @@ class CursorRenderer
 {
 	Sprite * mCursor;
 
+#ifdef LINUX
+	Display * mDisplay;
+	bool mCursorGrabbed;
+#endif
 	public:
 		CursorRenderer( )
 			: mCursor( NULL )
+#ifdef LINUX
+			, mDisplay( XOpenDisplay( NULL ) )
+			, mCursorGrabbed( false )
+#endif
 		{
 			;
+		}
+
+		~CursorRenderer( )
+		{
+			if ( mCursorGrabbed )
+			{
+
+			}
+
+			if ( mDisplay != NULL )
+			{
+				XCloseDisplay( mDisplay );
+			}
 		}
 
 		void initialize( uint32_t const xW, uint32_t const xH, const char * xFilename )
@@ -1003,6 +1024,30 @@ class CursorRenderer
 	                                  , ( uint8_t* )pT->texData );
 
 			mCursor = pT;
+#if 0 // Linux
+			Window w;
+			int revert;
+
+			XGetInputFocus( mDisplay, &w, &revert );
+
+			int result = GrabSuccess;
+
+			if ( result = XGrabPointer( mDisplay
+					 	  , w
+						  , False
+						  , 0
+						  , GrabModeAsync
+						  , GrabModeAsync
+						  , w
+						  , None
+						  , CurrentTime ) != GrabSuccess )
+			{
+				std::cerr << "XGrabPointer failed!" << std::endl;
+				exit( -1 );
+			}
+
+			mCursorGrabbed = true;
+#endif
 		}
 
 		void drawCursor( Overlay2D * xOverlay, uint32_t const xX, uint32_t const xY )
@@ -1029,8 +1074,14 @@ class CursorRenderer
 		void hideExternalCursor( )
 		{
 #ifdef WIN32
+// On windows, the pointer is known to reappear in the window if alt-tab is performed (happens often in games such as 
+// skyrim). Therefore, we hide it every frame. It is an inexpensive call.
+
 			ShowCursor( FALSE );
 			SetCursor( NULL );
+#elif defined(LINUX)
+// On linux, we only grab the pointer once and pray the window does not reset its pointer.
+// TODO: Fix cursor hiding on linux! Need help from someone who understands X11 lib better.
 #else
 			std::cerr << __PRETTY_FUNCTION__ << " is not implemented on this platform." << std::endl;
 			exit( -1 );
@@ -1116,7 +1167,8 @@ class HelloInstancing : public SDLTestWindow
 					       		 , ++mOscAlpha ) );
 
 			mTextRenderer.drawString( &mOverlay2D
-						, " Open GL ES 3.0 !!"
+						, "Open GL ES 3.0 !!\n\n"
+						  "ee cumings\tlikes \n tabs"
 					        , glm::vec2( mW / 2, mH / 2 ) );
 
 			mCursorRenderer.drawCursor( &mOverlay2D
@@ -1124,7 +1176,6 @@ class HelloInstancing : public SDLTestWindow
 						  , mCursorPosition.y );
 
 			_checkForGLError( "After render" );
-
 		}
 
 	public:
@@ -1156,7 +1207,9 @@ class HelloInstancing : public SDLTestWindow
 			static uint32_t const sCursorWidth  = 32;
 			static uint32_t const sCursorHeight = 32;
 
-			mCursorRenderer.initialize( sCursorWidth, sCursorHeight, "resources/testinput/cursor.png" );
+			mCursorRenderer.initialize( sCursorWidth
+						  , sCursorHeight
+						  , "resources/testinput/cursor.png" );
 
 			mOscW.setMinMax( 0, mW );
 			mOscH.setMinMax( 0, mH );

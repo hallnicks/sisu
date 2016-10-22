@@ -127,6 +127,8 @@ SDLTestWindow::~SDLTestWindow( )
 
 void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 {
+	uint32_t w = 1, h = 1;
+
         if ( SDL_Init( SDL_INIT_VIDEO ) < 0)
         {
 		std::cout << "SDL init failed: " << SDL_GetError() << std::endl;
@@ -134,8 +136,6 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 	}
 
         _setOpenGLAttributes( xAttributes );
-
-	uint32_t w = 1, h = 1;
 
 #ifdef LINUX
 	Display * d = XOpenDisplay( NULL );
@@ -146,7 +146,6 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
 	XCloseDisplay( d );
 #endif
-
         mMainWindow = SDL_CreateWindow( "SDL2 OpenGL"
                                        , SDL_WINDOWPOS_CENTERED
                                        , SDL_WINDOWPOS_CENTERED
@@ -157,9 +156,18 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
                                          SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
 	if( mMainWindow == NULL )
         {
-        	std::cout << "SDL_CreateWindow() failed." << std::endl;
+		std::cerr << __PRETTY_FUNCTION__ << " failed." << std::endl;
                 _checkSDLError( );
                 exit( -1 );
+	}
+
+	SDL_VERSION(&mWindowInfo.version);
+
+	if ( !SDL_GetWindowWMInfo( mMainWindow, &mWindowInfo ) )
+	{
+		std::cerr << __PRETTY_FUNCTION__ << " failed." << std::endl;
+		_checkSDLError( );
+		exit( -1 );
 	}
 
 	_stealContext( );

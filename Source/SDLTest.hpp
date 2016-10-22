@@ -19,6 +19,7 @@
 #endif
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 
 #ifndef OPENGLES
 #include <SDL2/SDL_opengl.h>
@@ -56,6 +57,8 @@ namespace sisu {
 			event mQuit;
 
 	                SDL_Window * mMainWindow;
+
+			SDL_SysWMinfo mWindowInfo;
 
 	                SDL_GLContext mMainContext;
 
