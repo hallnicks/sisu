@@ -713,6 +713,18 @@ class CubeRenderer
 			}
 		}
 
+		void render( std::function<void(void)> xLambda
+			   , glm::vec3 const & xPosition
+			   , GLfloat const xRotate
+			   , glm::vec3 const & xScale )
+		{
+			_render([&]() {
+
+				_setModelMatrix( xPosition, xRotate, xScale );
+
+				xLambda( );
+			} );
+		}
 		// TODO: Parameterize this so that translate, rotate, and scale are parameters.
 		// We will draw a single cube instead (less efficient but more to our use case.)
 		// Or specify a list of N cubes and their positions (better )
@@ -854,6 +866,12 @@ class  Sprite
 
 		void initialize( )
 		{
+			if ( initialized )
+			{
+				std::cerr << "Texture was already initialized." << std::endl;
+				exit( -1 );
+			}
+
 			if ( texData == NULL )
 			{
 				std::cerr << "Attempted to initialize sprite with null data. " << std::endl;
@@ -861,6 +879,7 @@ class  Sprite
 			}
 
 			tex.initialize( w, h, texData );
+
 			initialized = true;
 		}
 };
@@ -873,6 +892,8 @@ class TextRenderer
 	SpriteFont mSpriteFont;
 
 	uint32_t mW, mH;
+
+	Quad mQuad;
 
         static Sprite * _loadGLCharacterIntoFont( SpriteFont & xMap, GLCharacter * xGLChar )
         {
@@ -901,7 +922,6 @@ class TextRenderer
                 return pT;
         }
 
-
 	public:
 		TextRenderer( )
 			: mDefaultWriter( "resources/terminus.ttf"
@@ -926,6 +946,8 @@ class TextRenderer
 			{
 				_loadGLCharacterIntoFont( mSpriteFont, mDefaultWriter[ c ] );
 			}
+
+			mQuad.initialize( );
 		}
 
 		void drawString( Overlay2D * xOverlay
@@ -968,13 +990,46 @@ class TextRenderer
 			}
 		}
 
+		// TODO: fix..
 		void drawString( CubeRenderer * xCubeRenderer
 				, const char * xString
 				, glm::vec3 const & xPosition
 				, GLfloat const xRotate
 				, glm::vec3 const & xScale )
 		{
-			;
+
+			GLuint offsetx = xPosition.x, offsety = xPosition.y;
+
+			for ( size_t ii = 0; ii < strlen( xString ); ++ii )
+			{
+				char const c = xString[ ii ];
+
+				Sprite * pT = _loadGLCharacterIntoFont( mSpriteFont, mDefaultWriter[ c ] );
+
+                                if ( c == '\n' )
+       	                        {
+                                        offsety += pT->h;
+                                        offsetx = xPosition.x;
+                                        continue;
+                                }
+
+                                if ( c == '\t' )
+                                {
+                                        offsetx += pT->w * 8;
+                                        continue;
+                                }
+
+				xCubeRenderer->render( [&]( ) { mQuad.render( pT->tex, GL_TEXTURE1 ); }
+						     , glm::vec3( offsetx, offsety, xPosition.z )
+						     , xRotate
+						     , xScale );
+
+                                if ( ( offsetx += pT->w ) >= mW )
+                                {
+                                        offsetx = xPosition.x;
+                                        offsety += pT->h;
+                                }
+			}
 		}
 };
 
@@ -999,6 +1054,7 @@ class CursorRenderer
 
 		~CursorRenderer( )
 		{
+#ifdef LINUX
 			if ( mCursorGrabbed )
 			{
 
@@ -1008,6 +1064,7 @@ class CursorRenderer
 			{
 				XCloseDisplay( mDisplay );
 			}
+#endif
 		}
 
 		void initialize( uint32_t const xW, uint32_t const xH, const char * xFilename )
@@ -1174,6 +1231,15 @@ class HelloInstancing : public SDLTestWindow
 						, "Open GL ES 3.0 !!\n\n"
 						  "ee cumings\tlikes \n tabs"
 					        , glm::vec2( mW / 2, mH / 2 ) );
+
+			/*
+			// TODO: Fix the many bugs in this function
+			mTextRenderer.drawString( &mCubeRenderer
+						, "Text in 3-Space!"
+						, glm::vec3( 0, 0, 0 )
+						, 0.0
+						, glm::vec3( 1.0, 1.0, 1.0 ) );
+			*/
 
 			mCursorRenderer.drawCursor( &mOverlay2D
 						  , mCursorPosition.x
