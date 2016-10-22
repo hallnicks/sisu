@@ -28,80 +28,7 @@
 #include <vector>
 #include <iostream>
 
-// begin GLESext header
-#include <dlfcn.h>
-
-//these ugly typenames are defined in GLES2/gl2ext.h
-#ifndef DLSYM_LIBGLES
- #ifdef WIN32
-  #define DLSYM_LIBGLES "libGLESv2.dll"
- #else
-  #define DLSYM_LIBGLES "libGLESv2.so"
- #endif // WIN32
-#endif // DLSYM_LIBGLES
-
 namespace sisu {
-
-static PFNGLBINDVERTEXARRAYOESPROC    glBindVertexArrayOES;
-static PFNGLDELETEVERTEXARRAYSOESPROC glDeleteVertexArraysOES;
-static PFNGLGENVERTEXARRAYSOESPROC    glGenVertexArraysOES;
-static PFNGLISVERTEXARRAYOESPROC      glIsVertexArrayOES;
-
-#ifndef GLBINDVERTEXARRAYOES
- #define GLBINDVERTEXARRAYOES "glBindVertexArray"
-#endif
-
-#ifndef GLDELETEVERTEXARRAYSOES
- #define GLDELETEVERTEXARRAYSOES "glDeleteVertexArrays"
-#endif
-
-#ifndef GLGENVERTEXARRAYSOES
- #define GLGENVERTEXARRAYSOES "glGenVertexArrays"
-#endif
-
-#ifndef GLISVERTEXARRAYOES
- #define GLISVERTEXARRAYOES "glIsVertexArray"
-#endif
-
-static class OpenGLESExtensions
-{
-
-	void * mHandle;
-
-	public:
-		OpenGLESExtensions( )
-			: mHandle( NULL )
-		{
-			if ( ( mHandle = dlopen( DLSYM_LIBGLES, RTLD_LAZY ) ) == NULL )
-			{
-				std::cerr << "Failed to load " DLSYM_LIBGLES ". Cannot load OpenGL ES 3.0 extensions!" << std::endl;
-				exit( -1 );
-			}
-
-#define LOADSYM(xSym, xType, xName)\
-	                if ( ( xSym = (xType) dlsym( mHandle, xName ) ) == NULL )\
-        	        {\
-	                        std::cerr << "Could not load symbol " << xName << " from " DLSYM_LIBGLES << std::endl;\
-	                        exit( -1 );\
-	                }
-
-			LOADSYM( glBindVertexArrayOES    , PFNGLBINDVERTEXARRAYOESPROC   , GLBINDVERTEXARRAYOES    );
-			LOADSYM( glDeleteVertexArraysOES , PFNGLDELETEVERTEXARRAYSOESPROC, GLDELETEVERTEXARRAYSOES );
-			LOADSYM( glGenVertexArraysOES    , PFNGLGENVERTEXARRAYSOESPROC   , GLGENVERTEXARRAYSOES    );
-			LOADSYM( glIsVertexArrayOES      , PFNGLISVERTEXARRAYOESPROC     , GLISVERTEXARRAYOES      );
-#undef LOADSYM
-
-		}
-
-		~OpenGLESExtensions( )
-		{
-			if ( mHandle != NULL )
-			{
-				dlclose( mHandle );
-			}
-		}
-} sOpenGLESExtensions;
-
 
 class Quad
 {
@@ -114,12 +41,62 @@ class Quad
 		{
 			;
 		}
+
+		void initialize( )
+		{
+			static GLfloat const vertices[] = { // Pos      // Tex
+							    0.0f, 1.0f, 0.0f, 1.0f,
+							    1.0f, 0.0f, 1.0f, 0.0f,
+							    0.0f, 0.0f, 0.0f, 0.0f,
+
+							    0.0f, 1.0f, 0.0f, 1.0f,
+							    1.0f, 1.0f, 1.0f, 1.0f,
+							    1.0f, 0.0f, 1.0f, 0.0f
+	                                                   };
+
+			glGenVertexArrays( 1, &mQuadVAO );
+
+			glGenBuffers( 1, &mQuadVBO );
+
+			glBindBuffer( GL_ARRAY_BUFFER, mQuadVBO );
+
+        	        glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
+
+	                glBindVertexArray( mQuadVAO );
+
+
+	                glVertexAttribPointer( 0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof( GLfloat ), ( GLvoid* )0 );
+        	        glEnableVertexAttribArray( 0 );
+
+	    		// TexCoord attribute
+	    		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	    		glEnableVertexAttribArray(2);
+
+
+        	        glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+			glBindVertexArray( 0 );
+		}
+
+		void render( Texture2D & xTexture, GLenum const xTextureUnit )
+		{
+                        glActiveTexture( xTextureUnit );
+
+                        xTexture( [ & ]( )
+       	                {
+                                glBindVertexArray( mQuadVAO );
+
+               	                glDrawArrays( GL_TRIANGLES, 0, 6 );
+
+                                glBindVertexArray( 0 );
+                        } );
+		}
 };
 
 class Overlay2D
 {
 	SDLShader mSpriteShader;
-	GLuint mQuadVBO, mQuadVAO;
+	Quad mQuad;
 
 	public:
 		Overlay2D( )
@@ -141,10 +118,9 @@ class Overlay2D
 						    	  "uniform vec4 spriteColor;                                        \n"
 						    	  "void main()                                                      \n"
 						    	  "{                                                                \n"
-						    	  "  color = spriteColor * texture(image, TexCoords);    \n"
+						    	  "  color = spriteColor * texture(image, TexCoords);    	    \n"
 						    	  "}                                                                \n") )
-			, mQuadVBO( 0 )
-			, mQuadVAO( 0 )
+			, mQuad( )
 
 		{
 			;
@@ -167,33 +143,7 @@ class Overlay2D
 				mSpriteShader.getUniforms( ).setUniformMatrix4fv( "projection", projection );
 			});
 
-			static GLfloat const vertices[] = { // Pos      // Tex
-							    0.0f, 1.0f, 0.0f, 1.0f,
-							    1.0f, 0.0f, 1.0f, 0.0f,
-							    0.0f, 0.0f, 0.0f, 0.0f,
-
-							    0.0f, 1.0f, 0.0f, 1.0f,
-							    1.0f, 1.0f, 1.0f, 1.0f,
-							    1.0f, 0.0f, 1.0f, 0.0f
-	                                                   };
-
-			glGenVertexArraysOES( 1, &mQuadVAO );
-
-			glGenBuffers( 1, &mQuadVBO );
-
-			glBindBuffer( GL_ARRAY_BUFFER, mQuadVBO );
-
-        	        glBufferData( GL_ARRAY_BUFFER, sizeof( vertices ), vertices, GL_STATIC_DRAW );
-
-	                glBindVertexArrayOES( mQuadVAO );
-
-        	        glEnableVertexAttribArray( 0 );
-
-	                glVertexAttribPointer( 0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof( GLfloat ), ( GLvoid* )0 );
-
-        	        glBindBuffer( GL_ARRAY_BUFFER, 0 );
-
-			glBindVertexArrayOES( 0 );
+			mQuad.initialize( );
 		}
 
 	        void drawTexture( Texture2D & xTexture
@@ -220,16 +170,7 @@ class Overlay2D
 
         	                mSpriteShader.getUniforms( ).setUniformVector4f( "spriteColor", xColor );
 
-	                        glActiveTexture( GL_TEXTURE0 );
-
-	                        xTexture( [ & ]( )
-        	                {
-	                                glBindVertexArrayOES( mQuadVAO );
-
-                	                glDrawArrays( GL_TRIANGLES, 0, 6 );
-
-	                                glBindVertexArrayOES( 0 );
-	                        } );
+				mQuad.render( xTexture, GL_TEXTURE0 );
 	                } );
 	        }
 };
@@ -295,16 +236,17 @@ class CubeRenderer
     	static GLfloat const sVertices[5*6*6];
 	static glm::vec3 const sCubePositions[10];
 
-	Texture2D mSecondTexture, mThirdTexture;
-	PNGImage mSecondPNGImage, mThirdPNGImage;
+	Texture2D mSecondTexture, mThirdTexture, mFourthTexture;
+	PNGImage mSecondPNGImage, mThirdPNGImage, mFourthPNGImage;
 
 	std::vector< Oscillator< GLfloat > > mOscillators;
 
 	SDLShader m3DCameraShader;
 	GLuint mCubeVBO, mCubeVAO;
 
-	// 3D Render data
-	// Camera
+	Quad mPlane;
+
+	// Camera // TODO: Separate into Camera class. 
 	glm::vec3 mCameraPos
 		, mCameraFront
 		, mCameraUp;
@@ -348,6 +290,38 @@ class CubeRenderer
 
 	uint32_t mW, mH;
 
+	void _render( std::function<void(void)> xLambda )
+	{
+		m3DCameraShader([&]( ) {
+			glm::mat4 view        = glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
+
+			glm::mat4 projection  = glm::perspective( mFov, (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
+
+			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , view );
+
+			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("projection", projection );
+
+			xLambda( );
+
+			_checkForGLError( "After render 3d" );
+		} );
+	}
+
+	void _setModelMatrix( glm::vec3 const & xPosition
+			    , GLfloat const xRotateAngle
+			    , glm::vec3 const & xScale )
+	{
+		glm::mat4 model;
+
+		model = glm::translate( model, xPosition );
+
+		model = glm::rotate( model, xRotateAngle, glm::vec3( 1.0f, 0.3f, 0.5f ) );
+
+        	model = glm::scale( model, xScale );
+
+		m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
+	}
+
 	void _rotateCamera( GLfloat xXOffset, GLfloat xYOffset )
 	{
 		GLfloat sensitivity = 0.05;	// Change this value to your liking // TODO: Make this a member var configurable from settings screen
@@ -373,6 +347,29 @@ class CubeRenderer
 		front.y = sin(glm::radians(mPitch));
 		front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
 		mCameraFront = glm::normalize(front);
+	}
+
+	void _drawCubes( GLfloat const xAngleOffset )
+	{
+		for ( GLuint ii = 0; ii <  sizeof( sCubePositions ) / sizeof( glm::vec3 ); ii++ )
+		{
+			GLfloat const angle = xAngleOffset * ii;
+
+			GLfloat const scale = ++mOscillators[ ii ];
+
+			_setModelMatrix( sCubePositions[ ii ]
+				       , angle
+				       , glm::vec3( scale
+					          , scale
+					          , scale ) );
+
+			glBindVertexArray( mCubeVAO );
+
+			glDrawArrays( GL_TRIANGLES, 0, 6 * 6 );
+
+			glBindVertexArray( 0 );
+		}
+
 	}
 
 	public:
@@ -401,8 +398,10 @@ class CubeRenderer
 					 		    "}                                                                                     \n" ) )
 			, mSecondTexture( )
 			, mThirdTexture( )
-			, mSecondPNGImage( "resources/testinput/testinput14.png" ) // TODO:  Make textures dynamic!
+			, mFourthTexture( )
+			, mSecondPNGImage( "resources/testinput/testinput14.png" ) // TODO:  Make textures dynamic! Add PBOs, etc
 			, mThirdPNGImage( "resources/testinput/testinput15.png" )
+			, mFourthPNGImage( "resources/testinput/testinput05.png" )
 			, mOscillators( sizeof( sCubePositions ) / sizeof( glm::vec3 ), Oscillator<GLfloat>( 1.0f, 1.0f, 2.0f, 0.025f ) )
 			, mCameraPos( glm::vec3(0.0f, 0.0f,  3.0f) )
 			, mCameraFront( glm::vec3(0.0f, 0.0f, -1.0f) )
@@ -431,6 +430,8 @@ class CubeRenderer
 			mH = xH;
 
 			m3DCameraShader.initialize( );
+
+			mPlane.initialize( );
 
 			glEnable( GL_BLEND );
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -481,21 +482,21 @@ class CubeRenderer
 					         , mThirdPNGImage.getHeight( )
 					         , mThirdPNGImage.toGLTextureBuffer( ) );
 
+			if ( !mFourthPNGImage.getIsValid( ) )
+			{
+				std::cerr << "Unit test resource testinput01.png not found or is corrupt." << std::endl;
+				exit( -1 );
+			}
+
+			mFourthTexture.initialize( mFourthPNGImage.getWidth( )
+					         , mFourthPNGImage.getHeight( )
+					         , mFourthPNGImage.toGLTextureBuffer( ) );
+
 			_checkForGLError( "After initialize texture" );
 
 			m3DCameraShader([&](){
-				auto __initializeTextureUnit = [&]( GLenum const xTextureUnit, Texture2D & xTexture, const char * xName, GLint const xValue )
-				{
-					glActiveTexture( xTextureUnit );
-					_checkForGLError( "glActiveTexture" );
-					xTexture([&]( ) {
-						m3DCameraShader.getUniforms( ).setUniform1i( xName, xValue );
-					} );
-				};
-
-				__initializeTextureUnit( GL_TEXTURE1, mSecondTexture, "ourTexture1", 1);
-
-				__initializeTextureUnit( GL_TEXTURE2, mThirdTexture, "ourTexture2", 2);
+				m3DCameraShader.getUniforms( ).setUniform1i( "ourTexture1", 1 );
+				m3DCameraShader.getUniforms( ).setUniform1i( "ourTexture2", 2 );
 			});
 
 			mDeltaWatch.startS( );
@@ -696,29 +697,23 @@ class CubeRenderer
 			}
 		}
 
-	void _render( std::function<void(void)> xLambda )
-	{
-		m3DCameraShader([&]( ) {
-			glm::mat4 view        = glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
-
-			glm::mat4 projection  = glm::perspective( mFov, (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
-
-			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , view );
-
-			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("projection", projection );
-
-			xLambda( );
-
-			_checkForGLError( "After render 3d" );
-		} );
-	}
-
 		// TODO: Parameterize this so that translate, rotate, and scale are parameters.
 		// We will draw a single cube instead (less efficient but more to our use case.)
 		// Or specify a list of N cubes and their positions (better )
 		void render3DScene( )
 		{
 			_render( [&]() {
+
+				_setModelMatrix( glm::vec3( -5, 0, 0 )
+					       , 90
+					       , glm::vec3( 100.0f
+ 						          , 100.0f
+						          , 100.0f ) );
+
+				mPlane.render( mFourthTexture, GL_TEXTURE1 );
+
+				_checkForGLError( "After render plane." );
+
 				glActiveTexture( GL_TEXTURE1 );
 
 				mThirdTexture([&]( )
@@ -727,32 +722,7 @@ class CubeRenderer
 
 					mSecondTexture([&]( )
 					{
-						glBindVertexArray( mCubeVAO );
-
-						GLint const modelLoc = m3DCameraShader.getUniforms( )["model"];
-
-						for ( GLuint ii = 0; ii <  sizeof( sCubePositions ) / sizeof( glm::vec3 ); ii++ )
-						{
-							glm::mat4 model;
-
-							model = glm::translate( model, sCubePositions[ ii ] );
-
-							GLfloat const angle = 20.0f * ii;
-
-							model = glm::rotate( model, angle, glm::vec3( 1.0f, 0.3f, 0.5f ) );
-
-							GLfloat const scale = ++mOscillators[ ii ];
-
-			                	        model = glm::scale( model, glm::vec3( scale
-											    , scale
-											    , scale ) );
-
-							m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
-
-							glDrawArrays( GL_TRIANGLES, 0, 6 * 6 );
-						}
-
-						glBindVertexArray( 0 );
+						_drawCubes( 20.0f );
 					} );
 				} );
 			});
@@ -1123,8 +1093,7 @@ class HelloInstancing : public SDLTestWindow
 	Texture2D mTexture;
 	PNGImage mPNGImage;
 
-	Oscillator<int32_t> mOscW
-			  , mOscH;
+	Oscillator<int32_t> mOscW, mOscH;
 
 	Oscillator<GLfloat> mOscR, mOscAlpha;
 
@@ -1251,6 +1220,8 @@ class HelloInstancing : public SDLTestWindow
 				_checkForGLError( );
 
 				SDL_PumpEvents( );
+
+				glFlush( );
 
 				SDL_GL_SwapWindow( mMainWindow );
 
