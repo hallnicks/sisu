@@ -3,6 +3,12 @@
 #ifdef OPENGLES
 #include "test.hpp"
 
+#ifdef WIN32
+#include <Windows.h>
+#elif defined(LINUX)
+#include <X11/X1lib.h>
+#endif
+
 #include "SDLTest.hpp"
 #include "SDLShader.hpp"
 #include "Stopwatch.hpp"
@@ -96,6 +102,19 @@ static class OpenGLESExtensions
 		}
 } sOpenGLESExtensions;
 
+
+class Quad
+{
+	GLuint mQuadVBO, mQuadVAO;
+
+	public:
+		Quad( )
+			: mQuadVBO( 0 )
+			, mQuadVAO( 0 )
+		{
+			;
+		}
+};
 
 class Overlay2D
 {
@@ -414,8 +433,6 @@ class CubeRenderer
 			m3DCameraShader.initialize( );
 
 			glEnable( GL_BLEND );
-
-			//glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
 			glEnable( GL_DEPTH_TEST );
@@ -702,6 +719,8 @@ class CubeRenderer
 		void render3DScene( )
 		{
 			_render( [&]() {
+				glActiveTexture( GL_TEXTURE1 );
+
 				mThirdTexture([&]( )
 				{
 					glActiveTexture( GL_TEXTURE2 );
@@ -841,8 +860,6 @@ class  Sprite
 		}
 };
 
-
-
 class TextRenderer
 {
 	GLCharacterMap mDefaultWriter;
@@ -956,6 +973,73 @@ class TextRenderer
 		}
 };
 
+class CursorRenderer
+{
+	Sprite * mCursor;
+
+	public:
+		CursorRenderer( )
+			: mCursor( NULL )
+		{
+			;
+		}
+
+		void initialize( uint32_t const xW, uint32_t const xH, const char * xFilename )
+		{
+			PNGImage image( xFilename );
+
+			if ( !image.getIsValid( ) )
+			{
+				std::cerr << "Failed to load cursor image " << xFilename << std::endl;
+				exit( -1 );
+			}
+
+	                Sprite * pT = new Sprite( );
+
+	                pT->texData = image.toGLTextureBuffer( );
+
+	                pT->tex.initialize( ( pT->w = xW )
+	                                  , ( pT->h = xH )
+	                                  , ( uint8_t* )pT->texData );
+
+			mCursor = pT;
+		}
+
+		void drawCursor( Overlay2D * xOverlay, uint32_t const xX, uint32_t const xY )
+		{
+			if ( xOverlay == NULL )
+			{
+				std::cerr << "NULL overlay passed to " << __PRETTY_FUNCTION__ << std::endl;
+				exit( -1 );
+			}
+
+			if ( mCursor == NULL )
+			{
+				std::cerr << "Cursor was NULL. Was drawCursor( .. ) called before initialize( .. )?" << std::endl;
+				exit( -1 );
+			}
+
+                        xOverlay->drawTexture( mCursor->tex
+                                      	     , glm::vec2( xX, xY )
+                                             , glm::vec2( mCursor->w, mCursor->h )
+      	                                     , 0.0f
+               	                             , glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+		}
+
+		void hideExternalCursor( )
+		{
+#ifdef WIN32
+			ShowCursor( FALSE );
+			SetCursor( NULL );
+#else
+			std::cerr << __PRETTY_FUNCTION__ << " is not implemented on this platform." << std::endl;
+			exit( -1 );
+#endif
+
+		}
+
+};
+
 } // namespace sisu;
 
 
@@ -977,8 +1061,13 @@ class HelloInstancing : public SDLTestWindow
 	Keyboard mKeyboard;
 
 	Overlay2D mOverlay2D;
+
 	CubeRenderer mCubeRenderer;
+
 	TextRenderer mTextRenderer;
+
+	CursorRenderer mCursorRenderer;
+	MouseEventInfo mCursorPosition;
 
 	Texture2D mTexture;
 	PNGImage mPNGImage;
@@ -986,7 +1075,7 @@ class HelloInstancing : public SDLTestWindow
 	Oscillator<int32_t> mOscW
 			  , mOscH;
 
-	Oscillator<GLfloat> mOscR;
+	Oscillator<GLfloat> mOscR, mOscAlpha;
 
 	void _initialize2DOverlay( )
 	{
@@ -1024,13 +1113,18 @@ class HelloInstancing : public SDLTestWindow
 			    		      , glm::vec4( dRand( 0.0f, 1.0f )
 					       		 , dRand( 0.0f, 1.0f )
 	                                       		 , dRand( 0.0f, 1.0f )
-					       		 , 0.1f ) );
+					       		 , ++mOscAlpha ) );
 
 			mTextRenderer.drawString( &mOverlay2D
 						, " Open GL ES 3.0 !!"
 					        , glm::vec2( mW / 2, mH / 2 ) );
 
-			_checkForGLError( "After render 2d" );
+			mCursorRenderer.drawCursor( &mOverlay2D
+						  , mCursorPosition.x
+						  , mCursorPosition.y );
+
+			_checkForGLError( "After render" );
+
 		}
 
 	public:
@@ -1045,6 +1139,7 @@ class HelloInstancing : public SDLTestWindow
 			, mOscW( 0, 0, 0, 25 )
 			, mOscH( 0, 0, 0, 25 )
 			, mOscR( 0.0f, 0.0f, 360.0f, 0.10f )
+			, mOscAlpha( 1.0f, 0.0f, 1.0f, 0.05f )
 		{
 			;
 		}
@@ -1058,10 +1153,18 @@ class HelloInstancing : public SDLTestWindow
 			mCubeRenderer.initialize( mW, mH );
 			mTextRenderer.initialize( mW, mH );
 
+			static uint32_t const sCursorWidth  = 32;
+			static uint32_t const sCursorHeight = 32;
+
+			mCursorRenderer.initialize( sCursorWidth, sCursorHeight, "resources/testinput/cursor.png" );
+
 			mOscW.setMinMax( 0, mW );
 			mOscH.setMinMax( 0, mH );
 
 			mMouse.registerCallback([&](MouseEventInfo const & xEvent){
+
+				mCursorPosition = xEvent;
+
 				mCubeRenderer.onMouseEvent( xEvent );
 			});
 
@@ -1087,6 +1190,8 @@ class HelloInstancing : public SDLTestWindow
 				mCubeRenderer.moveCamera( );
 
 				mCubeRenderer.handleCameraRotation( );
+
+				mCursorRenderer.hideExternalCursor( );
 
 				render( );
 
