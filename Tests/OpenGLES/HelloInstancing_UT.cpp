@@ -473,10 +473,214 @@ class Oscillator
 		}
 };
 
-class CubeRenderer
+enum eMovementDirection
+{
+	eMovementDirection_None,
+	eMovementDirection_W,
+	eMovementDirection_A,
+	eMovementDirection_S,
+	eMovementDirection_D,
+};
+
+enum eHorizontalCameraRotation
+{
+	eHorizontalCameraRotation_None,
+	eHorizontalCameraRotation_Left,
+	eHorizontalCameraRotation_Right,
+};
+
+enum eVerticalCameraRotation
+{
+	eVerticalCameraRotation_None,
+	eVerticalCameraRotation_Up,
+	eVerticalCameraRotation_Down,
+};
+
+class Camera
 {
 	static GLfloat const constexpr sMaxFov  = 1.00f;
 	static GLfloat const constexpr sMinFov  = 0.05f;
+
+	glm::vec3 mCameraPos
+		, mCameraFront
+		, mCameraUp;
+
+	eMovementDirection mMovementDirection;
+
+	eHorizontalCameraRotation mHorizontalCameraRotation;
+
+	eVerticalCameraRotation mVerticalCameraRotation;
+
+	GLfloat mYaw
+	      , mPitch
+	      , mFov
+	      , mCameraSpeed;
+
+	public:
+		Camera( )
+			: mCameraPos( glm::vec3(0.0f, 0.0f,  -3.0f) )
+			, mCameraFront( glm::vec3(0.0f, 0.0f, -1.0f) )
+			, mCameraUp( glm::vec3(0.0f, 1.0f,  0.0f) )
+			, mMovementDirection( eMovementDirection_None )
+			, mHorizontalCameraRotation( eHorizontalCameraRotation_None )
+			, mVerticalCameraRotation( eVerticalCameraRotation_None )
+			, mYaw(  -90.0f ) // Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
+			, mPitch( 0.0f )
+			, mFov( sMaxFov / 2 )
+		{
+			;
+		}
+
+		void rotateCamera( GLfloat xXOffset, GLfloat xYOffset )
+		{
+			GLfloat sensitivity = 0.05;	// Change this value to your liking // TODO: Make this a member var configurable from settings screen
+			xXOffset *= sensitivity;
+			xYOffset *= sensitivity;
+
+			mYaw   += xXOffset;
+			mPitch += xYOffset;
+
+			// Make sure that when pitch is out of bounds, screen doesn't get flipped
+			if (mPitch > 89.0f)
+			{
+			    mPitch = 89.0f;
+			}
+
+			if (mPitch < -89.0f)
+			{
+			    mPitch = -89.0f;
+			}
+
+			glm::vec3 front;
+			front.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPitch));
+			front.y = sin(glm::radians(mPitch));
+			front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
+			mCameraFront = glm::normalize(front);
+		}
+
+		void setMovementDirection( eMovementDirection const xMovementDirection )
+		{
+			mMovementDirection = xMovementDirection;
+		}
+
+		void setHorizontalCameraRotation( eHorizontalCameraRotation const xHorizontalCameraRotation )
+		{
+			mHorizontalCameraRotation = xHorizontalCameraRotation;
+		}
+
+		void setVerticalCameraRotation( eVerticalCameraRotation const xVerticalCameraRotation )
+		{
+			mVerticalCameraRotation = xVerticalCameraRotation;
+		}
+
+		void setFov( GLfloat const xScrollOffset )
+		{
+			if (mFov >= sMinFov && mFov <= sMaxFov )
+			{
+			    mFov -= xScrollOffset;
+			}
+
+			if (mFov <= sMinFov )
+			{
+			    mFov = sMinFov;
+			}
+
+			if (mFov >= sMaxFov )
+			{
+			    mFov = sMaxFov;
+			}
+		}
+
+		void moveCamera( GLfloat const xDeltaTime )
+		{
+			mCameraSpeed = 1.0f * xDeltaTime;
+
+			switch ( mMovementDirection )
+			{
+				case eMovementDirection_W:
+			    	{
+					mCameraPos += mCameraSpeed * mCameraFront;
+					break;
+				}
+
+				case eMovementDirection_S:
+				{
+					mCameraPos -= mCameraSpeed * mCameraFront;
+					break;
+				}
+
+				case eMovementDirection_A:
+		        	{
+					mCameraPos -= glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed;
+					break;
+				}
+
+				case eMovementDirection_D:
+		        	{
+					mCameraPos += glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed;
+					break;
+				}
+
+				default:
+					break;
+			}
+
+		}
+
+		void handleCameraRotation( )
+		{
+			static GLfloat const sMovementSpeed = 10.0f;
+
+			switch ( mHorizontalCameraRotation )
+			{
+				case eHorizontalCameraRotation_Left:
+				{
+					rotateCamera( -sMovementSpeed, 0 );
+					break;
+				}
+
+				case eHorizontalCameraRotation_Right:
+				{
+					rotateCamera( sMovementSpeed, 0 );
+					break;
+				}
+
+				case eHorizontalCameraRotation_None:
+				default:
+					break;
+			}
+
+			switch ( mVerticalCameraRotation )
+			{
+				case eVerticalCameraRotation_Up:
+				{
+					rotateCamera( 0, -sMovementSpeed );
+					break;
+				}
+
+				case eVerticalCameraRotation_Down:
+				{
+					rotateCamera( 0, sMovementSpeed );
+					break;
+				}
+
+				case eVerticalCameraRotation_None:
+				default:
+					break;
+			}
+		}
+
+		// TODO: Separate camera class
+		glm::mat4 const getViewMatrix( )
+		{
+			return glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
+		}
+
+		GLfloat const getFOV( ) const { return mFov; }
+};
+
+class CubeRenderer
+{
 	static GLfloat const constexpr sFovStep = 0.05f;
 
     	static GLfloat const sVertices[5*6*6];
@@ -495,46 +699,12 @@ class CubeRenderer
 	       , mSixthPNGImage;
 
 	std::vector< Oscillator< GLfloat > > mOscillators;
+	GLfloat  mLastX, mLastY;
 
 	SDLShader m3DCameraShader;
 	GLuint mCubeVBO, mCubeVAO;
 
 	Quad mPlane;
-
-	// Camera // TODO: Separate into Camera class. 
-	glm::vec3 mCameraPos
-		, mCameraFront
-		, mCameraUp;
-
-	enum eMovementDirection
-	{
-		eMovementDirection_None,
-		eMovementDirection_W,
-		eMovementDirection_A,
-		eMovementDirection_S,
-		eMovementDirection_D,
-	} mMovementDirection;
-
-	enum eHorizontalCameraRotation
-	{
-		eHorizontalCameraRotation_None,
-		eHorizontalCameraRotation_Left,
-		eHorizontalCameraRotation_Right,
-	} mHorizontalCameraRotation;
-
-	enum eVerticalCameraRotation
-	{
-		eVerticalCameraRotation_None,
-		eVerticalCameraRotation_Up,
-		eVerticalCameraRotation_Down,
-	} mVerticalCameraRotation;
-
-	GLfloat mYaw
-	      , mPitch
-	      , mLastX
-	      , mLastY
-	      , mFov
-	      , mCameraSpeed;
 
 	bool mFirstMouse;
 
@@ -545,12 +715,25 @@ class CubeRenderer
 
 	uint32_t mW, mH;
 
+	Camera * mCamera;
+
+	void _checkCamera( ) const
+	{
+		if ( mCamera == NULL )
+		{
+			std::cerr << "Null camera in " <<  __PRETTY_FUNCTION__ << std::endl;
+			exit( -1 );
+		}
+	}
+
 	void _render( std::function<void(void)> xLambda )
 	{
-		m3DCameraShader([&]( ) {
-			glm::mat4 projection  = glm::perspective( mFov, (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
+		_checkCamera( );
 
-			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , getViewMatrix( ) );
+		m3DCameraShader([&]( ) {
+			glm::mat4 projection  = glm::perspective( mCamera->getFOV( ), (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
+
+			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , mCamera->getViewMatrix( ) );
 
 			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("projection", projection );
 
@@ -573,33 +756,6 @@ class CubeRenderer
         	model = glm::scale( model, xScale );
 
 		m3DCameraShader.getUniforms( ).setUniformMatrix4fv( "model", model );
-	}
-
-	void _rotateCamera( GLfloat xXOffset, GLfloat xYOffset )
-	{
-		GLfloat sensitivity = 0.05;	// Change this value to your liking // TODO: Make this a member var configurable from settings screen
-		xXOffset *= sensitivity;
-		xYOffset *= sensitivity;
-
-		mYaw   += xXOffset;
-		mPitch += xYOffset;
-
-		// Make sure that when pitch is out of bounds, screen doesn't get flipped
-		if (mPitch > 89.0f)
-		{
-		    mPitch = 89.0f;
-		}
-
-		if (mPitch < -89.0f)
-		{
-		    mPitch = -89.0f;
-		}
-
-		glm::vec3 front;
-		front.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPitch));
-		front.y = sin(glm::radians(mPitch));
-		front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
-		mCameraFront = glm::normalize(front);
 	}
 
 	void _drawCubes( GLfloat const xAngleOffset )
@@ -639,6 +795,7 @@ class CubeRenderer
 
 	}
 
+
 	public:
 		CubeRenderer( )
 			: m3DCameraShader( ShaderSourcePair("#version 300 es                                                      \n"
@@ -669,36 +826,32 @@ class CubeRenderer
 			, mFifthTexture( )
 			, mSixthTexture( )
 			, mSecondPNGImage( "resources/testinput/testinput14.png" ) // TODO:  Make textures dynamic! Add PBOs, etc
-			, mThirdPNGImage( "resources/testinput/testinput15.png" )
-			, mFourthPNGImage( "resources/testinput/testinput05.png" )
-			, mFifthPNGImage( "resources/testinput/testinput17.png" )
-			, mSixthPNGImage( "resources/testinput/testinput18.png" )
+			, mThirdPNGImage(  "resources/testinput/testinput15.png" )
+			, mFourthPNGImage( "resources/testinput/testinput09.png" )
+			, mFifthPNGImage(  "resources/testinput/testinput17.png" )
+			, mSixthPNGImage(  "resources/testinput/testinput18.png" )
 			, mOscillators( sizeof( sCubePositions ) / sizeof( glm::vec3 ), Oscillator<GLfloat>( 1.0f, 1.0f, 2.0f, 0.025f ) )
-			, mCameraPos( glm::vec3(0.0f, 0.0f,  -3.0f) )
-			, mCameraFront( glm::vec3(0.0f, 0.0f, -1.0f) )
-			, mCameraUp( glm::vec3(0.0f, 1.0f,  0.0f) )
-			, mMovementDirection( eMovementDirection_None )
-			, mYaw(  -90.0f ) // Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
-			, mPitch( 0.0f )
 			, mLastX( 0 )
 			, mLastY( 0 )
-			, mFov( sMaxFov / 2 )
 			, mDeltaTime( 0.0f )
 			, mLastFrame( 0.0f )
 			, mDeltaWatch( )
 			, mFirstMouse( true )
-			, mHorizontalCameraRotation( eHorizontalCameraRotation_None )
-			, mVerticalCameraRotation( eVerticalCameraRotation_None )
 			, mW( 0 )
 			, mH( 0 )
+			, mCamera( NULL )
 		{
 			;
 		}
 
-		void initialize( uint32_t const xW, uint32_t const xH )
+		void initialize( uint32_t const xW, uint32_t const xH, Camera * const xCamera )
 		{
 			mW = xW;
 			mH = xH;
+
+			mCamera = xCamera;
+
+			_checkCamera( );
 
 			m3DCameraShader.initialize( );
 
@@ -763,13 +916,14 @@ class CubeRenderer
 			mDeltaWatch.startS( );
 		}
 
-
 		void onKeyboardEvent( KeyboardEvent const & xEvent )
 		{
+			_checkCamera( );
+
 			// Camera controls
 			if ( xEvent.getKeyUp( ) )
 			{
- 				mMovementDirection = eMovementDirection_None;
+ 				mCamera->setMovementDirection( eMovementDirection_None );
 				return;
 			}
 
@@ -777,31 +931,31 @@ class CubeRenderer
 			{
 				case SDL_SCANCODE_W:
 	       			{
-					mMovementDirection = eMovementDirection_W;
+					mCamera->setMovementDirection( eMovementDirection_W );
 					break;
 				}
 
 				case SDL_SCANCODE_S:
 	       			{
-					mMovementDirection = eMovementDirection_S;
+					mCamera->setMovementDirection( eMovementDirection_S );
 					break;
 				}
 
 				case SDL_SCANCODE_A:
         			{
-					mMovementDirection = eMovementDirection_A;
+					mCamera->setMovementDirection( eMovementDirection_A );
 					break;
 				}
 
 				case SDL_SCANCODE_D:
         			{
-					mMovementDirection = eMovementDirection_D;
+					mCamera->setMovementDirection( eMovementDirection_D );
 					break;
 				}
 
 				default:
         			{
-					mMovementDirection = eMovementDirection_None;
+					mCamera->setMovementDirection( eMovementDirection_None );
 					break;
 				}
 			}
@@ -809,6 +963,8 @@ class CubeRenderer
 
 		void onMouseEvent( MouseEventInfo const & xEvent )
 		{
+			_checkCamera( );
+
 			if( mFirstMouse )
 			{
 				mLastX = xEvent.x;
@@ -822,28 +978,28 @@ class CubeRenderer
 
 			if ( xEvent.x <= 0 ) // Cursor is on the left side of the screen
 			{
-				mHorizontalCameraRotation = eHorizontalCameraRotation_Left;
+				mCamera->setHorizontalCameraRotation( eHorizontalCameraRotation_Left );
 			}
 			else if( xEvent.x >= ( mW - 1 ) ) // Cursor is on the right of the screen
 			{
-				mHorizontalCameraRotation = eHorizontalCameraRotation_Right;
+				mCamera->setHorizontalCameraRotation( eHorizontalCameraRotation_Right );
 			}
 			else
 			{
-				mHorizontalCameraRotation = eHorizontalCameraRotation_None;
+				mCamera->setHorizontalCameraRotation( eHorizontalCameraRotation_None );
 			}
 
 			if ( xEvent.y <= 0 ) // Cursor is at the top of the screen
 			{
-				mVerticalCameraRotation = eVerticalCameraRotation_Down;
+				mCamera->setVerticalCameraRotation( eVerticalCameraRotation_Down );
 			}
 			else if( xEvent.y >= ( mH - 1 ) ) // Cursor is at the right of the screen
 			{
-				mVerticalCameraRotation = eVerticalCameraRotation_Up;
+				mCamera->setVerticalCameraRotation( eVerticalCameraRotation_Up );
 			}
 			else
 			{
-				mVerticalCameraRotation = eVerticalCameraRotation_None;
+				mCamera->setVerticalCameraRotation( eVerticalCameraRotation_None );
 			}
 
 			GLfloat yoffset = mLastY - xEvent.y; // Reversed since y-coordinates go from bottom to left
@@ -851,113 +1007,14 @@ class CubeRenderer
 			mLastX = xEvent.x;
 			mLastY = xEvent.y;
 
-			_rotateCamera( xoffset, yoffset );
+			mCamera->rotateCamera( xoffset, yoffset );
 
 			// TODO: Fix. Event has no 'offset' given, just whether the wheel has moved up or down.
-			float const scrollOffset = xEvent.wheelHasMovedUp( ) ?
-							   sFovStep : ( xEvent.wheelHasMovedDown( ) ?
-								  	-sFovStep : 0.0f );
+			GLfloat const scrollOffset = xEvent.wheelHasMovedUp( ) ?
+							     sFovStep : ( xEvent.wheelHasMovedDown( ) ?
+								  	  -sFovStep : 0.0f );
 
-			if (mFov >= sMinFov && mFov <= sMaxFov )
-			{
-			    mFov -= scrollOffset;
-			}
-
-			if (mFov <= sMinFov )
-			{
-			    mFov = sMinFov;
-			}
-
-			if (mFov >= sMaxFov )
-			{
-			    mFov = sMaxFov;
-			}
-		}
-
-
-		void moveCamera( )
-		{
-			GLfloat const currentFrame = mDeltaWatch.stop( );
-
-			mDeltaTime = currentFrame - mLastFrame;
-
-			mLastFrame = currentFrame;
-
-			mCameraSpeed = 1.0f * mDeltaTime;
-
-			switch ( mMovementDirection )
-			{
-				case eMovementDirection_W:
-			    	{
-					mCameraPos += mCameraSpeed * mCameraFront;
-					break;
-				}
-
-				case eMovementDirection_S:
-				{
-					mCameraPos -= mCameraSpeed * mCameraFront;
-					break;
-				}
-
-				case eMovementDirection_A:
-		        	{
-					mCameraPos -= glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed;
-					break;
-				}
-
-				case eMovementDirection_D:
-		        	{
-					mCameraPos += glm::normalize(glm::cross(mCameraFront, mCameraUp)) * mCameraSpeed;
-					break;
-				}
-
-				default:
-					break;
-			}
-
-		}
-
-		void handleCameraRotation( )
-		{
-			static GLfloat const sMovementSpeed = 10.0f;
-
-			switch ( mHorizontalCameraRotation )
-			{
-				case eHorizontalCameraRotation_Left:
-				{
-					_rotateCamera( -sMovementSpeed, 0 );
-					break;
-				}
-
-				case eHorizontalCameraRotation_Right:
-				{
-					_rotateCamera( sMovementSpeed, 0 );
-					break;
-				}
-
-				case eHorizontalCameraRotation_None:
-				default:
-					break;
-			}
-
-			switch ( mVerticalCameraRotation )
-			{
-				case eVerticalCameraRotation_Up:
-				{
-					_rotateCamera( 0, -sMovementSpeed );
-					break;
-				}
-
-				case eVerticalCameraRotation_Down:
-				{
-					_rotateCamera( 0, sMovementSpeed );
-					break;
-				}
-
-				case eVerticalCameraRotation_None:
-				default:
-					break;
-			}
+			mCamera->setFov( scrollOffset );
 		}
 
 		void render( std::function<void(void)> xLambda
@@ -970,7 +1027,7 @@ class CubeRenderer
 				_setModelMatrix( xPosition, xRotate, xScale );
 
 				xLambda( );
-			} );
+			});
 		}
 		// TODO: Parameterize this so that translate, rotate, and scale are parameters.
 		// We will draw a single cube instead (less efficient but more to our use case.)
@@ -978,7 +1035,6 @@ class CubeRenderer
 		void render3DScene( )
 		{
 			_render( [&]() {
-
 				_setModelMatrix( glm::vec3( -10, -10, -10 )
 					       , 90
 					       , glm::vec3( 1000.0f
@@ -1018,16 +1074,24 @@ class CubeRenderer
 				__drawCubeSeries( mFourthTexture, -3 );
 				__drawCubeSeries( mFifthTexture , -4 );
 				__drawCubeSeries( mSixthTexture , -5 );
-			});
+			} );
 		}
 
-		// TODO: Separate camera class
-		glm::mat4 const getViewMatrix( )
+		void updateCameras( )
 		{
-			return glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
-		}
+			_checkCamera( );
 
-		GLfloat const getFOV( ) const { return mFov; }
+			GLfloat const currentFrame = mDeltaWatch.stop( );
+
+			mDeltaTime = currentFrame - mLastFrame;
+
+			mLastFrame = currentFrame;
+
+			mCamera->moveCamera( mDeltaTime );
+
+			mCamera->handleCameraRotation( );
+
+		}
 };
 
     // Set up vertex data (and buffer(s)) and attribute pointers
@@ -1444,6 +1508,8 @@ class HelloInstancing : public SDLTestWindow
 	CursorRenderer mCursorRenderer;
 	MouseEventInfo mCursorPosition;
 
+	Camera mCamera;
+
 	Texture2D mTexture;
 	PNGImage mPNGImage;
 
@@ -1466,7 +1532,6 @@ class HelloInstancing : public SDLTestWindow
 				   , mPNGImage.toGLTextureBuffer( ) );
 	}
 
-
 	protected:
 		virtual void render( )
 		{
@@ -1478,7 +1543,7 @@ class HelloInstancing : public SDLTestWindow
 
 		        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-			mSkybox.render( mCubeRenderer.getViewMatrix( ), mCubeRenderer.getFOV( ) );
+			mSkybox.render( mCamera.getViewMatrix( ), mCamera.getFOV( ) );
 
 			mCubeRenderer.render3DScene( );
 
@@ -1496,14 +1561,6 @@ class HelloInstancing : public SDLTestWindow
 						  "ee cummings\tlikes \n tabs"
 					        , glm::vec2( mW / 2, mH / 2 ) );
 
-			/*
-			// TODO: Fix the many bugs in this function
-			mTextRenderer.drawString( &mCubeRenderer
-						, "Text in 3-Space!"
-						, glm::vec3( 0, 0, 0 )
-						, 0.0
-						, glm::vec3( 1.0, 1.0, 1.0 ) );
-			*/
 
 			mCursorRenderer.drawCursor( &mOverlay2D
 						  , mCursorPosition.x
@@ -1520,6 +1577,8 @@ class HelloInstancing : public SDLTestWindow
 			, mTexture( )
 			, mOverlay2D( )
 			, mCubeRenderer( )
+			, mCursorPosition( )
+			, mCamera( )
 			, mTextRenderer( )
 			, mSkybox( mSkyboxFaces )
 			, mPNGImage( "resources/testinput/testinput16.png" )
@@ -1537,7 +1596,7 @@ class HelloInstancing : public SDLTestWindow
 
 			_initialize2DOverlay( );
 
-			mCubeRenderer.initialize( mW, mH );
+			mCubeRenderer.initialize( mW, mH, &mCamera );
 			mTextRenderer.initialize( mW, mH );
 
 			static uint32_t const sCursorWidth  = 32;
@@ -1583,9 +1642,7 @@ class HelloInstancing : public SDLTestWindow
 			{
 				t.startMs( );
 
-				mCubeRenderer.moveCamera( );
-
-				mCubeRenderer.handleCameraRotation( );
+				mCubeRenderer.updateCameras( );
 
 				mCursorRenderer.hideExternalCursor( );
 
