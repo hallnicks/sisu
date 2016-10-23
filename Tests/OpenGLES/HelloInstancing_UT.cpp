@@ -476,7 +476,7 @@ class Oscillator
 class CubeRenderer
 {
 	static GLfloat const constexpr sMaxFov  = 1.00f;
-	static GLfloat const constexpr sMinFov  = 0.00f;
+	static GLfloat const constexpr sMinFov  = 0.05f;
 	static GLfloat const constexpr sFovStep = 0.05f;
 
     	static GLfloat const sVertices[5*6*6];
@@ -629,7 +629,6 @@ class CubeRenderer
   		      , GLfloat const xAngle
 		      , glm::vec3 const & xScale )
 	{
-
 		_setModelMatrix( xPosition, xAngle, xScale );
 
 		glBindVertexArray( mCubeVAO );
@@ -980,12 +979,11 @@ class CubeRenderer
 		{
 			_render( [&]() {
 
-
-				_setModelMatrix( glm::vec3( -5, 0, 0 )
-					       , 180
-					       , glm::vec3( 100.0f
- 						          , 100.0f
-						          , 100.0f ) );
+				_setModelMatrix( glm::vec3( -10, -10, -10 )
+					       , 90
+					       , glm::vec3( 1000.0f
+ 						          , 1000.0f
+						          , 1000.0f ) );
 
 				mPlane.render( mFourthTexture, GL_TEXTURE1 );
 
@@ -1495,7 +1493,7 @@ class HelloInstancing : public SDLTestWindow
 
 			mTextRenderer.drawString( &mOverlay2D
 						, "Open GL ES 3.0 !!\n\n"
-						  "ee cumings\tlikes \n tabs"
+						  "ee cummings\tlikes \n tabs"
 					        , glm::vec2( mW / 2, mH / 2 ) );
 
 			/*
