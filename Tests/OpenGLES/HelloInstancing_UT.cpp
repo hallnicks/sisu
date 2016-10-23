@@ -827,9 +827,9 @@ class CubeRenderer
 			, mSixthTexture( )
 			, mSecondPNGImage( "resources/testinput/testinput14.png" ) // TODO:  Make textures dynamic! Add PBOs, etc
 			, mThirdPNGImage(  "resources/testinput/testinput15.png" )
-			, mFourthPNGImage( "resources/testinput/testinput09.png" )
-			, mFifthPNGImage(  "resources/testinput/testinput17.png" )
-			, mSixthPNGImage(  "resources/testinput/testinput18.png" )
+			, mFourthPNGImage( "resources/testinput/testinput17.png" )
+			, mFifthPNGImage(  "resources/testinput/testinput18.png" )
+			, mSixthPNGImage(  "resources/testinput/testinput19.png" )
 			, mOscillators( sizeof( sCubePositions ) / sizeof( glm::vec3 ), Oscillator<GLfloat>( 1.0f, 1.0f, 2.0f, 0.025f ) )
 			, mLastX( 0 )
 			, mLastY( 0 )
