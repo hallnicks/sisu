@@ -475,6 +475,10 @@ class Oscillator
 
 class CubeRenderer
 {
+	static GLfloat const constexpr sMaxFov  = 1.00f;
+	static GLfloat const constexpr sMinFov  = 0.00f;
+	static GLfloat const constexpr sFovStep = 0.05f;
+
     	static GLfloat const sVertices[5*6*6];
 	static glm::vec3 const sCubePositions[10];
 
@@ -679,7 +683,7 @@ class CubeRenderer
 			, mPitch( 0.0f )
 			, mLastX( 0 )
 			, mLastY( 0 )
-			, mFov( 45.0f )
+			, mFov( sMaxFov / 2 )
 			, mDeltaTime( 0.0f )
 			, mLastFrame( 0.0f )
 			, mDeltaWatch( )
@@ -851,21 +855,23 @@ class CubeRenderer
 			_rotateCamera( xoffset, yoffset );
 
 			// TODO: Fix. Event has no 'offset' given, just whether the wheel has moved up or down.
-			float const scrollOffset = xEvent.wheelHasMovedUp( ) ? xEvent.y : ( xEvent.wheelHasMovedDown( ) ? -xEvent.y : 0.0f );
+			float const scrollOffset = xEvent.wheelHasMovedUp( ) ?
+							   sFovStep : ( xEvent.wheelHasMovedDown( ) ?
+								  	-sFovStep : 0.0f );
 
-			if (mFov >= 1.0f && mFov <= 45.0f)
+			if (mFov >= sMinFov && mFov <= sMaxFov )
 			{
 			    mFov -= scrollOffset;
 			}
 
-			if (mFov <= 1.0f)
+			if (mFov <= sMinFov )
 			{
-			    mFov = 1.0f;
+			    mFov = sMinFov;
 			}
 
-			if (mFov >= 45.0f)
+			if (mFov >= sMaxFov )
 			{
-			    mFov = 45.0f;
+			    mFov = sMaxFov;
 			}
 		}
 
@@ -1604,7 +1610,7 @@ class HelloInstancing : public SDLTestWindow
 				SDL_GL_SwapWindow( mMainWindow );
 
 
-				if ( ( accum += t.stop( ) ) >= 30000.0 )
+				if ( ( accum += t.stop( ) ) >= 600000.0 )
 				{
 					break;
 				}
