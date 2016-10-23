@@ -82,10 +82,6 @@ class Skybox
 
 			mFaceData[ ii ] = face.toGLTextureBuffer( );
 
-			std::cout << "ii = "           << (int)ii           << std::endl;
-			std::cout << "getWidth( ) = "  << face.getWidth( )  << std::endl;
-			std::cout << "getHeight( ) = " << face.getHeight( ) << std::endl;
-
 			glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + ii
 				    , 0
 				    , GL_RGBA
@@ -95,6 +91,7 @@ class Skybox
 				    , GL_RGBA
 				    , GL_UNSIGNED_BYTE
 				    , mFaceData[ ii ] );
+
 			_checkForGLError( "After cube glTexImage2D" );
 
 		}
@@ -212,11 +209,7 @@ class Skybox
 
 				glm::mat4 projection = glm::perspective( xFov, (float) mW / (float) mH, 0.1f, 100.0f );
 
-				std::cout << "Before view" << std::endl;
-
 				mSkyboxShader.getUniforms( ).setUniformMatrix4fv( "view"      , view);
-
-				std::cout << "Before projection" << std::endl;
 
 				mSkyboxShader.getUniforms( ).setUniformMatrix4fv( "projection", projection  );
 
@@ -1473,8 +1466,6 @@ class HelloInstancing : public SDLTestWindow
 	protected:
 		virtual void render( )
 		{
-			TRACE;
-
 			// Set the viewport
 			glViewport( 0, 0, mW, mH );
 
@@ -1538,8 +1529,6 @@ class HelloInstancing : public SDLTestWindow
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
-			TRACE;
-
 			SDLTestWindow::initialize( xAttributes );
 
 			_initialize2DOverlay( );
@@ -1573,15 +1562,18 @@ class HelloInstancing : public SDLTestWindow
 			});
 
 			mKeyboard.listen( );
-
-			TRACE;
 		}
 
 		virtual void run( )
 		{
 			Stopwatch t;
 
-			double accum = 0.0;
+			double accum   = 0.0
+			     , fps     = 0.0;
+
+			uint32_t frames = 0;
+
+			std::stringstream ss;
 
 			do
 			{
@@ -1595,6 +1587,14 @@ class HelloInstancing : public SDLTestWindow
 
 				render( );
 
+				// TODO: Ideally, we should be able to compute the text size based on the font
+				// for a given string and use that as our offset.
+				mTextRenderer.drawString( &mOverlay2D
+							, ss.str( ).c_str( )
+							, glm::vec2( mW - 225, mH - 150 ) );
+
+				ss.str("");
+
 				_checkForGLError( );
 
 				SDL_PumpEvents( );
@@ -1603,10 +1603,19 @@ class HelloInstancing : public SDLTestWindow
 
 				SDL_GL_SwapWindow( mMainWindow );
 
+
 				if ( ( accum += t.stop( ) ) >= 30000.0 )
 				{
 					break;
 				}
+
+				++frames;
+
+				fps = accum / frames;
+
+				ss << "FPS: " << fps;
+
+
 			} while ( 1 );
 
 			mMouse.stopListening( );
