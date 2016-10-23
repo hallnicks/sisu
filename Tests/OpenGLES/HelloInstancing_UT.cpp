@@ -818,7 +818,7 @@ class CubeRenderer
 					  		    "uniform sampler2D ourTexture2;                                                        \n"
 					  		    "void main()                                                                           \n"
 							    "{                                                                                     \n"
-					    		    "    color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), 0.5); \n"
+					    		    "    color = mix(texture(ourTexture1, TexCoord), texture(ourTexture2, TexCoord), 0.2); \n"
 					 		    "}                                                                                     \n" ) )
 			, mSecondTexture( )
 			, mThirdTexture( )
@@ -857,13 +857,11 @@ class CubeRenderer
 
 			mPlane.initialize( );
 
-			glEnable( GL_BLEND );
+			glEnable(GL_BLEND);
+			glEnable( GL_DEPTH_TEST );
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
-			glEnable( GL_DEPTH_TEST );
-
 			glDepthFunc( GL_LESS );
-			//glDepthFunc( GL_LEQUAL );
 
 			mLastX = mW / 2.0;
 			mLastY = mH / 2.0;
@@ -1294,11 +1292,13 @@ class TextRenderer
                                         continue;
                                 }
 
+				glActiveTexture( GL_TEXTURE3 );
+
                                 xOverlay->drawTexture( pT->tex
                                           	     , glm::vec2( offsetx, offsety )
 	                                             , glm::vec2( pT->w, pT->h )
          	                                     , 0.0f
-                  	                             , glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+                  	                             , glm::vec4( 1.0f, 1.0f, 1.0f, 0.5f ) );
 
                                 if ( ( offsetx += pT->w ) >= mW )
                                 {
@@ -1336,6 +1336,8 @@ class TextRenderer
                                         offsetx += pT->w * 8;
                                         continue;
                                 }
+
+				glActiveTexture( GL_TEXTURE3 );
 
 				xCubeRenderer->render( [&]( ) { mQuad.render( pT->tex, GL_TEXTURE1 ); }
 						     , glm::vec3( offsetx, offsety, xPosition.z )
@@ -1444,6 +1446,8 @@ class CursorRenderer
 				exit( -1 );
 			}
 
+			glActiveTexture( GL_TEXTURE4 );
+
                         xOverlay->drawTexture( mCursor->tex
                                       	     , glm::vec2( xX, xY )
                                              , glm::vec2( mCursor->w, mCursor->h )
@@ -1547,6 +1551,10 @@ class HelloInstancing : public SDLTestWindow
 
 			mCubeRenderer.render3DScene( );
 
+			glDepthMask( GL_FALSE );
+
+			glActiveTexture( GL_TEXTURE5 );
+
 			mOverlay2D.drawTexture( mTexture
 		 			      , glm::vec2( 0, 0 )
  	  			 	      , glm::vec2( ++mOscW, ++mOscH )
@@ -1571,6 +1579,8 @@ class HelloInstancing : public SDLTestWindow
 			mCursorRenderer.drawCursor( &mOverlay2D
 						  , mCursorPosition.x
 						  , mCursorPosition.y );
+
+			glDepthMask( GL_TRUE );
 
 
 			_checkForGLError( "After render" );
