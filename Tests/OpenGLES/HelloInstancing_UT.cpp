@@ -1556,9 +1556,15 @@ class HelloInstancing : public SDLTestWindow
 	                                       		 , dRand( 0.0f, 1.0f )
 					       		 , ++mOscAlpha ) );
 
+			std::stringstream versionString;
+
+			versionString << "Vendor:       " << glGetString( GL_VENDOR                   ) << std::endl
+				      << "Renderer:     " << glGetString( GL_RENDERER                 ) << std::endl
+				      << "Version:      " << glGetString( GL_VERSION                  ) << std::endl
+				      << "GLSL Version: " << glGetString( GL_SHADING_LANGUAGE_VERSION ) << std::endl;
+
 			mTextRenderer.drawString( &mOverlay2D
-						, "Open GL ES 3.0 !!\n\n"
-						  "ee cummings\tlikes \n tabs"
+						, versionString.str( ).c_str( )
 					        , glm::vec2( mW / 2, mH / 2 ) );
 
 
