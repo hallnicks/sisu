@@ -1565,7 +1565,7 @@ class HelloInstancing : public SDLTestWindow
 
 			mTextRenderer.drawString( &mOverlay2D
 						, versionString.str( ).c_str( )
-					        , glm::vec2( mW / 2, mH / 2 ) );
+					        , glm::vec2( mW / 3, mH / 2 ) );
 
 
 			mCursorRenderer.drawCursor( &mOverlay2D
