@@ -1,5 +1,7 @@
 #ifdef OPENGLES_HELLOINSTANCING_UT
 #ifdef OPENGLES
+
+// TODO: Generally, we need to delete VAOs and VBos
 #include "test.hpp"
 
 #ifdef WIN32
@@ -28,6 +30,256 @@
 #include <iostream>
 
 namespace sisu {
+
+class Skybox
+{
+	static GLfloat const sSkyboxVertices[ 3*6*6 ];
+	static uint8_t const sFaceCount = 6;
+
+	SDLShader mSkyboxShader;
+	SDLShader mCubemapShader;
+
+	GLuint mSkyboxVAO
+	     , mSkyboxVBO
+	     , mSkyboxTexID;
+
+	uint32_t mW, mH;
+
+	PNGImage mFaces[ sFaceCount ];
+	GLubyte * mFaceData[ sFaceCount ];
+
+	void _initializeVertexObjects( )
+	{
+		// Initialize VBO/VAo
+		glGenVertexArrays( 1, &mSkyboxVAO );
+		glGenBuffers( 1, &mSkyboxVBO );
+		glBindVertexArray( mSkyboxVAO );
+		glBindBuffer( GL_ARRAY_BUFFER, mSkyboxVBO );
+		glBufferData( GL_ARRAY_BUFFER, sizeof( sSkyboxVertices ), &sSkyboxVertices, GL_STATIC_DRAW );
+		glEnableVertexAttribArray( 0 );
+		glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), ( GLvoid* )0 );
+		glBindVertexArray( 0 );
+	}
+
+	void _loadCubemap( )
+	{
+		glGenTextures( 1, &mSkyboxTexID );
+
+		glBindTexture( GL_TEXTURE_CUBE_MAP, mSkyboxTexID );
+
+		_checkForGLError( "After bind texture" );
+
+
+		for ( uint8_t ii = 0; ii < sFaceCount; ++ii )
+		{
+			PNGImage & face = mFaces[ ii ];
+
+			if ( !face.getIsValid( ) )
+			{
+				std::cerr << "PNG resource not found." << std::endl;
+				exit( -1 );
+			}
+
+			mFaceData[ ii ] = face.toGLTextureBuffer( );
+
+			std::cout << "ii = "           << (int)ii           << std::endl;
+			std::cout << "getWidth( ) = "  << face.getWidth( )  << std::endl;
+			std::cout << "getHeight( ) = " << face.getHeight( ) << std::endl;
+
+			glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + ii
+				    , 0
+				    , GL_RGBA
+				    , face.getWidth( )
+				    , face.getHeight( )
+				    , 0
+				    , GL_RGBA
+				    , GL_UNSIGNED_BYTE
+				    , mFaceData[ ii ] );
+			_checkForGLError( "After cube glTexImage2D" );
+
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+		_checkForGLError( "After cube map set up" );
+
+	}
+
+	public:
+		Skybox( const char * xFaces[ sFaceCount ] )
+			: mSkyboxShader( ShaderSourcePair("#version 300 es                                                  \n"
+							  "layout (location = 0) in vec3 position;                          \n"
+							  "out vec3 TexCoords;                                              \n"
+							  "uniform mat4 projection;                                         \n"
+							  "uniform mat4 view;                                               \n"
+							  "void main( )                                                     \n"
+							  "{								    \n"
+							  "    vec4 pos = projection * view * vec4( position, 1.0 );        \n"
+							  "    gl_Position = pos.xyww;                                      \n"
+							  "    TexCoords = position;                                        \n"
+							  "}"
+						   	 ,"#version 300 es                                                  \n"
+						    	  "precision mediump float;				            \n"
+							  "in vec3 TexCoords;                                               \n"
+							  "out vec4 color;                                                  \n"
+							  "uniform samplerCube skybox;                                      \n"
+							  "void main( )                                                     \n"
+							  "{								    \n"
+							  "	color = texture( skybox, TexCoords );                       \n"
+							  "}                                                                \n") )
+
+			, mCubemapShader( ShaderSourcePair("#version 300 es							  \n"
+							   "layout (location = 0) in vec3 position;                         	  \n"
+							   "layout (location = 1) in vec3 normal;			    	  \n"
+							   "out vec3 Normal;						    	  \n"
+							   "out vec3 Position;						    	  \n"
+							   "uniform mat4 model;						    	  \n"
+							   "uniform mat4 view; 						    	  \n"
+							   "uniform mat4 projection;					    	  \n"
+							   "void main( )						    	  \n"
+							   "{								    	  \n"
+							   "    gl_Position = projection * view * model * vec4( position, 1.0f ); \n"
+							   "    Normal = mat3(transpose(inverse(model))) * normal;		  \n"
+							   "    Position = vec3(model * vec4(position, 1.0f));                    \n"
+							   "}                                                                     \n"
+						          ,"#version 300 es							  \n"
+						    	   "precision mediump float;				                  \n"
+							   "in vec3 Normal;							  \n"
+							   "in vec3 Position;							  \n"
+							   "out vec4 color; 							  \n"
+							   "uniform vec3 cameraPos;						  \n"
+							   "uniform samplerCube skybox;						  \n"
+							   "void main( )							  \n"
+							   "{									  \n"
+							   "    vec3 I = normalize( Position - cameraPos ); 			  \n"
+							   "    vec3 R = reflect( I, normalize( Normal ) );			  \n"
+							   "    color = texture( skybox, R );				   	  \n"
+							   "}									  \n" ) )
+			, mSkyboxVAO( 0 )
+			, mSkyboxVBO( 0 )
+			, mFaces( { xFaces[ 0 ]
+				  , xFaces[ 1 ]
+				  , xFaces[ 2 ]
+				  , xFaces[ 3 ]
+				  , xFaces[ 4 ]
+				  , xFaces[ 5 ] } )
+			, mFaceData( )
+			, mW( 0 )
+			, mH( 0 )
+		{
+			for ( uint8_t ii = 0; ii < sFaceCount; ++ii )
+			{
+				mFaceData[ ii ] = NULL;
+			}
+		}
+
+		~Skybox( )
+		{
+			for ( uint8_t ii = 0; ii < sFaceCount; ++ii )
+			{
+				if ( mFaceData[ ii ] != NULL )
+				{
+					free( mFaceData[ ii ] );
+				}
+			}
+		}
+
+		void initialize( uint32_t const xW, uint32_t const xH )
+		{
+			mW = xW;
+			mH = xH;
+
+			mSkyboxShader.initialize( );
+			mCubemapShader.initialize( );
+
+			_initializeVertexObjects( );
+
+			_loadCubemap( );
+		}
+
+		void render( glm::mat4 const & xViewMatrix, GLfloat const xFov )
+		{
+			glDepthFunc( GL_LEQUAL );
+			glDepthMask ( GL_FALSE );
+
+			mSkyboxShader([&]( ) {
+				glm::mat4 view = glm::mat4( glm::mat3( xViewMatrix ) );
+
+				glm::mat4 projection = glm::perspective( xFov, (float) mW / (float) mH, 0.1f, 100.0f );
+
+				std::cout << "Before view" << std::endl;
+
+				mSkyboxShader.getUniforms( ).setUniformMatrix4fv( "view"      , view);
+
+				std::cout << "Before projection" << std::endl;
+
+				mSkyboxShader.getUniforms( ).setUniformMatrix4fv( "projection", projection  );
+
+				glBindVertexArray( mSkyboxVAO );
+
+				glActiveTexture( GL_TEXTURE0 );
+
+				glBindTexture( GL_TEXTURE_CUBE_MAP, mSkyboxTexID );
+
+				glDrawArrays( GL_TRIANGLES, 0, 6*6 );
+
+				glBindVertexArray( 0 );
+
+			} );
+
+			glDepthFunc( GL_LESS );
+			glDepthMask ( GL_TRUE );
+		}
+};
+
+GLfloat const Skybox::sSkyboxVertices[3*6*6] = {
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+};
 
 class Quad
 {
@@ -63,14 +315,12 @@ class Quad
 
 	                glBindVertexArray( mQuadVAO );
 
-
 	                glVertexAttribPointer( 0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof( GLfloat ), ( GLvoid* )0 );
         	        glEnableVertexAttribArray( 0 );
 
 	    		// TexCoord attribute
 	    		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	    		glEnableVertexAttribArray(2);
-
 
         	        glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
@@ -301,11 +551,9 @@ class CubeRenderer
 	void _render( std::function<void(void)> xLambda )
 	{
 		m3DCameraShader([&]( ) {
-			glm::mat4 view        = glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
-
 			glm::mat4 projection  = glm::perspective( mFov, (GLfloat) mW / (GLfloat) mH, 0.1f, 100.0f );
 
-			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , view );
+			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("view"       , getViewMatrix( ) );
 
 			m3DCameraShader.getUniforms( ).setUniformMatrix4fv("projection", projection );
 
@@ -465,7 +713,8 @@ class CubeRenderer
 
 			glEnable( GL_DEPTH_TEST );
 
-			glDepthFunc( GL_LEQUAL );
+			glDepthFunc( GL_LESS );
+			//glDepthFunc( GL_LEQUAL );
 
 			mLastX = mW / 2.0;
 			mLastY = mH / 2.0;
@@ -774,6 +1023,14 @@ class CubeRenderer
 				__drawCubeSeries( mSixthTexture , -5 );
 			});
 		}
+
+		// TODO: Separate camera class
+		glm::mat4 const getViewMatrix( )
+		{
+			return glm::lookAt( mCameraPos, mCameraPos + mCameraFront, mCameraUp );
+		}
+
+		GLfloat const getFOV( ) const { return mFov; }
 };
 
     // Set up vertex data (and buffer(s)) and attribute pointers
@@ -1179,6 +1436,14 @@ class HelloInstancing : public SDLTestWindow
 
 	TextRenderer mTextRenderer;
 
+	const char * mSkyboxFaces[ 6 ] = { "resources/testinput/right.png"
+					 , "resources/testinput/left.png"
+					 , "resources/testinput/top.png"
+					 , "resources/testinput/bottom.png"
+					 , "resources/testinput/back.png"
+					 , "resources/testinput/front.png" };
+	Skybox mSkybox;
+
 	CursorRenderer mCursorRenderer;
 	MouseEventInfo mCursorPosition;
 
@@ -1208,6 +1473,8 @@ class HelloInstancing : public SDLTestWindow
 	protected:
 		virtual void render( )
 		{
+			TRACE;
+
 			// Set the viewport
 			glViewport( 0, 0, mW, mH );
 
@@ -1215,6 +1482,8 @@ class HelloInstancing : public SDLTestWindow
 			glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 		        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
+			mSkybox.render( mCubeRenderer.getViewMatrix( ), mCubeRenderer.getFOV( ) );
 
 			mCubeRenderer.render3DScene( );
 
@@ -1245,6 +1514,7 @@ class HelloInstancing : public SDLTestWindow
 						  , mCursorPosition.x
 						  , mCursorPosition.y );
 
+
 			_checkForGLError( "After render" );
 		}
 
@@ -1256,6 +1526,7 @@ class HelloInstancing : public SDLTestWindow
 			, mOverlay2D( )
 			, mCubeRenderer( )
 			, mTextRenderer( )
+			, mSkybox( mSkyboxFaces )
 			, mPNGImage( "resources/testinput/testinput16.png" )
 			, mOscW( 0, 0, 0, 25 )
 			, mOscH( 0, 0, 0, 25 )
@@ -1267,6 +1538,8 @@ class HelloInstancing : public SDLTestWindow
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
+			TRACE;
+
 			SDLTestWindow::initialize( xAttributes );
 
 			_initialize2DOverlay( );
@@ -1280,6 +1553,8 @@ class HelloInstancing : public SDLTestWindow
 			mCursorRenderer.initialize( sCursorWidth
 						  , sCursorHeight
 						  , "resources/testinput/cursor.png" );
+
+			mSkybox.initialize( mW, mH );
 
 			mOscW.setMinMax( 0, mW );
 			mOscH.setMinMax( 0, mH );
@@ -1298,6 +1573,8 @@ class HelloInstancing : public SDLTestWindow
 			});
 
 			mKeyboard.listen( );
+
+			TRACE;
 		}
 
 		virtual void run( )

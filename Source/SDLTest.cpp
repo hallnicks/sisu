@@ -7,6 +7,8 @@
 #include <X11/Xlib.h>
 #endif
 
+#include "stacktrace.hpp"
+
 namespace sisu {
 
 void _checkForGLError( const char * xAddendum )
@@ -19,6 +21,8 @@ void _checkForGLError( const char * xAddendum )
 			  << " "
 			  << (const char*)(xAddendum == NULL ? "" : xAddendum)
 			  << std::endl;
+
+		printstack<30>( );
 		exit( -1 );
 	}
 }
