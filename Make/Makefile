@@ -13,11 +13,17 @@ LINKMODES    := static exe
 #and runtime to runtime vice versa etc etc
 TARGET_NAME  := sisu sisuTest client server
 
-TARGET_LIBS  += pthread # rt # for when renabled test
+#for pthread (winpthread as well)
+TARGET_LIBS  += pthread
 
+#for openssl
 TARGET_LIBS  += ssl crypto
 
+#for PNG
 TARGET_LIBS  += png z freetype
+
+#For Assimp
+TARGET_LIBS  += assimp
 
 #This is now windows specific. Need to test on linux again. For example, winsock, opengl32, glew32, gdi, etc, linked differently.
 ifeq ($(OS),Windows_NT)
