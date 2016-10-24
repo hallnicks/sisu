@@ -23,16 +23,18 @@ class Texture2D
 	uint8_t * mData;
 
 	public:
-		Texture2D( GLenum const xWrap = GL_REPEAT )
+		Texture2D( GLenum const xInternalFormat = GL_RGBA
+			 , GLenum const xFilter = GL_LINEAR
+			 , GLenum const xWrap = GL_REPEAT )
 			: mID( 0 )
 			, mWidth( 0 )
 			, mHeight( 0 )
-			, mInternalFormat( GL_RGBA )
-			, mImageFormat( GL_RGBA )
+			, mInternalFormat( xInternalFormat )
+			, mImageFormat( xInternalFormat )
 			, mWrapS( xWrap )
 			, mWrapT( xWrap )
-			, mFilterMin( GL_LINEAR )
-			, mFilterMax( GL_LINEAR )
+			, mFilterMin( xFilter )
+			, mFilterMax( xFilter )
 			, mInitialized( false )
 			, mData( NULL )
 		{
