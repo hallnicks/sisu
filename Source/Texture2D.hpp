@@ -2,14 +2,23 @@
 #define TEXTURE_2D_085ACBB7992040A29AD529CB44554BA3_HPP_
 
 #include <functional>
+#include <string>
+#include <assimp/types.h>
 
 namespace sisu {
 
+enum eTexture2DType
+{
+	eTexture2DType_Diffuse,
+	eTexture2DType_Specular,
+	eTexture2DType_Normal,
+	eTexture2DType_Height,
+};
+
 class Texture2D
 {
-	GLuint mID;
-
-	GLuint mWidth
+	GLuint mID
+	     , mWidth
 	     , mHeight
 	     , mInternalFormat
 	     , mImageFormat
@@ -22,10 +31,15 @@ class Texture2D
 
 	uint8_t * mData;
 
+	aiString mIdentifier;
+
+	eTexture2DType mTextureType;
+
 	public:
-		Texture2D( GLenum const xInternalFormat = GL_RGBA
-			 , GLenum const xFilter = GL_LINEAR
-			 , GLenum const xWrap = GL_REPEAT )
+		Texture2D( eTexture2DType const xTextureType    = eTexture2DType_Diffuse
+			 , GLenum 	  const xInternalFormat = GL_RGBA
+			 , GLenum 	  const xFilter 	= GL_LINEAR
+			 , GLenum 	  const xWrap 		= GL_REPEAT )
 			: mID( 0 )
 			, mWidth( 0 )
 			, mHeight( 0 )
@@ -37,6 +51,8 @@ class Texture2D
 			, mFilterMax( xFilter )
 			, mInitialized( false )
 			, mData( NULL )
+			, mTextureType( xTextureType )
+			, mIdentifier( )
 		{
 			;
 		}
@@ -51,7 +67,8 @@ class Texture2D
 
 		void initialize( GLuint const xWidth
 			       , GLuint const xHeight
-			       , uint8_t * const xData )
+			       , uint8_t * const xData
+			       , aiString const & xIdentifier = aiString( ) )
 		{
 			mWidth  = xWidth;
 			mHeight = xHeight;
@@ -90,6 +107,7 @@ class Texture2D
 				glGenerateMipmap( GL_TEXTURE_2D );
 			} );
 
+			mIdentifier = xIdentifier;
 		}
 
 		class Texture2DRow
@@ -104,17 +122,30 @@ class Texture2D
 				uint8_t* operator [ ] ( size_t const xX ) { return &mRow[ xX ]; }
 		};
 
+		// TODO: Add Update texture using PBOs (optionally) and glTexSubImage.
 		Texture2DRow operator [ ] ( size_t const xY ) { return Texture2DRow( mData + ( mWidth * xY ) ); }
 
 		void operator( )( std::function<void(void)> xLambda )
 		{
-			glBindTexture( GL_TEXTURE_2D, mID );
+			bind( );
 			xLambda( );
-			glBindTexture( GL_TEXTURE_2D, 0 );
 		}
 
-		GLuint getWidth( )  const { return mWidth;  }
-		GLuint getHeight( ) const { return mHeight; }
+		void bind( )
+		{
+			glBindTexture( GL_TEXTURE_2D, mID );
+		}
+
+		static void unbind( )
+		{
+			glBindTexture( GL_TEXTURE_2D, 0 );
+
+		}
+
+		GLuint 	         getWidth( )      const { return mWidth;       }
+		GLuint 	         getHeight( )     const { return mHeight;      }
+		eTexture2DType 	 getType( )       const { return mTextureType; }
+		aiString const & getIdentifier( ) const { return mIdentifier;  }
 };
 
 } // namespace sisu

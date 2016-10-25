@@ -290,17 +290,17 @@ PNGImage::PNGImage( const char * xPath )
 	if ( fp == NULL )
 	{
 		std::cerr << "File " << xPath << " does not exist." << std::endl;
+
+		exit( -1 );
 	}
-	else
-	{
-		_initializeReadStructures( );
 
-		png_init_io( mPNGRead, fp );
+	_initializeReadStructures( );
 
-		_initializeObject( fp );
+	png_init_io( mPNGRead, fp );
 
-		mIsValid = true;
-	}
+	_initializeObject( fp );
+
+	mIsValid = true;
 }
 
 PNGImage::~PNGImage( )

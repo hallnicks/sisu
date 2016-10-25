@@ -148,7 +148,7 @@ CXXFLAGS     += -I/usr/include
 # for GLM, ssl, libavcodec
 CXXFLAGS     += -I/usr/local/include -Wno-pragmas
 
-# for libPNG, libavocdec
+# for libPNG, libavocdec, libassimp
 LDFLAGS      += -L/usr/local/lib
 
 # unit tests
