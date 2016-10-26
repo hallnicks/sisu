@@ -13,8 +13,26 @@
 //    along with sisu.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <pthread.h>
+
+
+#ifdef ANDROID
+#include <android/log.h>
+
+#define SISULOG(xMsg) __android_log_print( ANDROID_LOG_VERBOSE \
+                                         , "sisu" \
+                                         , "%s" \
+                                         , xMsg );
+
+#else
 #include <iostream>
+
+#define SISULOG(xMsg) std::cerr << xMsg << std::endl;
+
+#endif
+
+
 #include <functional>
+
 #include <vector>
 #include <deque>
 #include <unordered_map>
@@ -125,6 +143,9 @@ class gear
 {
 	struct _PThreadStatus
 	{
+		pthread_t mThread;
+		int32_t mStatus;
+
 		_PThreadStatus( )
 		{
 
@@ -134,18 +155,22 @@ class gear
 		{
 			if ( mStatus != 0 )
 			{
-				std::cerr << "Thread with status " << mStatus << "detected. " << std::endl;
+#ifdef ANDROID
+				 __android_log_print( ANDROID_LOG_VERBOSE
+	                                            , "sisu"
+	                                            , "Thread with status %d detected."
+	                                            , mStatus );
+#else
+				std::cerr << "Thread with status " << mStatus << " detected." << std::endl;
+#endif
 			}
 
 		     	if ( pthread_join( mThread, NULL ) != 0 )
 			{
-				std::cerr << "pthread_join() failed. " << std::endl;
+				SISULOG( "pthread_join() failed. " );
 				exit(-1);
 			}
 		}
-
-		pthread_t mThread;
-		int32_t mStatus;
 	};
 
 	class _ThreadParameters
@@ -213,7 +238,7 @@ class gear
 
 		if (xParameter == NULL)
 		{
-			std::cerr << "Null gear passed to pthread sink." << std::endl;
+			SISULOG( "Null gear passed to pthread sink." );
 			exit( -1 );
 		}
 
@@ -245,7 +270,7 @@ class gear
 
 			if ( it == mThreadParameters.end( ) )
 			{
-				std::cerr << "Thread parameter object not found where expected: " << xID << std::endl;
+				SISULOG( "Thread parameter object not found where expected:" );
 				exit( -1 );
 			}
 
@@ -290,7 +315,7 @@ class gear
 		{
 			if ( mJoined )
 			{
-				std::cerr << "Behavior of this operator is undefined after join( ) is called" << std::endl;
+				SISULOG( "Behavior of this operator is undefined after join( ) is called." );
 				exit( -1 );
 			}
 
@@ -315,7 +340,15 @@ class gear
 									, ( void *)( pointer ) ) != 0 )
 			{
 
+#ifdef ANDROID
+				 __android_log_print( ANDROID_LOG_VERBOSE
+	                                            , "sisu"
+	                                            , "Failed to create thread: %d "
+	                                            , mThreads.back( ).mStatus );
+#else
 				std::cerr << "Failed to create thread. " << mThreads.back( ).mStatus << std::endl;
+#endif
+
 				exit( -1 );
 			}
 
@@ -328,7 +361,7 @@ class gear
 		{
 			if ( !mJoined )
 			{
-				std::cerr << "The behavior of this operator is undefined if the threads are not joined." << std::endl;
+				SISULOG("The behavior of this operator is undefined if the threads are not joined.");
 				exit( -1 );
 			}
 
@@ -339,7 +372,7 @@ class gear
 		{
 			if ( !mJoined )
 			{
-				std::cerr << "The behavior of size( ) is undefined if the threads are not joined." << std::endl;
+				SISULOG("The behavior of size( ) is undefined if the threads are not joined.");
 				exit( -1 );
 			}
 
