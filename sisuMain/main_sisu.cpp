@@ -36,7 +36,7 @@ namespace
 		int const mStatus;
 
 		public:
-// TODO -- Fix
+			// TODO -- Fix
 			Directory( std::string const & xPath )
 				: mPath( xPath )
 				, mStatus( mkdir( mPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH ) )

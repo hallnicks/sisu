@@ -18,8 +18,13 @@
 #include <GLES2/gl2.h>
 #endif
 
+#ifndef ANDROID
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
+#else
+#include <SDL.h>
+#include <SDL_syswm.h>
+#endif
 
 #ifndef OPENGLES
 #include <SDL2/SDL_opengl.h>
