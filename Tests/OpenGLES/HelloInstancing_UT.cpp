@@ -37,15 +37,108 @@
 
 namespace sisu {
 
+
+class TGAImage
+{
+	typedef struct
+	{
+	   uint8_t IdSize
+		 , MapType
+		 , ImageType;
+
+	   uint16_t PaletteStart
+		  , PaletteSize;
+
+	   uint8_t  PaletteEntryDepth;
+	   uint16_t X
+		  , Y
+	          , Width
+	          , Height;
+
+	   uint8_t ColorDepth
+		 , Descriptor;
+
+	} TGA_HEADER;
+
+
+	int mW, mH;
+
+	GLubyte * mData;
+
+	static char * esLoadTGA ( const char *fileName, int *width, int *height )
+	{
+	   char        *buffer;
+	   FILE       *fp;
+	   TGA_HEADER   Header;
+	   int          bytesRead;
+
+	   // Open the file for reading
+	   fp = fopen( fileName , "rb" );
+
+	   if ( fp == NULL )
+	   {
+	      // Log error as 'error in opening the input file from apk'
+	      std::cerr << "esLoadTGA FAILED to load :" << fileName  << std::endl;
+	      exit( -1 );
+	   }
+
+	  // bytesRead = esFileRead ( fp, sizeof ( TGA_HEADER ), &Header );
+	  bytesRead = fread( &Header, sizeof( TGA_HEADER), 1, fp );
+
+	   *width = Header.Width;
+	   *height = Header.Height;
+
+	   if ( Header.ColorDepth == 8 ||
+	         Header.ColorDepth == 24 || Header.ColorDepth == 32 )
+	   {
+	      int bytesToRead = sizeof ( char ) * ( *width ) * ( *height ) * Header.ColorDepth / 8;
+
+	      // Allocate the image data buffer
+	      buffer = ( char * ) malloc ( bytesToRead );
+
+	      if ( buffer )
+	      {
+	         //bytesRead = esFileRead ( fp, bytesToRead, buffer );
+	         bytesRead = fread( buffer, bytesToRead, 1, fp );
+	         fclose ( fp );
+
+	         return ( buffer );
+	      }
+	   }
+
+	   return ( NULL );
+	}
+
+
+	public:
+		TGAImage( const char * xPath )
+		{
+			mData = (GLubyte*)esLoadTGA( xPath, &mW, &mH );
+		}
+
+		~TGAImage( )
+		{
+			if ( mData != NULL )
+			{
+				free( mData );
+			}
+		}
+
+
+		GLubyte * toGLTextureBuffer( ) const { return mData; }
+
+		uint32_t getWidth( )  const { return (uint32_t)mW; }
+		uint32_t getHeight( ) const { return (uint32_t)mH; }
+};
+
+
 struct Vertex
 {
 	glm::vec3 Position
 		, Normals;
 	glm::vec2 TexCoords;
-	/*
 	glm::vec3 Tangent
 		, Bitangent;
-	*/
 };
 
 class Mesh
@@ -87,14 +180,12 @@ class Mesh
 	        // Vertex Texture Coords
 	        glEnableVertexAttribArray(2);
 	        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, TexCoords));
-		/*
 		// Vertex Tangent
 	        glEnableVertexAttribArray(3);
 	        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
 	        // Vertex Bitangent
 	        glEnableVertexAttribArray(4);
 	        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Bitangent));
-		*/
 
 	        glBindVertexArray(0);
 	}
@@ -143,7 +234,6 @@ class Mesh
 						case eTexture2DType_Diffuse:
 						{
 							ss << diffuseNr++; // Transfer GLuint to stream
-
 							name = "texture_diffuse";
 							break;
 						}
@@ -177,6 +267,7 @@ class Mesh
 					}
 
 					number = ss.str();
+
 					// Now set the sampler to the correct texture unit
 					xShader.getUniforms( ).setUniform1i( ( name + number ).c_str( ), i );
 					mTextures[ i ].bind( );
@@ -187,6 +278,7 @@ class Mesh
 			        // Draw mesh
 			        glBindVertexArray(mVAO);
 			        glDrawElements(GL_TRIANGLES, mIndices.size(), GL_UNSIGNED_INT, 0);
+			        //glDrawElements(GL_LINES, mIndices.size(), GL_UNSIGNED_INT, 0);
 				glBindVertexArray(0);
 
         			// Always good practice to set everything back to defaults once configured.
@@ -212,7 +304,13 @@ class Model
 		std::string path( xPath );
 
 		Assimp::Importer importer;
-        	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+        	const aiScene* scene = importer.ReadFile(path
+							, aiProcess_Triangulate      |
+							  aiProcess_FlipUVs          |
+							  aiProcess_CalcTangentSpace |
+							  aiProcess_GenNormals       |
+                                                          aiProcess_SplitLargeMeshes |
+							  aiProcess_OptimizeMeshes );
  	       // Check for errors
 	        if(!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	        {
@@ -228,7 +326,7 @@ class Model
 
 	void _processNode( aiNode* xNode, const aiScene* xScene )
 	{
-        // Process each mesh located at the current node
+	        // Process each mesh located at the current node
 	        for(GLuint i = 0; i < xNode->mNumMeshes; i++)
 	        {
 	            // The node object only contains indices to index the actual objects in the scene.
@@ -247,7 +345,6 @@ class Model
 
 	static void _loadVertices( std::vector <Vertex > & xVertices, aiMesh * xMesh )
 	{
-
 		for ( GLuint ii = 0; ii < xMesh->mNumVertices; ii++ )
 		{
 			Vertex vertex;
@@ -266,7 +363,7 @@ class Model
 
 			vertex.Normals = vector3;
 
-			if ( xMesh->mTextureCoords[ 0 ] != NULL )
+			if ( xMesh->mTextureCoords[ ii ] != NULL )
 			{
 				glm::vec2 vector2;
 
@@ -280,24 +377,18 @@ class Model
 				vertex.TexCoords = glm::vec2( 0.0f, 0.0f );
 			}
 
-			/*
 			vector3.x = xMesh->mTangents[ ii ] .x;
 			vector3.y = xMesh->mTangents[ ii ] .y;
 			vector3.z = xMesh->mTangents[ ii ] .z;
-
 			vertex.Tangent = vector3;
 
 			vector3.x = xMesh->mBitangents[ ii ] .x;
 			vector3.y = xMesh->mBitangents[ ii ] .y;
 			vector3.z = xMesh->mBitangents[ ii ] .z;
-
 			vertex.Bitangent = vector3;
-
-			*/
 
 			xVertices.push_back( vertex );
 		}
-
 	}
 
 	static void _loadIndices( std::vector < GLuint > & xIndices, aiMesh * xMesh )
@@ -313,6 +404,45 @@ class Model
 	        }
 	}
 
+
+	void _loadPNGTexture( std::vector<Texture2D> & xTextures
+		   	     , const char * xPath
+			     , eTexture2DType const xLocalEquivalent )
+	{
+		PNGImage image( xPath );
+		if ( !image.getIsValid( ) )
+		{
+			std::cerr << xPath << " was not found." << std::endl;
+			exit( -1 );
+		}
+
+                Texture2D texture( xLocalEquivalent );
+		texture.initialize( image.getWidth( )
+				   , image.getHeight( )
+				   , image.toGLTextureBuffer( )
+				   , aiString( xPath ) );
+
+                xTextures.push_back(texture);
+                mTextures.push_back(texture);
+
+	}
+	void _loadTGATexture( std::vector<Texture2D> & xTextures
+		   	     , const char * xPath
+			     , eTexture2DType const xLocalEquivalent )
+	{
+		TGAImage image( xPath );
+
+                Texture2D texture( xLocalEquivalent );
+		texture.initialize( image.getWidth( )
+				   , image.getHeight( )
+				   , image.toGLTextureBuffer( )
+				   , aiString( xPath ) );
+
+                xTextures.push_back(texture);
+                mTextures.push_back(texture);
+
+	}
+
 	// Checks all material textures of a given type and loads the textures if they're not loaded yet.
 	// The required info is returned as a Texture struct.
 	std::vector<Texture2D> _loadMaterialTextures( aiMaterial* mat
@@ -324,9 +454,10 @@ class Model
         	{
 	            aiString str;
 	            mat->GetTexture(type, i, &str);
-	            // Check if texture was loaded before and if so, continue to next iteration: skip loading a new texture
+	            // Check if texture was loaded before and if so, continue to next iteration: skip loading a new texture 
+
 	            GLboolean skip = false;
-			// TODO: use std::map to reduce this overhead
+		    // TODO: use std::map to reduce this overhead
 	            for(GLuint j = 0; j < mTextures.size(); j++)
 	            {
 	                if(mTextures[j].getIdentifier( ) == str)
@@ -343,23 +474,9 @@ class Model
 
 			ss << mDirectory << "/" << str.C_Str( );
 
-			PNGImage image( ss.str( ).c_str( ) );
-
-			if ( !image.getIsValid( ) )
-			{
-				std::cerr << ss.str( ) << " was not found." << std::endl;
-				exit( -1 );
-			}
-
-	                Texture2D texture( xLocalEquivalent );
-
-			texture.initialize( image.getWidth( )
-					   , image.getHeight( )
-					   , image.toGLTextureBuffer( )
-					   , aiString( ss.str( ).c_str( ) ) );
-
-	                textures.push_back(texture);
-	                mTextures.push_back(texture);
+			std::cout << "Load texture " << ss.str( ).c_str( ) << std::endl;
+			_loadPNGTexture( textures, ss.str( ).c_str( ), xLocalEquivalent );
+			//_loadTGATexture( textures, ss.str( ).c_str( ), xLocalEquivalent );
 	            }
 	        }
         	return textures;
@@ -1935,9 +2052,7 @@ class HelloInstancing : public SDLTestWindow
 
 	void _renderNanosuitGuy( )
 	{
-
 		mModelShader([&]( ) {
-
 		        glm::mat4 projection = glm::perspective(mCamera.getFOV( ), (float)mW/(float)mH, 0.1f, 100.0f);
 		        mModelShader.getUniforms().setUniformMatrix4fv("projection", projection);
 		        mModelShader.getUniforms().setUniformMatrix4fv("view", mCamera.getViewMatrix( ) );
@@ -1945,10 +2060,9 @@ class HelloInstancing : public SDLTestWindow
 		        // Draw the loaded model
 			glm::mat4 model;
 		        model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // Translate it down a bit so it's at the center of the scene
-		        model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f)); // It's a bit too big for our scene, so scale it down
+		        model = glm::scale(model, glm::vec3(10.2f, 10.2f, 10.2f)); // It's a bit too big for our scene, so scale it down
 		        mModelShader.getUniforms().setUniformMatrix4fv("model", model);
 			mNanosuitGuy.render( mModelShader );
-
 		} );
 
 	}
@@ -1959,6 +2073,8 @@ class HelloInstancing : public SDLTestWindow
 			// Set the viewport
 			glViewport( 0, 0, mW, mH );
 
+			glEnable( GL_DEPTH_TEST );
+
 			// Clear the color buffer
 			glClear ( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -1966,7 +2082,7 @@ class HelloInstancing : public SDLTestWindow
 
 			mSkybox.render( mCamera.getViewMatrix( ), mCamera.getFOV( ) );
 
-			//mCubeRenderer.render3DScene( );
+			mCubeRenderer.render3DScene( );
 
 			_renderNanosuitGuy( );
 
@@ -2000,7 +2116,6 @@ class HelloInstancing : public SDLTestWindow
 						  , mCursorPosition.y );
 
 			glDepthMask( GL_TRUE );
-
 
 			_checkForGLError( "After render" );
 		}
@@ -2039,6 +2154,9 @@ class HelloInstancing : public SDLTestWindow
 							  "in vec2 TexCoords;							\n"
 							  "out vec4 color;							\n"
 							  "uniform sampler2D texture_diffuse1;					\n"
+							  "uniform sampler2D texture_specular1;					\n"
+							  "uniform sampler2D texture_normal1;					\n"
+							  "uniform sampler2D texture_height1;					\n"
 							  "void main()								\n"
 							  "{									\n"
 							  "    color = vec4(texture(texture_diffuse1, TexCoords));		\n"
@@ -2054,7 +2172,9 @@ class HelloInstancing : public SDLTestWindow
 			mModelShader.initialize( );
 
 			mNanosuitGuy.initialize( "resources/objects/nanosuit/nanosuit.obj" );
-
+			//mNanosuitGuy.initialize( "resources/objects/nifskope.obj" );
+			//mNanosuitGuy.initialize( "resources/diloph/Full.obj" );
+			//mNanosuitGuy.initialize( "resources/M1911.obj" );
 			_initialize2DOverlay( );
 
 			mCubeRenderer.initialize( mW, mH, &mCamera );
