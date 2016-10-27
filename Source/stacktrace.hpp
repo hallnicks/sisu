@@ -2,11 +2,11 @@
 #ifndef BACKTRACE_HPP_
 #define BACKTRACE_HPP_
 
-#include "test.hpp" // remove
-
 #include <cxxabi.h>
 #ifdef __linux__
+#ifndef ANDROID
 #include <execinfo.h>
+#endif
 #else
 #include <Windows.h>
 #include <DbgHelp.h>
@@ -40,26 +40,29 @@ class stacktrace
 	public:
 		stacktrace( std::ostream & mOut = std::cout )
 			: mArray( )
-#ifdef __linux__
+#ifdef LINUX
+// TODO: Implement android backtrace!
+#ifdef ANDROID
+			, mSymbolCount( 0 )
+			, mStrings( NULL )
+#else
 			, mSymbolCount( backtrace( mArray, XDepth ) )
 			, mStrings( backtrace_symbols( mArray, mSymbolCount ) )
+#endif
 #else
 //#warning Backtrace not implemented on windows yet
 			, mSymbolCount( 0 )
 			, mStrings( NULL )
-		
 #endif
 			, mOut( std::cout )
 		{
-#ifndef __linux__
+#ifdef WIN32
 			HANDLE         process;
 
   			process = GetCurrentProcess();
 
 			SymInitialize( process, NULL, TRUE );
-	
 			unsigned int   i;
-		     	
 			void         * stack[ 100 ];
 		     	unsigned short frames;
      			SYMBOL_INFO  * symbol;
@@ -76,7 +79,6 @@ class stacktrace
  		    	for( i = 0; i < frames; i++ )
      			{
  			        SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
-		
 				std::ostringstream oss;
 				oss << symbol->Name << " - 0x" << symbol->Address << std::endl;
 				std::cout << oss.str( );
@@ -169,7 +171,7 @@ class stacktrace
 			}
 			else
 			{
-				std::cout << "[ Error : No frames found. ]" << std::endl;
+				xStream << "[ Error : No frames found. ]" << std::endl;
 			}
 
 			return xStream;
@@ -182,11 +184,14 @@ std::ostream & operator << ( std::ostream & xStream, stacktrace<XDepth> const & 
         return xStackTrace >> xStream;
 }
 
+// TODO: Implement stack tracking on android
+#ifndef ANDROID
 template< unsigned int XDepth >
 inline void printstack( )
 {
 	std::cerr << ccolor( eTTYCRed, eTTYCBlack, eModNone ) << stacktrace< XDepth >( ) << std::endl;
 }
+#endif
 
 } // namespace sisu
 

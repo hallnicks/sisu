@@ -1,3 +1,4 @@
+#ifndef ANDROID
 #ifndef TTYCOLOR_17E6A430_32EA_4026_9A68_44C04B34E195_HPP_
 #define TTYCOLOR_17E6A430_32EA_4026_9A68_44C04B34E195_HPP_
 
@@ -44,3 +45,4 @@ inline std::ostream & operator << ( std::ostream & xS, ccolor const & xC )
 } // namespace sisu
 
 #endif // TTYCOLOR_17E6A430_32EA_4026_9A68_44C04B34E195_HPP_
+#endif

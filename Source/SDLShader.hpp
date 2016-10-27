@@ -7,7 +7,12 @@
 #include <GLES2/gl2.h>
 #endif
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif
+
 #ifndef OPENGLES
 #include <SDL2/SDL_opengl.h>
 #endif

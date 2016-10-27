@@ -1,3 +1,4 @@
+#ifndef ANDROID
 #include "memblock.hpp"
 
 
@@ -110,3 +111,4 @@ memblock & memblock::operator << ( endl_t xStream )
 }
 
 } // namespace sisu
+#endif

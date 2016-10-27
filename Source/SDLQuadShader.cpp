@@ -1,4 +1,5 @@
 #include "SDLQuadShader.hpp"
+#include "AndroidLogWrapper.hpp"
 
 namespace sisu {
 
@@ -49,7 +50,7 @@ void SDLQuadShader::initialize( OpenGLAttributes const & xAttributes )
 
         if( mVertexPos2DLocation == -1 )
         {
-                std::cerr << "GLSL program variable LVertexPOS2D not found." << std::endl;
+                SISULOG( "GLSL program variable LVertexPOS2D not found." );
                 exit( -1 );
         }
 

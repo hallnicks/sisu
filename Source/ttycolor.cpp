@@ -1,3 +1,4 @@
+#ifndef ANDROID
 #include "ttycolor.hpp"
 
 namespace sisu
@@ -46,3 +47,4 @@ std::ostream & ccolor::operator >> ( std::ostream & xStream ) const
 }
 
 } // namespace
+#endif

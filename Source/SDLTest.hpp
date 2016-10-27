@@ -56,7 +56,7 @@ namespace sisu {
         {
                 void _setOpenGLAttributes( OpenGLAttributes const & xAttributes );
 
-                static void _checkSDLError( );
+                static void _checkSDLError( const char * xAddendum = NULL );
 
 		protected:
 			event mQuit;

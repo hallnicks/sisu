@@ -7,6 +7,8 @@
 #include <X11/Xlib.h>
 #endif
 
+#include "AndroidLogWrapper.hpp"
+
 namespace sisu {
 
 void _checkForGLError( const char * xAddendum )
@@ -14,11 +16,19 @@ void _checkForGLError( const char * xAddendum )
 	GLenum const error = glGetError( );
 	if ( error != GL_NO_ERROR )
 	{
+#ifdef ANDROID
+		__android_log_print( ANDROID_LOG_VERBOSE
+				   , "sisu"
+				   , "OpenGL Error# %d: %s\n"
+				   , (int32_t)error
+				   , xAddendum == NULL ? "" : xAddendum );
+#else
 		std::cerr << "OpenGL: Error# "
 			  << error
 			  << " "
 			  << (const char*)(xAddendum == NULL ? "" : xAddendum)
 			  << std::endl;
+#endif
 		exit( -1 );
 	}
 }
@@ -39,13 +49,13 @@ void SDLTestWindow::_setOpenGLAttributes( OpenGLAttributes const & xAttributes )
 
 	if ( xAttributes.mDoubleBufferingEnabled )
 	{
-		std::cout << "Enabling double buffering." << std::endl;
+		SISULOG( "Enabling double buffering." );
 	        SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 	}
 
 	if ( xAttributes.mMultisampleBufferingEnabled )
 	{
-		std::cout << "Enabling multisample buffering." << std::endl;
+		SISULOG( "Enabling multisample buffering." );
 	        SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 1 );
 	}
 
@@ -65,7 +75,7 @@ void SDLTestWindow::_stealContext( )
 {
 	if ( mMainWindow == NULL )
 	{
-		std::cerr << "Cannot steal context because main window was null." << std::endl;
+		SISULOG( "Cannot steal context because main window was null." );
 		exit( -1 );
 	}
 
@@ -73,7 +83,7 @@ void SDLTestWindow::_stealContext( )
 
         if ( ! ( flags & SDL_WINDOW_BORDERLESS ) )
         {
-		std::cerr << "Window wasn't borderless!" << std::endl;
+		SISULOG( "Window wasn't borderless!" );
                 exit(-1);
         }
 
@@ -86,20 +96,29 @@ void SDLTestWindow::_stealContext( )
 #ifdef WIN32 // Never set on linux (!) bug?
 	       if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
 	       {
-	              std::cerr << "Failed to get window focus: " << SDL_GetError( ) << std::endl;
-	              exit( -1 );
+			_checkSDLError( "SDL_MaximizeWindow/RaiseWindow/SetWindowGrab" );
+	              	exit( -1 );
 	       }
 #endif
         }
 }
 
-void SDLTestWindow::_checkSDLError( )
+void SDLTestWindow::_checkSDLError( const char * xAddendum )
 {
 	std::string const error = SDL_GetError();
 
 	if ( error != "" )
         {
+#ifdef ANDROID
+		__android_log_print( ANDROID_LOG_VERBOSE
+				   , "sisu"
+				   , "%s -- SDL error: %s\n"
+				   , xAddendum == NULL ? "Unknown:" : xAddendum
+				   , SDL_GetError( ) );
+
+#else
         	std::cout << "SDL Error : " << error << std::endl;
+#endif
                 SDL_ClearError();
 	}
 }
@@ -131,7 +150,7 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
         if ( SDL_Init( SDL_INIT_VIDEO ) < 0)
         {
-		std::cout << "SDL init failed: " << SDL_GetError() << std::endl;
+		_checkSDLError( "SDL_Init" );
                 exit(-1);
 	}
 
@@ -156,8 +175,7 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
                                          SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS );
 	if( mMainWindow == NULL )
         {
-		std::cerr << __PRETTY_FUNCTION__ << " failed." << std::endl;
-                _checkSDLError( );
+                _checkSDLError( "SDL_CreateWindow" );
                 exit( -1 );
 	}
 
@@ -165,8 +183,7 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
 	if ( !SDL_GetWindowWMInfo( mMainWindow, &mWindowInfo ) )
 	{
-		std::cerr << __PRETTY_FUNCTION__ << " failed." << std::endl;
-		_checkSDLError( );
+		_checkSDLError( "SDL_GetWindowWMInfo" );
 		exit( -1 );
 	}
 
@@ -178,13 +195,13 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
 	if ( mMainContext == NULL )
 	{
-		std::cerr << "Failed to create GL context from window: " << SDL_GetError( ) << std::endl;
+		_checkSDLError( "SDL_GL_CreateContext" );
 		exit( -1 );
 	}
 
 	if ( SDL_GL_MakeCurrent( mMainWindow, mMainContext ) != 0 )
 	{
-		std::cerr << "Failed to make GL context current: " << SDL_GetError( ) << std::endl;
+		_checkSDLError( "SDL_GL_MakeCurrent" );
 		exit( -1 );
 	}
 
@@ -196,13 +213,13 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
 	if ( err != GLEW_OK )
 	{
-		std::cerr << "glewInit( ) failed: " << glewGetErrorString( err ) << std::endl;
+		_checkSDLError( "glewInit" );
 		exit( -1 );
 	}
 #endif
         if ( SDL_GL_SetSwapInterval( xAttributes.mSwapInterval ) < 0 )
 	{
-		std::cerr << "Setup vsync failed: " << SDL_GetError( ) << std::endl;
+		_checkSDLError( "SDL_GL_SetSwapInterval" );
 		exit( -1 );
 	}
 }
