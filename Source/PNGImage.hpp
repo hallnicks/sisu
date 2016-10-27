@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <functional>
-#include <iostream>
 #include <fstream>
 #include <math.h>
 
@@ -21,6 +20,8 @@
 #include <cstring>
 using std::memcpy;
 #endif
+
+#include "AndroidLogWrapper.hpp"
 
 namespace sisu
 {
@@ -40,7 +41,7 @@ namespace sisu
 			{
 				if ( mRow == NULL )
 				{
-					std::cerr << "Invalid PNG image row detected." << std::endl;
+					SISULOG( "NULL PNG image row detected." );
 					exit( -1 );
 				}
 			}
@@ -103,6 +104,7 @@ namespace sisu
 		public:
 			PNGImage( _PNGImageDimensions const & xDimensions );
 			PNGImage( const char * xPath );
+			PNGImage( uint8_t * xBuffer, size_t xSize );
 			~PNGImage( );
 
 			PNGImage & operator( ) ( std::function< void( PNGImage & )> xLambda );
@@ -136,12 +138,13 @@ namespace sisu
 			}
 
 			friend std::ofstream & operator<<( std::ofstream& xOfs, PNGImage & xImage );
+
 			_PNGImageRow operator[]( size_t const xIndex )
 			{
 				if ( xIndex >= mHeight )
 				{
-					std::cerr << "Invalid index " << xIndex << " passed to PNGimage::operator[] " << std::endl;
-					exit( -1 ); 
+					SISULOG( "Invalid index  passed to PNGimage::operator[] " );
+					exit( -1 );
 				}
 
 		                png_bytep row = mRGBBuffer[ xIndex ];

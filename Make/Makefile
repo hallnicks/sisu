@@ -46,6 +46,9 @@ endif
 TARGET_LIBS += tbb
 #TARGET_LIBS += ncurses
 
+# for DevIL
+TARGET_LIBS += DevIL # ILU ILUT
+
 #ffmpeg
 TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample m z
 
@@ -128,13 +131,13 @@ ifeq ($(OS),Windows_NT)
     LDFLAGS	   += $(FREEGLUT_FLAGS)
 endif
 
-#Turn on max warnings (TODO: Fix these.) 
+#Turn on max warnings (TODO: Fix these.)
 #CXXFLAGS += -Wall -Wextra
 #LDFLAGS  += -Wall -Wextra
 #CXXFLAGS += -Werror -O3
 
 #for FFMPEG :( TODO: Use non-deprecated approachj
-CXXFLAGS += -Wno-deprecated-declarations 
+CXXFLAGS += -Wno-deprecated-declarations
 
 #for OpenAL:( TODO: Fix bugs in OpenAL example code
 CXXFLAGS += -Wno-pointer-arith -Wno-attributes
@@ -165,8 +168,8 @@ CXXFLAGS  += -D LOG_UT
 #CXXFLAGS += -D OPENAL_UT
 #CXXFLAGS += -D OPENCV_UT
 #CXXFLAGS += -D OPENGLES_HELLOTRIANGLE_UT
-#CXXFLAGS  += -D OPENGLES_HELLOTEXTURE_UT
-CXXFLAGS  += -D OPENGLES_HELLOINSTANCING_UT
+CXXFLAGS  += -D OPENGLES_HELLOTEXTURE_UT
+#CXXFLAGS += -D OPENGLES_HELLOINSTANCING_UT
 #CXXFLAGS += -D PNG_IMAGE_STREAMER_UT
 #CXXFLAGS += -D POPEN_UT
 #CXXFLAGS += -D SDL_AUDIO_MIXER_UT

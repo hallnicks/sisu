@@ -1,0 +1,46 @@
+Signature-Version: 1.0
+SHA1-Digest-Manifest: E02mHFh6AN9Ceza8654cSWrtXeU=
+Created-By: 1.0 (Android)
+
+Name: AndroidManifest.xml
+SHA1-Digest: nraOWuvcrxgdv3+x47D12x7WKkE=
+
+Name: lib/armeabi-v7a/libgnustl_shared.so
+SHA1-Digest: OsxVcqhd0WIuD5dk9s6chGH/HMY=
+
+Name: res/layout/main.xml
+SHA1-Digest: 8BZXGPzAvXZunXPdW5T30ITrzpg=
+
+Name: lib/armeabi-v7a/libSDL2.so
+SHA1-Digest: NqKSxES0BMcFBf4Sz+doVoPaHvo=
+
+Name: res/drawable-hdpi-v4/ic_launcher.png
+SHA1-Digest: SZQf/CGyR+wr3n7y8u5GzjdiPrg=
+
+Name: lib/armeabi/libmain.so
+SHA1-Digest: pQJNc1AX6AMPOVfvG0PnHU5zwFU=
+
+Name: res/drawable-mdpi-v4/ic_launcher.png
+SHA1-Digest: Dkae7cSbySk+bxAym+svSfoceGc=
+
+Name: res/drawable-xhdpi-v4/ic_launcher.png
+SHA1-Digest: onQG9HcCfxVix7+a0GCypV4+6/I=
+
+Name: lib/armeabi/libgnustl_shared.so
+SHA1-Digest: WciozcyEf8vbupRNIS9heAAYVMo=
+
+Name: lib/armeabi/libSDL2.so
+SHA1-Digest: GIjYO4EaIqNlEjZZBj/FHoFkiSI=
+
+Name: lib/armeabi-v7a/libmain.so
+SHA1-Digest: 22MyAV6g26iMRZWDbiTpnz5eUQQ=
+
+Name: resources.arsc
+SHA1-Digest: gfv7hM5fGskWdh9jEv8h4oF5jMg=
+
+Name: classes.dex
+SHA1-Digest: VWH3Igc0i56j0jf6cekOq2rpmHU=
+
+Name: res/drawable-xxhdpi-v4/ic_launcher.png
+SHA1-Digest: jtK7t5VKEqAKJYtPhSGjUaXAsgk=
+

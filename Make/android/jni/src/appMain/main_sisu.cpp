@@ -15,25 +15,49 @@
 
 #include <android/log.h>
 
+#include "SDLColorSwitcher.hpp"
+#include "HelloTriangle.hpp"
+#include "HelloTexture.hpp"
+
+using namespace sisu;
+
 int main( int xArgc, char * xArgv[] )
 {
-	const char * buff[] = { " Measles make you bumpy"
-			      , " And mumps'll make you lumpy"
-			      , " And chicken pox'll make you jump and twitch"
-			      , " A common cold'll fool ya"
-			      , " And whooping cough'll cool ya"
+	const char * buff[] = { " Measles make you bumpy\n"
+			      , " And mumps'll make you lumpy\n"
+			      , " And chicken pox'll make you jump and twitch\n"
+			      , " A common cold'll fool ya\n"
+			      , " And whooping cough'll cool ya\n"
 			      , "But poison ivy, Lord'll make you itch!!\n"
 
-			      , "You're gonna need an ocean of calamine lotion"
-			      , "You'll be scratchin' like a hound"
-			      , "The minute you start to mess around" };
+			      , "You're gonna need an ocean of calamine lotion\n"
+			      , "You'll be scratchin' like a hound\n"
+			      , "The minute you start to mess around\n" };
 
 	for ( int32_t ii = 0; ii < sizeof(buff)/sizeof(const char*); ++ii)
 	{
                  __android_log_print( ANDROID_LOG_VERBOSE, "sisu", "%s\n", buff[ ii ] );
 	}
 
+	/*
+        SDLColorSwitcher test;
 
+        test.initialize( { 3, 0, 1, false, false } );
+
+        test.run();
+	*/
+
+	/*
+        HelloTriangle * window = new HelloTriangle;
+        window->initialize( { 3, 0, 1, false, false } );
+        window->run( );
+        delete window;
+	*/
+
+        HelloTexture * window = new HelloTexture;
+        window->initialize( { 3, 0, 1, false, false } );
+        window->run( );
+        delete window;
 
 	return 0;
 }

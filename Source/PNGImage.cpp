@@ -1,11 +1,15 @@
 #include "PNGImage.hpp"
 
+#ifdef ANDROID
+#include "open_memstream.hpp"
+#include "AndroidLogWrapper.hpp"
+#endif
+
 #include <stdio.h>
 
 #include <iostream>
 
-namespace sisu
-{
+namespace sisu {
 
 _memEncode::_memEncode( )
 	: buffer( NULL )
@@ -36,13 +40,13 @@ void _png_read_memory( png_structp xPngPointer, png_bytep xData, png_size_t xLen
 
 	if ( p->buffer == NULL )
 	{
-		std::cerr << "_png_read_memory: Source buffer was NULL." << std::endl;
+		SISULOG("_png_read_memory: Source buffer was NULL.");
 		exit( -1 );
 	}
 
 	if ( xData == NULL )
 	{
-		std::cerr << "Target buffer was NULL." << std::endl;
+		SISULOG( "Target buffer was NULL." );
 		exit( -1 );
 	}
 
@@ -66,7 +70,7 @@ void _png_write_memory( png_structp xPngPointer, png_bytep xData, png_size_t xLe
 
 	if ( p->buffer == NULL )
 	{
-		std::cerr << "Memory allocation failure in _png_write_memory " << std::endl;
+		SISULOG( "Memory allocation failure in _png_write_memory " );
 		exit( -1 );
 	}
 
@@ -91,7 +95,7 @@ void PNGImage::_blitToOutputBuffer( )
 
 	if ( mPNGWrite == NULL )
 	{
-		std::cerr << "png_create_write_struct failed." << std::endl;
+		SISULOG( "png_create_write_struct failed." );
 		exit( -1 );
 	}
 
@@ -102,15 +106,17 @@ void PNGImage::_blitToOutputBuffer( )
 
 	if ( mInfoWrite == NULL )
 	{
-		std::cerr << "png_create_info_struct failed." << std::endl;
+		SISULOG( "png_create_info_struct failed." );
 		exit( -1 );
 	}
 
+#ifndef ANDROID // Fails mytseriously on android..
 	if ( setjmp( png_jmpbuf( mPNGWrite ) ) )
 	{
-		std::cerr << "setjmp( png_jmpbuf( .. ) ) failed." << std::endl;
+		SISULOG( "setjmp( png_jmpbuf( .. ) ) failed in _blitToOutputBuffer" );
 		exit( -1 );
 	}
+#endif 
 
 	png_init_io( mPNGWrite, NULL );
 
@@ -147,7 +153,7 @@ void PNGImage::_writeDataToStream( std::ofstream & xOfs )
 
 	if ( mWriteState == NULL || mWriteState->buffer == NULL )
 	{
-		std::cerr << "Buffer was NULL, cannot write." << std::endl;
+		SISULOG( "Buffer was NULL, cannot write." );
 		exit( -1 );
 	}
 
@@ -156,9 +162,16 @@ void PNGImage::_writeDataToStream( std::ofstream & xOfs )
 
 void PNGImage::_populateReadStructures( )
 {
-	mWidth      = png_get_image_width( mPNGRead, mInfoRead );
+	mWidth   = png_get_image_width( mPNGRead, mInfoRead );
+	mHeight  = png_get_image_height( mPNGRead, mInfoRead );
 
-	mHeight     = png_get_image_height( mPNGRead, mInfoRead );
+#ifdef ANDROID
+	__android_log_print( ANDROID_LOG_VERBOSE
+                           , "sisu"
+                           , "Load PNG %u x %u "
+                           , mWidth
+			   , mHeight );
+#endif
 
 	if ( ( mBitDepth = png_get_bit_depth( mPNGRead, mInfoRead ) ) == 16 )
 	{
@@ -201,7 +214,7 @@ void PNGImage::_initializeReadStructures( )
 
 	if ( mPNGRead == NULL )
 	{
-		std::cerr << "png_create_read_struct failed." << std::endl;
+		SISULOG("png_create_read_struct failed.");
 		exit( -1 );
 	}
 
@@ -209,33 +222,51 @@ void PNGImage::_initializeReadStructures( )
 
 	if ( mInfoRead == NULL )
 	{
-		std::cerr << "png_create_info_struct failed." << std::endl;
+		SISULOG( "png_create_info_struct failed." );
 		exit( -1 );
 	}
 
+#ifndef ANDROID // Fails mytseriously on android..
+#if 0
 	if ( setjmp( png_jmpbuf( mPNGRead ) ) )
 	{
-		std::cerr << "setjmp( png_jmpbuf( .. ) ) failed." << std::endl;
+		SISULOG( "setjmp( png_jmpbuf( .. ) ) failed in _initializeReadStructures" );
 		exit( -1 );
 	}
+#endif
+#endif
 }
 
 void PNGImage::_initializeObject( FILE * xFile )
 {
+	SISULOG("before png_read_info");
+#ifdef ANDROID
+	__android_log_print( ANDROID_LOG_VERBOSE
+                           , "sisu"
+                           , " !! png_read_info( %p, %p ); !!"
+                           , mPNGRead
+			   , mInfoRead );
+#endif
+
 	png_read_info( mPNGRead, mInfoRead );
 
+	SISULOG("before _populateReadStructures");
 	_populateReadStructures( );
 
+	SISULOG("before png_read_update_info");
 	png_read_update_info( mPNGRead, mInfoRead );
 
+	SISULOG("before _allocateRGBBuffer ");
 	_allocateRGBBuffer( png_get_rowbytes( mPNGRead, mInfoRead ) );
 
+	SISULOG("before png_Read_image");
 	png_read_image( mPNGRead, mRGBBuffer );
 
 	if ( xFile != NULL )
 	{
 		fclose( xFile );
 	}
+	SISULOG("Out _initializeObject( )");
 }
 
 void PNGImage::_allocateRGBBuffer( png_uint_32 const xRowBytes )
@@ -289,18 +320,73 @@ PNGImage::PNGImage( const char * xPath )
 
 	if ( fp == NULL )
 	{
-		std::cerr << "File " << xPath << " does not exist." << std::endl;
-
+		SISULOG( "File passed to PNGImage ctor does not exist." );
 		exit( -1 );
 	}
 
 	_initializeReadStructures( );
+
+	if ( mPNGRead == NULL )
+	{
+		SISULOG( "PNG read structure was null." );
+		exit( -1 );
+	}
 
 	png_init_io( mPNGRead, fp );
 
 	_initializeObject( fp );
 
 	mIsValid = true;
+}
+
+PNGImage::PNGImage( uint8_t * xBuffer, size_t xSize )
+	CTOR_ARGS("")
+{
+#ifdef ANDROID
+	char * buffer = (char*) xBuffer;
+	SISULOG("Before open_memstream");
+        FILE * fp = open_memstream( &buffer, &xSize );
+	SISULOG("After open_memstream");
+#else
+        FILE * fp = fmemopen( xBuffer, xSize , "rb" );
+#endif
+/*
+        if ( fp == NULL )
+        {
+                SISULOG( "fmemopen failed does not exist." );
+                exit( -1 );
+        }
+
+	char header[8];
+
+	fread( header, 1, 8, fp );
+
+        if (png_sig_cmp((png_const_bytep)header, 0, 8))
+	{
+		SISULOG( "Invalid PNG header." );
+		exit( -1 );
+	}
+*/
+        _initializeReadStructures( );
+
+	if ( mPNGRead == NULL )
+	{
+		SISULOG( "PNG read structure was null." );
+		exit( -1 );
+	}
+
+	SISULOG("Initializing PNG IO.." );
+
+        png_init_io( mPNGRead, fp );
+
+  //      png_set_sig_bytes( mPNGRead, 8);
+
+	SISULOG("Initializing object." );
+        _initializeObject( fp );
+
+        mIsValid = true;
+
+	SISULOG("Succesfully initialized PNG object." );
 }
 
 PNGImage::~PNGImage( )
