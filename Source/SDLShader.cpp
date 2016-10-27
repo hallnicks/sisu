@@ -4,8 +4,6 @@
 
 #include <iostream>
 
-#include "test.hpp" // delete me 
-
 namespace sisu {
 
 static inline void _printGLProgramLog( GLuint const xProgram )

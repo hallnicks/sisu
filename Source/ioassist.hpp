@@ -1,8 +1,6 @@
 #ifndef IO_ASSIST74351C5C55AF4767BDEB912C3A472466_HPP_
 #define IO_ASSIST74351C5C55AF4767BDEB912C3A472466_HPP_
 
-#include "test.hpp" // TODO - delete this and clean up file. strictly for debugging.
-
 #include <string>
 #include <fstream>
 #include <streambuf>

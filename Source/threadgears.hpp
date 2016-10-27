@@ -15,21 +15,7 @@
 #include <pthread.h>
 
 
-#ifdef ANDROID
-#include <android/log.h>
-
-#define SISULOG(xMsg) __android_log_print( ANDROID_LOG_VERBOSE \
-                                         , "sisu" \
-                                         , "%s" \
-                                         , xMsg );
-
-#else
-#include <iostream>
-
-#define SISULOG(xMsg) std::cerr << xMsg << std::endl;
-
-#endif
-
+#include "AndroidLogWrapper.hpp"
 
 #include <functional>
 

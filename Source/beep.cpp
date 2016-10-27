@@ -1,6 +1,6 @@
 #include "beep.hpp"
 
-#include <iostream>
+#include "AndroidLogWrapper.hpp"
 
 #ifdef __linux__
 #include <linux/kd.h>

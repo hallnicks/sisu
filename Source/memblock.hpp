@@ -1,6 +1,6 @@
-#ifndef MEMBLOCK_HPP_
-#define MEMBLOCK_HPP_
-
+#ifndef ANDROID
+#ifndef MEMBLOCK_4BE440EF027A4DD087362828BA5C2AE4_HPP_
+#define MEMBLOCK_4BE440EF027A4DD087362828BA5C2AE4_HPP_
 #include <iostream>
 #include <iomanip>
 #include <stdint.h>
@@ -48,4 +48,5 @@ inline std::ostream & operator << ( std::ostream & xStream, memblock const & xBl
 
 } // namespace sisu
 
-#endif // MEMBLOCK_HPP_
+#endif // MEMBLOCK_4BE440EF027A4DD087362828BA5C2AE4_HPP_
+#endif // ANDROID
