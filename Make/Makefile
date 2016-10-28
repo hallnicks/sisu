@@ -46,6 +46,9 @@ endif
 TARGET_LIBS += tbb
 #TARGET_LIBS += ncurses
 
+#for DEVIL
+TARGET_LIBS += DevIL
+
 #ffmpeg
 TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample m z
 
@@ -115,7 +118,6 @@ SDL_CONFIG   := sdl2-config --prefix=/usr
 CXXFLAGS     += $(shell $(SDL_CONFIG) --cflags)
 LDFLAGS      += $(shell $(SDL_CONFIG) --libs)
 
-
 # for freetype
 FREETYPE_CONFIG := freetype-config
 CXXFLAGS     	+= $(shell $(FREETYPE_CONFIG) --cflags)
@@ -160,13 +162,14 @@ LDFLAGS      += -L/usr/local/lib
 #CXXFLAGS += -D LIBOPENSSL_UT
 #CXXFLAGS += -D LIBPNG_UT
 CXXFLAGS  += -D LOG_UT
+CXXFLAGS  += -D DEVIL_UT
 #CXXFLAGS += -D MEMBLOCK_UT
 #CXXFLAGS += -D MOUSE_UT
 #CXXFLAGS += -D OPENAL_UT
 #CXXFLAGS += -D OPENCV_UT
 #CXXFLAGS += -D OPENGLES_HELLOTRIANGLE_UT
 #CXXFLAGS  += -D OPENGLES_HELLOTEXTURE_UT
-CXXFLAGS  += -D OPENGLES_HELLOINSTANCING_UT
+#CXXFLAGS  += -D OPENGLES_HELLOINSTANCING_UT
 #CXXFLAGS += -D PNG_IMAGE_STREAMER_UT
 #CXXFLAGS += -D POPEN_UT
 #CXXFLAGS += -D SDL_AUDIO_MIXER_UT

@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <functional>
+#include <sstream>
 
 #ifdef WIN32
 #include <Windows.h>
