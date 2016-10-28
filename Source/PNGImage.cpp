@@ -1,11 +1,6 @@
 #include "PNGImage.hpp"
 
-#ifdef ANDROID
-#include "open_memstream.hpp"
 #include "AndroidLogWrapper.hpp"
-#endif
-
-#include <stdio.h>
 
 #include <iostream>
 
@@ -337,56 +332,6 @@ PNGImage::PNGImage( const char * xPath )
 	_initializeObject( fp );
 
 	mIsValid = true;
-}
-
-PNGImage::PNGImage( uint8_t * xBuffer, size_t xSize )
-	CTOR_ARGS("")
-{
-#ifdef ANDROID
-	char * buffer = (char*) xBuffer;
-	SISULOG("Before open_memstream");
-        FILE * fp = open_memstream( &buffer, &xSize );
-	SISULOG("After open_memstream");
-#else
-        FILE * fp = fmemopen( xBuffer, xSize , "rb" );
-#endif
-/*
-        if ( fp == NULL )
-        {
-                SISULOG( "fmemopen failed does not exist." );
-                exit( -1 );
-        }
-
-	char header[8];
-
-	fread( header, 1, 8, fp );
-
-        if (png_sig_cmp((png_const_bytep)header, 0, 8))
-	{
-		SISULOG( "Invalid PNG header." );
-		exit( -1 );
-	}
-*/
-        _initializeReadStructures( );
-
-	if ( mPNGRead == NULL )
-	{
-		SISULOG( "PNG read structure was null." );
-		exit( -1 );
-	}
-
-	SISULOG("Initializing PNG IO.." );
-
-        png_init_io( mPNGRead, fp );
-
-  //      png_set_sig_bytes( mPNGRead, 8);
-
-	SISULOG("Initializing object." );
-        _initializeObject( fp );
-
-        mIsValid = true;
-
-	SISULOG("Succesfully initialized PNG object." );
 }
 
 PNGImage::~PNGImage( )

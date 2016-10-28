@@ -1,3 +1,4 @@
+#ifdef ANDROID
 /*
  * Copyright (C) 2010 The Android Open Source Project
  *
@@ -226,3 +227,4 @@ static inline FILE* open_memstream(char** bufp, size_t* sizep)
 } // namespace sisu
 
 #endif /*!HAVE_OPEN_MEMSTREAM*/
+#endif // ANDROID

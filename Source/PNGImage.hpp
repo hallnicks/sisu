@@ -104,7 +104,6 @@ namespace sisu
 		public:
 			PNGImage( _PNGImageDimensions const & xDimensions );
 			PNGImage( const char * xPath );
-			PNGImage( uint8_t * xBuffer, size_t xSize );
 			~PNGImage( );
 
 			PNGImage & operator( ) ( std::function< void( PNGImage & )> xLambda );
