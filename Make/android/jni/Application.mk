@@ -6,6 +6,6 @@ APP_STL := gnustl_shared
 APP_ABI := armeabi armeabi-v7a
 
 # Min SDK level
-APP_PLATFORM=android-10
+APP_PLATFORM=android-18
 
 APP_CPPFLAGS += -std=c++11 -fexceptions -frtti

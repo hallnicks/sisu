@@ -17,6 +17,8 @@
 #include <SDL2/SDL_opengl.h>
 #endif
 
+#include "SDLColorSwitcher.hpp"
+
 using namespace sisu;
 
 namespace
@@ -28,64 +30,6 @@ namespace
 			void Up( ) { }
 			void Down( ) { }
 	};
-
-	class SDLColorSwitcher : public SDLTestWindow
-	{
-		protected:
-
-			virtual void render( )
-			{
-				uint32_t const flags = SDL_GetWindowFlags( mMainWindow );
-
-				if ( ! ( flags & SDL_WINDOW_BORDERLESS ) )
-				{
-					std::cout << "Window wasn't borderless!" << std::endl;
-					exit(-1);
-				}
-
-				if ( ! ( flags & SDL_WINDOW_MAXIMIZED ) )
-				{
-				        SDL_MaximizeWindow( mMainWindow );
-				        SDL_RaiseWindow( mMainWindow );
-				        SDL_SetWindowGrab( mMainWindow, SDL_TRUE );
-				}
-
-// TODO: Bug? Flag is never set on linux.
-#ifdef WIN32
-			        if ( ! ( flags & SDL_WINDOW_INPUT_FOCUS) )
-			        {
-			                std::cout << "Failed to get window focus." << std::endl;
-			                exit( -1 );
-			        }
-#endif
-
-				glClearColor( _randomGLfloat( )
-					    , _randomGLfloat( )
-					    , _randomGLfloat( )
-					    , _randomGLfloat( ) );
-
-				glClear( GL_COLOR_BUFFER_BIT );
-
-				SDL_GL_SwapWindow( mMainWindow );
-			}
-		public:
-			SDLColorSwitcher( )
-				: SDLTestWindow( )
-			{
-				;
-			}
-
-			virtual void run( )
-			{
-				for ( int ii = 0; ii < 250; ++ii )
-				{
-					render( );
-				}
-
-				_hide( );
-			}
-	}; // class
-
 } // namespace
 
 

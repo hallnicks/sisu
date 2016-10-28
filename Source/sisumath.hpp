@@ -1,7 +1,12 @@
 #ifndef SISUMATH_8AD50D39A6704E1587D5CAD907B48B35_HPP_
 #define SISUMATH_8AD50D39A6704E1587D5CAD907B48B35_HPP_
 
+#ifdef ANDROID
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif
+
 #include <cmath>
 
 namespace sisu {

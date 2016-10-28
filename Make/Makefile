@@ -130,13 +130,13 @@ ifeq ($(OS),Windows_NT)
     LDFLAGS	   += $(FREEGLUT_FLAGS)
 endif
 
-#Turn on max warnings (TODO: Fix these.) 
+#Turn on max warnings (TODO: Fix these.)
 #CXXFLAGS += -Wall -Wextra
 #LDFLAGS  += -Wall -Wextra
 #CXXFLAGS += -Werror -O3
 
 #for FFMPEG :( TODO: Use non-deprecated approachj
-CXXFLAGS += -Wno-deprecated-declarations 
+CXXFLAGS += -Wno-deprecated-declarations
 
 #for OpenAL:( TODO: Fix bugs in OpenAL example code
 CXXFLAGS += -Wno-pointer-arith -Wno-attributes
@@ -168,8 +168,13 @@ CXXFLAGS  += -D DEVIL_UT
 #CXXFLAGS += -D OPENAL_UT
 #CXXFLAGS += -D OPENCV_UT
 #CXXFLAGS += -D OPENGLES_HELLOTRIANGLE_UT
+<<<<<<< HEAD
 #CXXFLAGS  += -D OPENGLES_HELLOTEXTURE_UT
 #CXXFLAGS  += -D OPENGLES_HELLOINSTANCING_UT
+=======
+CXXFLAGS  += -D OPENGLES_HELLOTEXTURE_UT
+#CXXFLAGS += -D OPENGLES_HELLOINSTANCING_UT
+>>>>>>> e9d0c4837e5360bc9650ef2a98854c9fc53cc963
 #CXXFLAGS += -D PNG_IMAGE_STREAMER_UT
 #CXXFLAGS += -D POPEN_UT
 #CXXFLAGS += -D SDL_AUDIO_MIXER_UT

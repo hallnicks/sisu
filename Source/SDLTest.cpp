@@ -157,6 +157,7 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
         _setOpenGLAttributes( xAttributes );
 
 #ifdef LINUX
+#ifndef ANDROID
 	Display * d = XOpenDisplay( NULL );
 	Screen *  s = DefaultScreenOfDisplay( d );
 
@@ -165,6 +166,8 @@ void SDLTestWindow::initialize( OpenGLAttributes const & xAttributes )
 
 	XCloseDisplay( d );
 #endif
+#endif
+
         mMainWindow = SDL_CreateWindow( "SDL2 OpenGL"
                                        , SDL_WINDOWPOS_CENTERED
                                        , SDL_WINDOWPOS_CENTERED
