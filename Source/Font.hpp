@@ -388,7 +388,7 @@ class FTFont
 						uint32_t const y = yOffset + ( s->y - rect.yMin );
 						uint32_t const x = xOffset + ( s->x - rect.xMin + w );
 
-						if ( y > xImage.getHeight( ) || x > xImage.getWidth ( ) ||
+						if ( y > ( xImage.getHeight( ) - 1 ) || x > ( xImage.getWidth ( ) - 1 ) ||
 						     y < 0 || x < 0 )
 						{
 							continue;
