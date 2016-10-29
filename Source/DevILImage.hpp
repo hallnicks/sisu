@@ -1,5 +1,5 @@
-#ifndef PNG_IMAGE_3BABDBF0B4DE4E7988A0C00E7A17CA13_HPP_
-#define PNG_IMAGE_3BABDBF0B4DE4E7988A0C00E7A17CA13_HPP_
+#ifndef DEVIL_IMAGE_B210FA201E65486D986606D8219DAB8A_HPP_
+#define DEVIL_IMAGE_B210FA201E65486D986606D8219DAB8A_HPP_
 
 #include <IL/il.h>
 
@@ -40,15 +40,13 @@ namespace sisu
 			{
 				ilGenImages( 1, &mImgID );
 				ilBindImage( mImgID );
-				//ilLoadImage( xPath );
-				// assume png for now, parameterize later
+
+				// Since we have only built libpng, assume png for now, parameterize later
 				ilLoadL( IL_PNG, (char*)xData, xSize );
 
 				mWidth  = ilGetInteger( IL_IMAGE_WIDTH  );
 				mHeight = ilGetInteger( IL_IMAGE_HEIGHT );
 
-				std::cout << "mWidth  = " << mWidth  << std::endl;
-				std::cout << "mHeight = " << mHeight << std::endl;
 
 				ilBindImage( 0 );
 			}
@@ -85,4 +83,4 @@ namespace sisu
 
 	};
 } // namespace sisu
-#endif // PNG_IMAGE_3BABDBF0B4DE4E7988A0C00E7A17CA13_HPP_
+#endif // DEVIL_IMAGE_B210FA201E65486D986606D8219DAB8A_HPP_

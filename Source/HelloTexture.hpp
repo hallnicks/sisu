@@ -26,7 +26,6 @@ class HelloTexture : public SDLTestWindow
 {
 	Texture2D mTexture;
 	std::vector<uint8_t> mPNGImageMemory;
-	//PNGImage mPNGImage;
 	DevILImage mDevILImage;
 	SDLShader mShader;
 	int32_t mScaleW, mScaleH;
@@ -149,8 +148,6 @@ class HelloTexture : public SDLTestWindow
 #else
 			, mPNGImageMemory( fileToMemory<uint8_t>( "resources/testinput/testinput01.png" ) )
 #endif
-			//, mPNGImage( mPNGImageMemory.data( ), mPNGImageMemory.size( ) )
-			//, mDevILImage( "resources/testinput/testinput01.png" )
 			, mDevILImage( (uint8_t*)mPNGImageMemory.data( ), mPNGImageMemory.size( ) )
 			, mQuadVAO( 0 )
 			, mQuadVBO( 0 )
@@ -209,14 +206,6 @@ class HelloTexture : public SDLTestWindow
                         glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
                         glBindVertexArray( 0 );
-
-			/*
-			if ( !mPNGImage.getIsValid( ) )
-			{
-				SISULOG("Unit test resource testinput01.png not found or is corrupt.");
-				exit( -1 );
-			}
-			*/
 
 			mTexture.initialize( ( mScaleW = mDevILImage.getWidth( )  )
 					   , ( mScaleH = mDevILImage.getHeight( ) )

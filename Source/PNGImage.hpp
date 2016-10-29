@@ -23,8 +23,7 @@ using std::memcpy;
 
 #include "AndroidLogWrapper.hpp"
 
-namespace sisu
-{
+namespace sisu {
 	struct _PNGImageDimensions
 	{
 		uint32_t w;

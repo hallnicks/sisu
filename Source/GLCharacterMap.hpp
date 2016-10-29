@@ -2,12 +2,13 @@
 #define GL_CHARACTER_MAP_178D5BA50C504563822A94CFC0A9D005_HPP_
 
 #include "Font.hpp"
+#include "PNGImage.hpp"
+
 #include <string>
 #include <sstream>
 #include <map>
 
-namespace sisu
-{
+namespace sisu {
 	class GLCharacter
 	{
 		char const mC;

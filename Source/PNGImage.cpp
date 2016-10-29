@@ -160,14 +160,6 @@ void PNGImage::_populateReadStructures( )
 	mWidth   = png_get_image_width( mPNGRead, mInfoRead );
 	mHeight  = png_get_image_height( mPNGRead, mInfoRead );
 
-#ifdef ANDROID
-	__android_log_print( ANDROID_LOG_VERBOSE
-                           , "sisu"
-                           , "Load PNG %u x %u "
-                           , mWidth
-			   , mHeight );
-#endif
-
 	if ( ( mBitDepth = png_get_bit_depth( mPNGRead, mInfoRead ) ) == 16 )
 	{
 		png_set_strip_16( mPNGRead );
@@ -221,47 +213,29 @@ void PNGImage::_initializeReadStructures( )
 		exit( -1 );
 	}
 
-#ifndef ANDROID // Fails mytseriously on android..
-#if 0
 	if ( setjmp( png_jmpbuf( mPNGRead ) ) )
 	{
 		SISULOG( "setjmp( png_jmpbuf( .. ) ) failed in _initializeReadStructures" );
 		exit( -1 );
 	}
-#endif
-#endif
 }
 
 void PNGImage::_initializeObject( FILE * xFile )
 {
-	SISULOG("before png_read_info");
-#ifdef ANDROID
-	__android_log_print( ANDROID_LOG_VERBOSE
-                           , "sisu"
-                           , " !! png_read_info( %p, %p ); !!"
-                           , mPNGRead
-			   , mInfoRead );
-#endif
-
 	png_read_info( mPNGRead, mInfoRead );
 
-	SISULOG("before _populateReadStructures");
 	_populateReadStructures( );
 
-	SISULOG("before png_read_update_info");
 	png_read_update_info( mPNGRead, mInfoRead );
 
-	SISULOG("before _allocateRGBBuffer ");
 	_allocateRGBBuffer( png_get_rowbytes( mPNGRead, mInfoRead ) );
 
-	SISULOG("before png_Read_image");
 	png_read_image( mPNGRead, mRGBBuffer );
 
 	if ( xFile != NULL )
 	{
 		fclose( xFile );
 	}
-	SISULOG("Out _initializeObject( )");
 }
 
 void PNGImage::_allocateRGBBuffer( png_uint_32 const xRowBytes )
