@@ -3,6 +3,7 @@
 
 #include "Font.hpp"
 #include "PNGImage.hpp"
+#include "ioassist.hpp"
 
 #include <string>
 #include <sstream>
@@ -72,11 +73,18 @@ namespace sisu {
 
 			_makeFilename( filename, xC );
 
+			uint8_t *    data = output.getData( );
+			size_t const size = output.getDataSize( );
+
+			memoryToFile( filename.str( ).c_str( ), data, size );
+
+			/*
 			std::ofstream ofs( filename.str( ).c_str( ), std::ios::binary);
 
 			ofs << output;
 
 			ofs.close( );
+			*/
 		}
 
 		public:

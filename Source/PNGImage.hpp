@@ -97,6 +97,16 @@ namespace sisu {
 		void _allocateRGBBuffer( png_uint_32 const xRowBytes );
 		void _initializeObject( FILE * xFile = NULL );
 
+		void _checkWriteData( ) const
+		{
+			if ( mWriteState == NULL || mWriteState->buffer == NULL )
+			{
+				SISULOG( "Buffer was NULL, cannot write." );
+				exit( -1 );
+			}
+		}
+
+
 		protected:
 			void _writeDataToStream( std::ofstream & xOfs );
 
@@ -148,6 +158,21 @@ namespace sisu {
 		                png_bytep row = mRGBBuffer[ xIndex ];
 
 				return _PNGImageRow( row );
+			}
+
+
+			void blit( ) { _blitToOutputBuffer( ); }
+
+			uint8_t * getData( ) const
+			{
+				_checkWriteData( );
+				return (uint8_t*)&mWriteState->buffer[0];
+			}
+
+			size_t const getDataSize( ) const
+			{
+				_checkWriteData( );
+				return mWriteState->size;
 			}
 
 	};

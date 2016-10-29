@@ -100,9 +100,29 @@ static inline std::vector<XByte> fileToMemory( const char * xPathToFile )
 	return buffer;
 }
 
+template <typename XByte>
+static inline void memoryToFile( const char * xPath, XByte * xData, size_t const xSize )
+{
+	SDL_RWops * rw = SDL_RWFromFile( xPath, "wb" );
+
+	if ( rw == NULL )
+	{
+		SISULOG( "SDL_RwFromFile failed in memoryToFile " );
+		exit( -1 );
+	}
+
+	if ( SDL_RWwrite( rw, (char*)xData, 1, xSize ) != xSize )
+	{
+		SISULOG( "SDL_RWwrite failed in memoryToFile " );
+		exit( -1 );
+	}
+
+	SDL_RWclose( rw );
+}
+
 static inline bool filesAreEqual( const char * xLeft, const char * xRight )
 {
-	std::vector<char> const left = fileToMemory<char>( xLeft );
+	std::vector<char> const left  = fileToMemory<char>( xLeft  );
 	std::vector<char> const right = fileToMemory<char>( xRight );
 
 	if ( left.size( ) != right.size( ) )
@@ -169,9 +189,6 @@ static void doPerFile( const char * xPath
 #endif
 }
 
-} // namespace
+} // namespace sisu
 
 #endif // IO_ASSIST74351C5C55AF4767BDEB912C3A472466_HPP_
-
-
-

@@ -146,11 +146,7 @@ void PNGImage::_writeDataToStream( std::ofstream & xOfs )
 {
 	_blitToOutputBuffer( );
 
-	if ( mWriteState == NULL || mWriteState->buffer == NULL )
-	{
-		SISULOG( "Buffer was NULL, cannot write." );
-		exit( -1 );
-	}
+	_checkWriteData( );
 
 	xOfs.write( &mWriteState->buffer[0], mWriteState->size );
 }
