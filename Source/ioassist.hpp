@@ -26,7 +26,20 @@
 
 namespace sisu {
 
-static inline bool fileExists( const char * xPathToFile ) { return std::ifstream( xPathToFile ).good( ); }
+static inline bool fileExists( const char * xPathToFile )
+{
+	bool exists = false;
+
+	SDL_RWops * rw = SDL_RWFromFile( xPathToFile, "rb" );
+
+	if ( rw != NULL )
+	{
+	        SDL_RWclose(rw);
+		exists = true;
+	}
+
+	return exists;
+}
 
 static inline std::string fileToString( const char * xPathToFile ) {
 	std::ifstream ifs( xPathToFile );

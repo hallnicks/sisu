@@ -11,6 +11,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "AndroidLogWrapper.hpp"
+
 namespace sisu {
 
 class Overlay2D
@@ -44,7 +46,7 @@ class Overlay2D
 			, mQuad( )
 
 		{
-			;
+			SISULOG( "In Overlay2D Ctor" );
 		}
 
 		void initialize( uint32_t const xW, uint32_t const xH )

@@ -5,6 +5,7 @@
 #include "Overlay2D.hpp"
 #include "Sprite.hpp"
 #include "Quad.hpp"
+#include "AndroidLogWrapper.hpp"
 
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
@@ -31,7 +32,7 @@ class TextRenderer
         {
                 if ( xGLChar == NULL )
                 {
-                        std::cerr << "GLCharacter was NULL." << std::endl;
+                        SISULOG("GLCharacter was NULL.");
                         exit( -1 );
                 }
 
@@ -41,17 +42,20 @@ class TextRenderer
                         return xMap[ xGLChar->getCharacter( ) ];
                 }
 
+		SISULOG( "Making sprite .. " );
                 Sprite * pT = new Sprite( );
 
+		SISULOG( "Alloc GL Buffer.. " );
                 pT->texData = xGLChar->allocGLBuffer( );
 
+		SISULOG( "Initializing sprite from tex data .. " );
                 pT->tex.initialize( ( pT->w = xGLChar->getWidth( )  )
                                   , ( pT->h = xGLChar->getHeight( ) )
                                   , ( uint8_t* )pT->texData );
 
                 xMap[ xGLChar->getCharacter( ) ] = pT;
 
-                return pT;
+	        return pT;
         }
 
 	public:
@@ -63,6 +67,11 @@ class TextRenderer
 			, mW( 0 )
 			, mH( 0 )
 		{
+			SISULOG( "In TextRenderer Ctor" );
+		}
+
+		~TextRenderer( )
+		{
 	                for ( auto && ii : mSpriteFont )
                         {
                                 delete ii.second;
@@ -71,15 +80,23 @@ class TextRenderer
 
 		void initialize( uint32_t const xW, uint32_t const xH )
 		{
+			SISULOG("In TextRenderer::Initialize" );
 			mW = xW;
 			mH = xH;
 
                         for ( char c = '!'; c < '~'; c++ )
 			{
+#ifdef ANDROID
+		                __android_log_print( ANDROID_LOG_VERBOSE
+		                                    , "sisu"
+		                                    , "Load character %c \n"
+						    , c );
+#endif
 				_loadGLCharacterIntoFont( mSpriteFont, mDefaultWriter[ c ] );
 			}
 
 			mQuad.initialize( );
+			SISULOG("Out TextRenderer::Initialize" );
 		}
 
 		void drawString( Overlay2D * xOverlay

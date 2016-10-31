@@ -6,6 +6,7 @@
 #include "Texture2D.hpp"
 #include "DevILImage.hpp"
 #include "sisumath.hpp"
+#include "AndroidLogWrapper.hpp"
 
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
@@ -71,7 +72,7 @@ class Camera
 			, mPitch( 0.0f )
 			, mFov( sMaxFov / 2 )
 		{
-			;
+			SISULOG("In Camera Ctor");
 		}
 
 		void rotateCamera( GLfloat xXOffset, GLfloat xYOffset )

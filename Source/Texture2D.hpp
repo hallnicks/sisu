@@ -5,6 +5,8 @@
 #include <string>
 #include <assimp/types.h>
 
+#include "AndroidLogWrapper.hpp"
+
 namespace sisu {
 
 enum eTexture2DType
@@ -54,7 +56,7 @@ class Texture2D
 			, mTextureType( xTextureType )
 			, mIdentifier( )
 		{
-			;
+			SISULOG( "In Texture2D Ctor" );
 		}
 
 		~Texture2D( )

@@ -11,10 +11,10 @@
 #include "SDLShader.hpp"
 #include "Stopwatch.hpp"
 #include "Texture2D.hpp"
-#include "PNGImage.hpp"
+#include "DevILImage.hpp"
 #include "sisumath.hpp"
-#include "mouse.hpp"
-#include "keyboard.hpp"
+#include "Mouse.hpp"
+#include "Keyboard.hpp"
 #include "GLCharacterMap.hpp"
 #include "Camera.hpp"
 #include "CubeRenderer.hpp"
@@ -25,7 +25,11 @@
 #include "Overlay2D.hpp"
 #include "Oscillator.hpp"
 #include "Quad.hpp"
+
+#ifndef ANDROID
 #include "Skybox.hpp"
+#endif
+
 #include "Sprite.hpp"
 
 
@@ -59,6 +63,7 @@ class HelloInstancing : public SDLTestWindow
 
 	TextRenderer mTextRenderer;
 
+#ifndef ANDROID
 	const char * mSkyboxFaces[ 6 ] = { "resources/testinput/right.png"
 					 , "resources/testinput/left.png"
 					 , "resources/testinput/top.png"
@@ -66,6 +71,7 @@ class HelloInstancing : public SDLTestWindow
 					 , "resources/testinput/back.png"
 					 , "resources/testinput/front.png" };
 	Skybox mSkybox;
+#endif
 
 	CursorRenderer mCursorRenderer;
 	MouseEventInfo mCursorPosition;
@@ -73,7 +79,7 @@ class HelloInstancing : public SDLTestWindow
 	Camera mCamera;
 
 	Texture2D mTexture;
-	PNGImage mPNGImage;
+	DevILImage mPNGImage;
 
 	Oscillator<int32_t> mOscW, mOscH;
 
@@ -81,23 +87,18 @@ class HelloInstancing : public SDLTestWindow
 
 	SDLShader mModelShader;
 
-	Model mNanosuitGuy;
+	//Model mNanosuitGuy;
 
 	void _initialize2DOverlay( )
 	{
 		mOverlay2D.initialize( mW, mH );
-
-		if ( !mPNGImage.getIsValid( ) )
-		{
-			std::cerr << "Unit test resource testinput01.png not found or is corrupt." << std::endl;
-			exit( -1 );
-		}
 
 		mTexture.initialize( mPNGImage.getWidth( )
 				   , mPNGImage.getHeight( )
 				   , mPNGImage.toGLTextureBuffer( ) );
 	}
 
+	/*
 	void _renderNanosuitGuy( )
 	{
 		mModelShader([&]( ) {
@@ -114,6 +115,7 @@ class HelloInstancing : public SDLTestWindow
 		} );
 
 	}
+	*/
 
 	protected:
 		virtual void render( )
@@ -128,11 +130,13 @@ class HelloInstancing : public SDLTestWindow
 
 		        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
+#ifndef ANDROID
 			mSkybox.render( mCamera.getViewMatrix( ), mCamera.getFOV( ) );
+#endif
 
 			mCubeRenderer.render3DScene( );
 
-			_renderNanosuitGuy( );
+			//_renderNanosuitGuy( );
 
 			glDepthMask( GL_FALSE );
 
@@ -156,7 +160,7 @@ class HelloInstancing : public SDLTestWindow
 
 			mTextRenderer.drawString( &mOverlay2D
 						, versionString.str( ).c_str( )
-					        , glm::vec2( mW / 3, mH / 2 ) );
+					        , glm::vec2( mW / 4, mH / 3 ) );
 
 
 			mCursorRenderer.drawCursor( &mOverlay2D
@@ -178,7 +182,9 @@ class HelloInstancing : public SDLTestWindow
 			, mCursorPosition( )
 			, mCamera( )
 			, mTextRenderer( )
+#ifndef ANDROID
 			, mSkybox( mSkyboxFaces )
+#endif
 			, mPNGImage( "resources/testinput/testinput16.png" )
 			, mOscW( 0, 0, 0, 25 )
 			, mOscH( 0, 0, 0, 25 )
@@ -215,31 +221,46 @@ class HelloInstancing : public SDLTestWindow
 
 		virtual void initialize( OpenGLAttributes const & xAttributes )
 		{
+			SISULOG("In HelloInstancing::Initialize");
 			SDLTestWindow::initialize( xAttributes );
 
+			SISULOG( "Initialize shader." );
 			mModelShader.initialize( );
 
-			mNanosuitGuy.initialize( "resources/objects/nanosuit/nanosuit.obj" );
+			//SISULOG( "Initialize model" );
+			//mNanosuitGuy.initialize( "resources/objects/nanosuit/nanosuit.obj" );
 			//mNanosuitGuy.initialize( "resources/objects/nifskope.obj" );
 			//mNanosuitGuy.initialize( "resources/diloph/Full.obj" );
 			//mNanosuitGuy.initialize( "resources/M1911.obj" );
+
+			SISULOG("Initialize 2D Overlay." );
 			_initialize2DOverlay( );
 
+			SISULOG( "Initialize cube renderer." );
 			mCubeRenderer.initialize( mW, mH, &mCamera );
+
+			SISULOG ("Initialize text renderer." );
 			mTextRenderer.initialize( mW, mH );
 
 			static uint32_t const sCursorWidth  = 32;
 			static uint32_t const sCursorHeight = 32;
 
+			// TODO: Disable for android..
+			SISULOG( "Initialize cursor renderer. " );
 			mCursorRenderer.initialize( sCursorWidth
 						  , sCursorHeight
 						  , "resources/testinput/cursor.png" );
 
+#ifndef ANDROID
+			SISULOG( "Initialize skybox." );
 			mSkybox.initialize( mW, mH );
+#endif
 
+			SISULOG( "Initialize oscillator" );
 			mOscW.setMinMax( 0, mW );
 			mOscH.setMinMax( 0, mH );
 
+			SISULOG( "Initialize mouse. " );
 			mMouse.registerCallback([&](MouseEventInfo const & xEvent){
 
 				mCursorPosition = xEvent;
@@ -249,6 +270,7 @@ class HelloInstancing : public SDLTestWindow
 
 			mMouse.listen( );
 
+			SISULOG( "Initialize keyboard." );
 			mKeyboard.registerCallback( [&]( KeyboardEvent const & xEvent ){
 				mCubeRenderer.onKeyboardEvent( xEvent );
 			});
@@ -267,6 +289,7 @@ class HelloInstancing : public SDLTestWindow
 
 			std::stringstream ss;
 
+			SISULOG("Beginning main render loop." );
 			do
 			{
 				t.startMs( );
@@ -278,7 +301,7 @@ class HelloInstancing : public SDLTestWindow
 				render( );
 
 				// TODO: Ideally, we should be able to compute the text size based on the font
-				// for a given string and use that as our offset.
+				// for a given string and use that as our offset instead of 225 x 150.
 				mTextRenderer.drawString( &mOverlay2D
 							, ss.str( ).c_str( )
 							, glm::vec2( mW - 225, mH - 150 ) );
@@ -294,8 +317,9 @@ class HelloInstancing : public SDLTestWindow
 				SDL_GL_SwapWindow( mMainWindow );
 
 
-				if ( ( accum += t.stop( ) ) >= 600000.0 )
+				if ( ( accum += t.stop( ) ) >= 3000.0 )
 				{
+					SISULOG("HelloInstancing test time has elapsed.");
 					break;
 				}
 
@@ -308,6 +332,7 @@ class HelloInstancing : public SDLTestWindow
 
 			} while ( 1 );
 
+			SISULOG("Exiting main render loop.");
 			mMouse.stopListening( );
 			mKeyboard.stopListening( );
 

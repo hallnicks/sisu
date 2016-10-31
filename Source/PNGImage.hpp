@@ -101,7 +101,7 @@ namespace sisu {
 		{
 			if ( mWriteState == NULL || mWriteState->buffer == NULL )
 			{
-				SISULOG( "Buffer was NULL, cannot write." );
+				SISULOG( "Write data requested be fore blit data present" );
 				exit( -1 );
 			}
 		}
@@ -131,7 +131,13 @@ namespace sisu {
 			// https://gist.github.com/mortennobel/5299151
 			GLubyte * toGLTextureBuffer( )
 			{
+#if 0
 				uint32_t const rowBytes = png_get_rowbytes( mPNGRead, mInfoRead );
+
+				std::cout << "RowBytes = " << rowBytes << std::endl;
+
+#endif
+				size_t const rowBytes = mWidth * sizeof(uint8_t)*4;
 
 				GLubyte* outData = (GLubyte* )malloc( rowBytes * mHeight );
 

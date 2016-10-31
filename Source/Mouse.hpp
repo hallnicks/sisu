@@ -18,7 +18,6 @@
 #include <SDL2/SDL.h>
 #endif
 
-
 namespace sisu {
 
 	enum eClickState
@@ -37,6 +36,8 @@ namespace sisu {
 
 		bool wheelMoved
 		   , wheelUp;
+
+		int32_t wheelY;
 
 		eClickState leftState
 			  , middleState

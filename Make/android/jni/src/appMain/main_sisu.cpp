@@ -18,6 +18,8 @@
 #include "SDLColorSwitcher.hpp"
 #include "HelloTriangle.hpp"
 #include "HelloTexture.hpp"
+#include "HelloInstancing.hpp"
+#include "AndroidLogWrapper.hpp"
 
 using namespace sisu;
 
@@ -54,9 +56,20 @@ int main( int xArgc, char * xArgv[] )
         delete window;
 	*/
 
+	/*
         HelloTexture * window = new HelloTexture;
         window->initialize( { 3, 0, 1, false, false } );
         window->run( );
+        delete window;
+	*/
+
+	SISULOG("Create HelloInstancingObject .."     );
+        HelloInstancing * window = new HelloInstancing;
+	SISULOG("Initialize HelloInstancingObject .." );
+        window->initialize( { 3, 0, 1, false, false } );
+	SISULOG("Run HelloInstancing object .."       );
+        window->run( );
+	SISULOG("Delete HelloInstancing object .. "   );
         delete window;
 
 	return 0;

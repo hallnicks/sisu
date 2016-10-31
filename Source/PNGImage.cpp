@@ -3,6 +3,7 @@
 #include "AndroidLogWrapper.hpp"
 
 #include <iostream>
+//#include <stdlib.h> // for debug trick
 
 namespace sisu {
 
@@ -269,10 +270,10 @@ PNGImage::PNGImage( _PNGImageDimensions const & xDimensions )
 
 	perPixel( [&]( PNGPixel xPixel )
         {
-        	xPixel.data[0] =
-                xPixel.data[1] =
-                xPixel.data[2] =
-                xPixel.data[3] = 0;
+        	xPixel.data[0] = //rand( ) % 255;
+                xPixel.data[1] = //rand( ) % 255;
+                xPixel.data[2] = //rand( ) % 255;
+                xPixel.data[3] = 0; //rand( ) % 255;
         });
 
 	mIsValid = true;

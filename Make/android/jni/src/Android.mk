@@ -11,12 +11,45 @@ include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
+# libfreetype
+include $(CLEAR_VARS)
+
+LOCAL_MODULE 	  := libfreetype
+EXTERNAL_LIB_PATH := ../../../../lib/android
+LOCAL_SRC_FILES   := $(EXTERNAL_LIB_PATH)/libfreetype.a
+
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
+# libassimp
+include $(CLEAR_VARS)
+
+LOCAL_MODULE 	  := libassimp
+EXTERNAL_LIB_PATH := ../../../../lib/android
+LOCAL_SRC_FILES   := $(EXTERNAL_LIB_PATH)/libassimp.a
+
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
 # libzip
 include $(CLEAR_VARS)
 
 LOCAL_MODULE 	  := libzip
 EXTERNAL_LIB_PATH := ../../../../lib/android
 LOCAL_SRC_FILES   := $(EXTERNAL_LIB_PATH)/libzip.a
+
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
+# libunzip
+include $(CLEAR_VARS)
+
+LOCAL_MODULE 	  := libunzip
+EXTERNAL_LIB_PATH := ../../../../lib/android
+LOCAL_SRC_FILES   := $(EXTERNAL_LIB_PATH)/libunzip.a
 
 include $(PREBUILT_STATIC_LIBRARY)
 
@@ -74,14 +107,14 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 	  	   $(SISU_PATH)/SDLTestShaderWindow.cpp 	   \
 	  	   $(SISU_PATH)/beep.cpp 	   		   \
 	  	   $(SISU_PATH)/memblock.cpp 	   		   \
-	  	   $(SISU_PATH)/mouse.cpp 	   		   \
+	  	   $(SISU_PATH)/Mouse.cpp 	   		   \
 	  	   $(SISU_PATH)/signal.cpp 	   		   \
 	  	   $(SISU_PATH)/threadgears.cpp 		   \
 		   $(MAIN_PATH)/main_sisu.cpp
 
 
 LOCAL_SHARED_LIBRARIES := SDL2
-LOCAL_STATIC_LIBRARIES := png zip ILU ILUT DeVIL
+LOCAL_STATIC_LIBRARIES := png zip ILU ILUT DeVIL freetype assimp unzip
 
 #LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog -lz
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -lGLESv3 -llog -lz

@@ -1,6 +1,6 @@
 #include "SDLShader.hpp"
-
 #include "ioassist.hpp"
+#include "AndroidLogWrapper.hpp"
 
 #include <iostream>
 
@@ -60,7 +60,7 @@ SDLShader::SDLShader( ShaderSourcePair const & xShaderSources )
         , mVertexShaderSource( xShaderSources.VertexSource )
         , mFragmentShaderSource( xShaderSources.FragmentSource )
 {
-        ;
+        SISULOG( "In SDLShader Ctor" );
 }
 
 SDLShader::SDLShader( ShaderPathPair const & xShaderPaths )
@@ -68,7 +68,7 @@ SDLShader::SDLShader( ShaderPathPair const & xShaderPaths )
         , mVertexShaderSource( fileToString( xShaderPaths.VertexPath ) )
         , mFragmentShaderSource( fileToString(  xShaderPaths.FragmentPath ) )
 {
-        ;
+        SISULOG( "In SDLShader Ctor" );
 }
 
 SDLShader::~SDLShader( )

@@ -1,4 +1,5 @@
-#include "mouse.hpp"
+#include "Mouse.hpp"
+#include "AndroidLogWrapper.hpp"
 
 namespace sisu {
 
@@ -9,6 +10,8 @@ Mouse::Mouse( )
 	{
 		// Ugly hack for mouse wheel.
 		SDL_Event pollEvent;
+
+		SDL_Event pollEvents[25];
 
 		while ( !mQuit.isSet( ) )
 		{
@@ -45,7 +48,6 @@ Mouse::Mouse( )
 				return state;
 			};
 
-
 			eClickState leftClickState   = resolveClickState( leftPressed,   mPressedLast[ 0 ] )
 				  , middleClickState = resolveClickState( middlePressed, mPressedLast[ 1 ] )
                                   , rightClickState  = resolveClickState( rightPressed,  mPressedLast[ 2 ] );
@@ -61,6 +63,7 @@ Mouse::Mouse( )
 						       , y
 						       , pollEvent.type == SDL_MOUSEWHEEL
 						       , pollEvent.wheel.y < 0
+						       , pollEvent.wheel.y
 						       , leftClickState
 						       , middleClickState
 						       , rightClickState };
@@ -85,7 +88,7 @@ Mouse::Mouse( )
 	, mQuit( )
 	, mPressedLast( )
 {
-
+	SISULOG( "In Mouse Ctor" );
 	for ( size_t ii = 0; ii < sizeof(mPressedLast)/sizeof(bool); ++ii )
 	{
 		mPressedLast[ ii ] = false;

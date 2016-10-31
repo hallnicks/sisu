@@ -4,10 +4,11 @@
 #include "SDLShader.hpp"
 #include "Stopwatch.hpp"
 #include "Texture2D.hpp"
-#include "PNGImage.hpp"
+#include "DevILImage.hpp"
 #include "sisumath.hpp"
 #include "Quad.hpp"
 #include "Oscillator.hpp"
+#include "AndroidLogWrapper.hpp"
 
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
@@ -35,11 +36,11 @@ class CubeRenderer
 		, mFifthTexture
 		, mSixthTexture;
 
-	PNGImage mSecondPNGImage
-	       , mThirdPNGImage
-	       , mFourthPNGImage
-	       , mFifthPNGImage
-	       , mSixthPNGImage;
+	DevILImage mSecondPNGImage
+	         , mThirdPNGImage
+	         , mFourthPNGImage
+	         , mFifthPNGImage
+	         , mSixthPNGImage;
 
 	std::vector< Oscillator< GLfloat > > mOscillators;
 	GLfloat  mLastX, mLastY;
@@ -184,7 +185,7 @@ class CubeRenderer
 			, mH( 0 )
 			, mCamera( NULL )
 		{
-			;
+			SISULOG( "In CubeRenderer Ctor" );
 		}
 
 		void initialize( uint32_t const xW, uint32_t const xH, Camera * const xCamera )
@@ -228,14 +229,8 @@ class CubeRenderer
 
 			_checkForGLError( "After set vertices" );
 
-			auto __initializeTex = [&]( PNGImage & xImage, Texture2D & xTex )
+			auto __initializeTex = [&]( DevILImage & xImage, Texture2D & xTex )
 			{
-				if ( !xImage.getIsValid( ) )
-				{
-					std::cerr << "Failed to load PNG image resource." << std::endl;
-					exit( -1 );
-				}
-
 				xTex.initialize( xImage.getWidth( )
 					       , xImage.getHeight( )
 					       , xImage.toGLTextureBuffer( ) );

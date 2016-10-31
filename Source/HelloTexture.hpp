@@ -25,7 +25,6 @@ namespace sisu {
 class HelloTexture : public SDLTestWindow
 {
 	Texture2D mTexture;
-	std::vector<uint8_t> mPNGImageMemory;
 	DevILImage mDevILImage;
 	SDLShader mShader;
 	int32_t mScaleW, mScaleH;
@@ -143,12 +142,7 @@ class HelloTexture : public SDLTestWindow
 						    "  color = vec4(spriteColor, 1.0) * texture(image, TexCoords); \n"
 						    "}                                                             \n") )
 			, mTexture( )
-#ifdef ANDROID
-			, mPNGImageMemory( fileToMemory<uint8_t>( "testinput01.png" ) )
-#else
-			, mPNGImageMemory( fileToMemory<uint8_t>( "resources/testinput/testinput01.png" ) )
-#endif
-			, mDevILImage( (uint8_t*)mPNGImageMemory.data( ), mPNGImageMemory.size( ) )
+			, mDevILImage( "resources/testinput/testinput01.png" )
 			, mQuadVAO( 0 )
 			, mQuadVBO( 0 )
 			, mScaleW( 0 )

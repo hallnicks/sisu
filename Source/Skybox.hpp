@@ -55,7 +55,7 @@ class Skybox
 		{
 			DevILImage & face = mFaces[ ii ];
 
-			mFaceData[ ii ] = face.toGLTextureBuffer( );
+			mFaceData[ ii ] = face.toGLTextureBuffer( ); // Buffer is free'd by DevILImage object.
 
 			glTexImage2D( GL_TEXTURE_CUBE_MAP_POSITIVE_X + ii
 				    , 0
@@ -94,7 +94,7 @@ class Skybox
 							  "    vec4 pos = projection * view * vec4( position, 1.0 );        \n"
 							  "    gl_Position = pos.xyww;                                      \n"
 							  "    TexCoords = position;                                        \n"
-							  "}"
+							  "}                                                                \n"
 						   	 ,"#version 300 es                                                  \n"
 						    	  "precision mediump float;				            \n"
 							  "in vec3 TexCoords;                                               \n"
@@ -152,13 +152,7 @@ class Skybox
 
 		~Skybox( )
 		{
-			for ( uint8_t ii = 0; ii < sFaceCount; ++ii )
-			{
-				if ( mFaceData[ ii ] != NULL )
-				{
-					free( mFaceData[ ii ] );
-				}
-			}
+			;
 		}
 
 		void initialize( uint32_t const xW, uint32_t const xH )

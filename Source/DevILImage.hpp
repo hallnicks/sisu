@@ -39,6 +39,13 @@ namespace sisu
 				, mImgID( 0 )
 			{
 #if 1
+
+#ifdef ANDROID
+				__android_log_print( ANDROID_LOG_VERBOSE
+                                	           , "sisu"
+                                         	   , "Load %s from memory"
+	                                           , xPath );
+#endif
 				std::vector<uint8_t> buff = fileToMemory<uint8_t>( xPath );
 
 				_loadImageFromMemory( buff.data( ), buff.size( ) );
@@ -54,6 +61,7 @@ namespace sisu
 #endif
 
 			}
+
 			DevILImage( uint8_t * xData, size_t const xSize )
 				: mWidth( 0 )
 				, mHeight( 0 )
@@ -67,6 +75,7 @@ namespace sisu
 				if ( mImgID != 0 )
 				{
 					ilBindImage( 0 );
+
 					ilDeleteImage( mImgID );
 				}
 			}
@@ -74,12 +83,12 @@ namespace sisu
 			uint32_t getWidth( )  const { return mWidth;  }
 			uint32_t getHeight( ) const { return mHeight; }
 
-			// https://gist.github.com/mortennobel/5299151
 			GLubyte * toGLTextureBuffer( )
 			{
+				SISULOG( "In toGlTextureBuffer" );
 				ilBindImage( mImgID );
 
-				if (! ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE) )
+				if ( !ilConvertImage( IL_RGBA, IL_UNSIGNED_BYTE ) )
 				{
 					SISULOG("ilConvertImage( .. ) failed." );
 					exit( -1 );
@@ -89,6 +98,7 @@ namespace sisu
 
 				ilBindImage( 0 );
 
+				SISULOG( "Out toGlTextureBuffer" );
 				return data;
 			}
 

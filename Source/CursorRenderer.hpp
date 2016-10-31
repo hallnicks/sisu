@@ -9,6 +9,7 @@
 
 #include "DevILImage.hpp"
 #include "Sprite.hpp"
+#include "AndroidLogWrapper.hpp"
 
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
@@ -31,7 +32,7 @@ class CursorRenderer
 			, mCursorGrabbed( false )
 #endif
 		{
-			;
+			SISULOG( "In CursorRenderer Ctor" );
 		}
 
 		~CursorRenderer( )
@@ -122,6 +123,8 @@ class CursorRenderer
 #elif defined(LINUX)
 // On linux, we only grab the pointer once and pray the window does not reset its pointer.
 // TODO: Fix cursor hiding on linux! Need help from someone who understands X11 lib better.
+#elif defined(ANDROID)
+// On Android, there is no pointer to hide.
 #else
 			std::cerr << __PRETTY_FUNCTION__ << " is not implemented on this platform." << std::endl;
 			exit( -1 );

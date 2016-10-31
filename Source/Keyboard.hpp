@@ -139,7 +139,7 @@ namespace sisu {
 				})
 				, mDebounceTicks( xDebounceTicks )
 			{
-				;
+				SISULOG( "In Keyboard Ctor" );
 			}
 
 

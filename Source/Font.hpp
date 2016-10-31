@@ -12,13 +12,12 @@
 #include "ttyc.hpp"
 #include "ioassist.hpp"
 
-#include "PNGImage.hpp"
-
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_STROKER_H
 
 #include "word.hpp"
+#include "AndroidLogWrapper.hpp"
 
 namespace sisu
 {
@@ -162,6 +161,8 @@ class FTFont
 
 	int32_t mSize;
 
+	uint8_t* mFontData;
+
 	static void _RasterCallback( int32_t const xY
 				   , int32_t const xCount
 				   , FT_Span const * const xSpans
@@ -171,49 +172,46 @@ class FTFont
 
 		for ( int32_t ii = 0; ii < xCount; ++ii )
 		{
-			spansPointer->push_back( Span( xSpans[ ii ].x, xY, xSpans[ ii ].len, xSpans[ ii ].coverage ) );
+			spansPointer->push_back( Span( xSpans[ ii ].x
+						     , xY
+						     , xSpans[ ii ].len
+						     , xSpans[ ii ].coverage ) );
+		}
+	}
+
+	void _loadFaceFromMemory( const FT_Byte * xFontData
+					, std::streamsize const xSize )
+	{
+
+		FT_Error const error = FT_New_Memory_Face( sFT2.mLibrary
+							 , xFontData
+							 , xSize
+							 , 0
+							 , &mFace );
+
+		if ( error == FT_Err_Unknown_File_Format )
+		{
+			std::cerr << "Failed to load font from memory." << std::endl;
+			exit( -1 );
+		}
+
+		if ( error )
+		{
+			std::cerr << "Error loading font : " << error << std::endl;
+			exit( -1 );
 		}
 	}
 
 	public:
-		FTFont( const FT_Byte * xFontData
-		      , std::streamsize const xSize )
-		      : mSize( 0 )
-		{
-
-			FT_Error const error = FT_New_Memory_Face( sFT2.mLibrary
-								 , xFontData
-								 , xSize
-								 , 0
-								 , &mFace );
-
-			if ( error == FT_Err_Unknown_File_Format )
-			{
-				std::cerr << "Failed to load font from memory." << std::endl;
-				exit( -1 );
-			}
-			else if ( error )
-			{
-				std::cerr << "Error loading font : " << error << std::endl;
-				exit( -1 );
-			}
-		}
-
 		FTFont( const char * xFontPath )
 			: mSize( 0 )
+			, mFontData( NULL )
 		{
-			FT_Error const error = FT_New_Face( sFT2.mLibrary, xFontPath, 0, &mFace );
+			size_t out;
 
-			if ( error == FT_Err_Unknown_File_Format )
-			{
-				std::cerr << "Failed to load font " << xFontPath << std::endl;
-				exit( -1 );
-			}
-			else if ( error )
-			{
-				std::cerr << "Error loading font " << xFontPath << ": " << error << std::endl;
-				exit( -1 );
-			}
+			mFontData = (uint8_t*) fileToBuffer( xFontPath, &out );
+
+			_loadFaceFromMemory( mFontData, out );
 		}
 
 		~FTFont( )
@@ -226,6 +224,10 @@ class FTFont
 				exit( -1 );
 			}
 
+			if ( mFontData != NULL )
+			{
+				free( mFontData );
+			}
 		}
 
 		void setFontSize( int32_t const xSize )
@@ -237,7 +239,7 @@ class FTFont
 			}
 
 			mSize = xSize;
-			// Compute other variables. Assume 72 DPI for now. 
+			// Compute other variables. Assume 72 DPI for now.
 			// TODO: Support 96 DPI later when you can test it.
 		}
 
@@ -248,11 +250,11 @@ class FTFont
 
 			FT_UInt const index = FT_Get_Char_Index( mFace, xCharCode );
 
-			FT_Error error = FT_Load_Glyph( mFace, index, FT_LOAD_NO_BITMAP );
+			FT_Error const error = FT_Load_Glyph( mFace, index, FT_LOAD_NO_BITMAP );
 
 			if ( error != 0)
 			{
-				std::cerr << "FT_Load_Glyph( .. ) failed: " << error << std::endl;
+				std::cerr << "FT_Load_Glyph( .. ) failed: " << std::hex << error << std::endl;
 				exit( -1 );
 			}
 
@@ -273,7 +275,13 @@ class FTFont
 				params.gray_spans = _RasterCallback;
 				params.user	  = xSpans;
 
-				FT_Outline_Render( sFT2.mLibrary, xO, &params);
+				FT_Error const error = FT_Outline_Render( sFT2.mLibrary, xO, &params);
+
+				if ( error != 0 )
+				{
+					std::cerr << "FT_Outline_Render failed:" << std::hex << error << std::endl;
+					exit( -1 );
+				}
 			};
 
 			renderSpans( &mSpans , &mFace->glyph->outline );
@@ -346,6 +354,7 @@ class FTFont
 		{
 			if ( mSpans.empty( ) )
 			{
+				SISULOG("Spans was empty, nothing to print.");
 				return;
 			}
 
@@ -410,7 +419,6 @@ class FTFont
 			};
 
 			blitSpans( mOutlineSpans, blendFunc );
-
 			blitSpans( mSpans, blendFunc );
 		}
 

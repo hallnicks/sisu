@@ -4,6 +4,8 @@
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
 
+#include "AndroidLogWrapper.hpp"
+
 namespace sisu {
 
 class Quad
@@ -15,7 +17,7 @@ class Quad
 			: mQuadVBO( 0 )
 			, mQuadVAO( 0 )
 		{
-			;
+			SISULOG("In Quad Ctor" );
 		}
 
 		void initialize( )

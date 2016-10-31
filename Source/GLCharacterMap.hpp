@@ -3,19 +3,70 @@
 
 #include "Font.hpp"
 #include "PNGImage.hpp"
+#include "DevILImage.hpp"
 #include "ioassist.hpp"
+#include "AndroidLogWrapper.hpp"
 
 #include <string>
 #include <sstream>
 #include <map>
 
 namespace sisu {
+	class RAWRGBAImage
+	{
+		GLubyte * mData;
+		uint32_t const mWidth, mHeight;
+
+		public:
+			RAWRGBAImage( GLubyte * const xData
+				    , uint32_t const xWidth
+	 			    , uint32_t const xHeight )
+				: mData( xData )
+				, mWidth( xWidth )
+				, mHeight( xHeight )
+			{
+				;
+			}
+
+			~RAWRGBAImage( )
+			{
+				/*
+				if ( mData != NULL )
+				{
+					free( mData );
+				}
+				*/
+				// TODO: This causes a double free error in libdri.so.
+				// However, it should be freed here.
+				// Perhaps it has something to do with the texture binding.
+			}
+
+			// TODO: Rename this. It's not really an alloc anymore.
+			GLubyte * allocGLBuffer( ) { return (GLubyte*)mData; }
+
+			uint32_t getWidth( )  const { return mWidth;  }
+
+			uint32_t getHeight( ) const { return mHeight; }
+	};
+
+
 	class GLCharacter
 	{
 		char const mC;
 
-		PNGImage mImage;
+		//DevILImage mImage;
+		RAWRGBAImage mImage;
 
+		GLCharacter( char const xC
+			   , uint8_t * xData
+			   , uint32_t const xWidth
+			   , uint32_t const xHeight )
+			: mC( xC )
+			, mImage( xData, xWidth, xHeight )
+		{
+			;
+		}
+#if 0
 		GLCharacter( char const xC
 			   , const char * xPath )
 			: mC( xC )
@@ -24,10 +75,20 @@ namespace sisu {
 			;
 		}
 
+		GLCharacter( char const xC
+			   , uint8_t * xData
+			   , size_t const xSize  )
+			: mC( xC )
+			, mImage( xData, xSize )
+		{
+			;
+		}
+#endif
+
 		friend class GLCharacterMap;
 
 		public:
-			GLubyte * allocGLBuffer( ) { return mImage.toGLTextureBuffer( ); }
+			GLubyte * allocGLBuffer( ) { return mImage.allocGLBuffer( ); }
 
 			char getCharacter() const { return mC; }
 
@@ -60,31 +121,46 @@ namespace sisu {
 			    << ".png";
 		}
 
-		// TODO: Support different colors. For now, just use white on black. 
-		void _makePNG( char const xC )
+		std::vector<uint8_t> _makePNG( char const xC )
 		{
+			SISULOG("_makePNG IN");
+			SISULOG("Loading glyph.");
 			mFont.loadGlyph( xC, 0.0f );
 
+			SISULOG("Creating blank PNG.");
 			PNGImage output( { mFont.getGlyphWidth( ), mFont.getGlyphHeight( ) } );
 
+			SISULOG("Printing spans onto PNG");
 			mFont.printSpans( output, mOutlineColor, mFillColor );
 
+#if 0
+			SISULOG("Creating filename.");
 			std::stringstream filename;
 
 			_makeFilename( filename, xC );
+#endif
+
+			SISULOG("Blitting.");
+			output.blit( );
 
 			uint8_t *    data = output.getData( );
 			size_t const size = output.getDataSize( );
 
+			SISULOG("Writing to file for posterity.");
+
+			std::cout << "Output data size was: " << size << std::endl;
+
+#if 0
 			memoryToFile( filename.str( ).c_str( ), data, size );
+#endif
 
-			/*
-			std::ofstream ofs( filename.str( ).c_str( ), std::ios::binary);
+			std::vector<uint8_t> buffer;
 
-			ofs << output;
+			buffer.assign( data, data + size );
 
-			ofs.close( );
-			*/
+			SISULOG("_makePNG OUT");
+
+			return buffer;
 		}
 
 		public:
@@ -99,13 +175,15 @@ namespace sisu {
 				, mOutlineColor( xOutline )
 				, mFillColor( xFill )
 			{
+				SISULOG( "In GlCharacterMap Ctor" );
 				if ( xTextureStoragePath == NULL )
 				{
-					std::cerr << "Texture storage location was not specified (null)." << std::endl;
+					SISULOG("Texture storage location was not specified (null).");
 					exit( -1 );
 				}
 
 				mFont.setFontSize( xFontSize );
+				SISULOG( "Out GlCharacterMap Ctor" );
 			}
 
 			~GLCharacterMap( )
@@ -122,23 +200,43 @@ namespace sisu {
 
 				if ( mCharacters.find( xCharacter ) == mCharacters.end( ) )
 				{
-					// We have not cached this character yet!
-					// Check for a file.
+					SISULOG("Make PNG." );
 
-					std::stringstream filename;
+//#ifdef ANDROID
+#if 1
+					mFont.loadGlyph( xCharacter, 0.0f );
 
-					_makeFilename( filename, xCharacter );
+					SISULOG("Creating blank PNG.");
+					PNGImage output( { mFont.getGlyphWidth( ), mFont.getGlyphHeight( ) } );
 
-					auto checkFile = [&]( )->bool
+					SISULOG("Printing spans onto PNG");
+					/*
+					for ( int32_t ii = 0; ii < output.getHeight( ); ++ii )
 					{
-						std::ifstream ifs( filename.str( ).c_str( ) );
-						return ifs.good( );
-					};
+						_PNGImageRow row = output[ ii ];
 
+						for ( int32_t jj = 0; jj < output.getWidth( ); ++jj )
+						{
+							uint8_t * pixel = row[ jj ];
 
-					while ( !checkFile( ) ) { _makePNG( xCharacter ); }
+							pixel[ 0 ] = rand( ) % 255;
+							pixel[ 1 ] = rand( ) % 255;
+							pixel[ 2 ] = rand( ) % 255;
+							pixel[ 3 ] = 255;
+						}
+					}
+					*/
 
+					mFont.printSpans( output, mOutlineColor, mFillColor );
+
+					mCharacters[ xCharacter ] = ret = new GLCharacter( xCharacter
+											 , output.toGLTextureBuffer( )
+											 , mFont.getGlyphWidth( )
+											 , mFont.getGlyphHeight( ) );
+#else
+					while ( !fileExists( filename.str( ).c_str( ) ) ) { _makePNG( xCharacter ); }
 					mCharacters[ xCharacter ] = ret = new GLCharacter( xCharacter, filename.str( ).c_str( ) );
+#endif
 
 				}
 				else
