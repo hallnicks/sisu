@@ -52,6 +52,195 @@ using namespace sisu;
 
 namespace  sisu {
 
+class FrameBufferObject
+{
+	SDLShader mScreenShader;
+
+	static GLfloat const sQuadVertices[4 * 3 * 2];
+
+	GLuint mScreenQuadVAO
+	     , mScreenQuadVBO
+	     , mScreenFBO
+	     , mScreenRBO
+	     , mTextureColorBuffer;
+
+	uint32_t mW, mH;
+
+	// Generates a texture that is suited for attachments to a framebuffer
+	GLuint _generateAttachmentTexture(GLboolean depth, GLboolean stencil)
+	{
+	    	// What enum to use?
+	    	GLenum attachment_type;
+	    	if(!depth && !stencil)
+		{
+	        	attachment_type = GL_RGB;
+		}
+	    	else if(depth && !stencil)
+		{
+	        	attachment_type = GL_DEPTH_COMPONENT;
+		}
+	    	else if(!depth && stencil)
+		{
+	        	//attachment_type = GL_STENCIL_INDEX;
+			SISULOG("Stencil buffer is unsupported on OpenGL ES 3.0");
+			exit( -1 );
+		}
+
+	    	//Generate texture ID and load texture data
+	    	GLuint textureID;
+	    	glGenTextures(1, &textureID);
+	    	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	    	if(!depth && !stencil)
+		{
+		        glTexImage2D(GL_TEXTURE_2D, 0, attachment_type, mW, mH, 0, attachment_type, GL_UNSIGNED_BYTE, NULL);
+		}
+		else // Using both a stencil and depth test, needs special format arguments
+	        {
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, mW, mH, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+		}
+
+	    	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	    	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	    	glBindTexture(GL_TEXTURE_2D, 0);
+
+	    return textureID;
+	}
+
+	public:
+		FrameBufferObject( )
+			: mScreenShader( ShaderSourcePair("#version 300 es 						\n"
+							  "layout (location = 0) in vec2 position; 			\n"
+							  "layout (location = 1) in vec2 texCoords; 			\n"
+							  "out vec2 TexCoords; 						\n"
+							  "void main() 							\n"
+							  "{ 								\n"
+							  "    gl_Position = vec4(position.x, position.y, 0.0f, 1.0f);  \n"
+							  "    TexCoords = texCoords; 					\n"
+							  "} 								\n"
+							 ,"#version 300 es								   \n"
+				    	                  "precision mediump float;				                	   \n"
+							  "in vec2 TexCoords; 								   \n"
+							  "out vec4 color; 								   \n"
+							  "uniform sampler2D screenTexture; 						   \n"
+							  "const float offset = 1.0 / 300.0; 						   \n"
+							  "void main() 									   \n"
+							  "{ 										   \n"
+							  "    vec2 offsets[9] = vec2[]( 						   \n"
+							  "        vec2(-offset, offset),  						   \n" // top-left
+							  "        vec2(0.0f,    offset),  						   \n" // top-center
+							  "        vec2(offset,  offset),  						   \n" // top-right
+							  "        vec2(-offset, 0.0f),    						   \n" // center-left
+							  "        vec2(0.0f,    0.0f),    						   \n" // center-center
+							  "        vec2(offset,  0.0f),    						   \n" // center-right
+							  "        vec2(-offset, -offset), 						   \n" // bottom-left
+							  "        vec2(0.0f,    -offset), 						   \n" // bottom-center
+							  "        vec2(offset,  -offset)  						   \n" // bottom-right
+							  "    ); 									   \n"
+							  "    float kernel[9] = float[](					  	   \n"
+							  "        -1.0f, -1.0f, -1.0f, 						   \n"
+							  "        -1.0f,  9.0f, -1.0f,							   \n"
+							  "        -1.0f, -1.0f, -1.0f 							   \n"
+							  "    ); 									   \n"
+							  "    vec3 sampleTex[9]; 							   \n"
+							  "    for(int i = 0; i < 9; i++) 						   \n"
+							  "    { 									   \n"
+							  "        sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i])); \n"
+							  "    } 								           \n"
+							  "    vec3 col; 								   \n"
+							  "    for(int i = 0; i < 9; i++) 						   \n"
+							  "   { 									   \n"
+							  "        col += sampleTex[i] * kernel[i]; 					   \n"
+							  "   } 									   \n"
+							  "    color = vec4(col, 1.0);							   \n"
+							  "} 										   \n" ) )
+			, mScreenQuadVAO( 0 )
+	 	        , mScreenQuadVBO( 0 )
+	 	        , mScreenFBO( 0 )
+	    	        , mScreenRBO( 0 )
+			, mTextureColorBuffer( 0 )
+			, mW( 0 )
+			, mH( 0 )
+
+		{
+			;
+		}
+
+		void initialize( uint32_t const xW, uint32_t const xH )
+		{
+			mW = xW;
+			mH = xH;
+
+			mScreenShader.initialize( );
+
+			// VAO, VBO
+			glGenVertexArrays(1, &mScreenQuadVAO);
+			glGenBuffers(1, &mScreenQuadVBO);
+			glBindVertexArray( mScreenQuadVAO);
+			glBindBuffer(GL_ARRAY_BUFFER, mScreenQuadVBO);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(sQuadVertices), &sQuadVertices, GL_STATIC_DRAW);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)(2 * sizeof(GLfloat)));
+			glBindVertexArray(0);
+
+			glGenFramebuffers(1, &mScreenFBO);
+			glBindFramebuffer(GL_FRAMEBUFFER, mScreenFBO);
+  		        // Create a color attachment texture
+		       	mTextureColorBuffer = _generateAttachmentTexture( false, false );
+		       	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTextureColorBuffer, 0);
+		       	// Create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+			glGenRenderbuffers(1, &mScreenRBO);
+			glBindRenderbuffer(GL_RENDERBUFFER, mScreenRBO );
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, mW, mH ); // Use a single renderbuffer object for both a depth$
+			glBindRenderbuffer(GL_RENDERBUFFER, 0);
+			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mScreenRBO ); // Now actually attach it
+		        // Now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+		        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			{
+			        SISULOG("ERROR::FRAMEBUFFER:: Framebuffer is not complete!");
+				exit(-1 );
+			}
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+
+		void operator()( std::function<void(void)> xLambda )
+		{
+			glBindFramebuffer( GL_FRAMEBUFFER, mScreenFBO );
+			xLambda( );
+			glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+		}
+
+		void render( )
+		{
+        		// Clear all relevant buffers
+			glClearColor(1.0f, 0.0f, 0.0f, 1.0f); // Set clear color to white (not really necessery actually, since we won't be able to se$
+        		glClear(GL_COLOR_BUFFER_BIT);
+        		glDisable(GL_DEPTH_TEST); // We don't care about depth information when rendering a single quad
+
+        		// Draw Screen
+			mScreenShader([&]( )
+			{
+			        glBindVertexArray( mScreenQuadVAO );
+			        glBindTexture(GL_TEXTURE_2D, mTextureColorBuffer);       // Use the color attachment texture as the texture of the quad plane
+			        glDrawArrays(GL_TRIANGLES, 0, 6);
+			        glBindVertexArray(0);
+			});
+		}
+};
+
+GLfloat const FrameBufferObject::sQuadVertices[4 * 3 * 2] = {   // Vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+        // Positions   // TexCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+};
+
 class HelloInstancing : public SDLTestWindow
 {
 	Mouse mMouse;
@@ -87,7 +276,9 @@ class HelloInstancing : public SDLTestWindow
 
 	SDLShader mModelShader;
 
-	//Model mNanosuitGuy;
+	Model mNanosuitGuy;
+
+	FrameBufferObject mFBO;
 
 	void _initialize2DOverlay( )
 	{
@@ -98,7 +289,6 @@ class HelloInstancing : public SDLTestWindow
 				   , mPNGImage.toGLTextureBuffer( ) );
 	}
 
-	/*
 	void _renderNanosuitGuy( )
 	{
 		mModelShader([&]( ) {
@@ -108,14 +298,13 @@ class HelloInstancing : public SDLTestWindow
 
 		        // Draw the loaded model
 			glm::mat4 model;
-		        model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // Translate it down a bit so it's at the center of the scene
-		        model = glm::scale(model, glm::vec3(10.2f, 10.2f, 10.2f)); // It's a bit too big for our scene, so scale it down
+		        model = glm::translate(model, glm::vec3(0.0f, 0.0, 0.0f));
+		        model = glm::scale(model, glm::vec3(0.12f, 0.12f, 0.12f));
 		        mModelShader.getUniforms().setUniformMatrix4fv("model", model);
 			mNanosuitGuy.render( mModelShader );
 		} );
 
 	}
-	*/
 
 	protected:
 		virtual void render( )
@@ -134,9 +323,9 @@ class HelloInstancing : public SDLTestWindow
 			mSkybox.render( mCamera.getViewMatrix( ), mCamera.getFOV( ) );
 #endif
 
-			mCubeRenderer.render3DScene( );
+			//mCubeRenderer.render3DScene( );
 
-			//_renderNanosuitGuy( );
+			_renderNanosuitGuy( );
 
 			glDepthMask( GL_FALSE );
 
@@ -227,11 +416,13 @@ class HelloInstancing : public SDLTestWindow
 			SISULOG( "Initialize shader." );
 			mModelShader.initialize( );
 
+			SISULOG("Initialize FBO" );
+			mFBO.initialize( mW, mH );
+
 			//SISULOG( "Initialize model" );
-			//mNanosuitGuy.initialize( "resources/objects/nanosuit/nanosuit.obj" );
-			//mNanosuitGuy.initialize( "resources/objects/nifskope.obj" );
-			//mNanosuitGuy.initialize( "resources/diloph/Full.obj" );
-			//mNanosuitGuy.initialize( "resources/M1911.obj" );
+			mNanosuitGuy.initialize( "resources/objects/nanosuit/nanosuit.obj" );
+			//mNanosuitGuy.initialize( "resources/objects/Gadv.obj" );
+			//mNanosuitGuy.initialize( "resources/objects/lowpolyman.obj" );
 
 			SISULOG("Initialize 2D Overlay." );
 			_initialize2DOverlay( );
@@ -298,13 +489,19 @@ class HelloInstancing : public SDLTestWindow
 
 				mCursorRenderer.hideExternalCursor( );
 
-				render( );
+				mFBO([&]( )
+				{
+					render( );
 
-				// TODO: Ideally, we should be able to compute the text size based on the font
-				// for a given string and use that as our offset instead of 225 x 150.
-				mTextRenderer.drawString( &mOverlay2D
-							, ss.str( ).c_str( )
-							, glm::vec2( mW - 225, mH - 150 ) );
+					// TODO: Ideally, we should be able to compute the text size based on the font
+					// for a given string and use that as our offset instead of 225 x 150.
+					mTextRenderer.drawString( &mOverlay2D
+								, ss.str( ).c_str( )
+								, glm::vec2( mW - 225, mH - 150 ) );
+
+				});
+
+				mFBO.render( );
 
 				ss.str("");
 
@@ -317,7 +514,7 @@ class HelloInstancing : public SDLTestWindow
 				SDL_GL_SwapWindow( mMainWindow );
 
 
-				if ( ( accum += t.stop( ) ) >= 3000.0 )
+				if ( ( accum += t.stop( ) ) >= 60000.0 )
 				{
 					SISULOG("HelloInstancing test time has elapsed.");
 					break;

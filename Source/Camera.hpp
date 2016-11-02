@@ -63,7 +63,7 @@ class Camera
 	public:
 		Camera( )
 			: mCameraPos( glm::vec3(0.0f, 0.0f,  -3.0f) )
-			, mCameraFront( glm::vec3(0.0f, 0.0f, -1.0f) )
+			, mCameraFront( glm::vec3(0.0f, 0.0f, 1.0f) )
 			, mCameraUp( glm::vec3(0.0f, 1.0f,  0.0f) )
 			, mMovementDirection( eMovementDirection_None )
 			, mHorizontalCameraRotation( eHorizontalCameraRotation_None )

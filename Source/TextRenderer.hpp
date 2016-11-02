@@ -42,13 +42,10 @@ class TextRenderer
                         return xMap[ xGLChar->getCharacter( ) ];
                 }
 
-		SISULOG( "Making sprite .. " );
                 Sprite * pT = new Sprite( );
 
-		SISULOG( "Alloc GL Buffer.. " );
                 pT->texData = xGLChar->allocGLBuffer( );
 
-		SISULOG( "Initializing sprite from tex data .. " );
                 pT->tex.initialize( ( pT->w = xGLChar->getWidth( )  )
                                   , ( pT->h = xGLChar->getHeight( ) )
                                   , ( uint8_t* )pT->texData );

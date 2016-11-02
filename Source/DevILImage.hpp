@@ -17,6 +17,7 @@ namespace sisu
 	{
 		uint32_t mWidth, mHeight;
 		ILuint mImgID;
+		char * mBuffer;
 
 		void _loadImageFromMemory( uint8_t * xData, size_t const xSize )
 		{
@@ -37,31 +38,17 @@ namespace sisu
 				: mWidth( 0 )
 				, mHeight( 0 )
 				, mImgID( 0 )
+				, mBuffer( NULL )
 			{
-#if 1
+				//std::vector<uint8_t> buff = fileToMemory<uint8_t>( xPath );
+				size_t out;
+				mBuffer = fileToBuffer( xPath, &out );
 
-#ifdef ANDROID
-				__android_log_print( ANDROID_LOG_VERBOSE
-                                	           , "sisu"
-                                         	   , "Load %s from memory"
-	                                           , xPath );
-#endif
-				std::vector<uint8_t> buff = fileToMemory<uint8_t>( xPath );
-
-				_loadImageFromMemory( buff.data( ), buff.size( ) );
-#else
-				ilGenImages( 1, &mImgID );
-				ilBindImage( mImgID );
-				ilLoadImage( xPath );
-
-				mWidth  = ilGetInteger( IL_IMAGE_WIDTH  );
-				mHeight = ilGetInteger( IL_IMAGE_HEIGHT );
-
-				ilBindImage( 0 );
-#endif
+				//_loadImageFromMemory( buff.data( ), buff.size( ) );
+				_loadImageFromMemory( (uint8_t*)mBuffer, out );
 
 			}
-
+			/*
 			DevILImage( uint8_t * xData, size_t const xSize )
 				: mWidth( 0 )
 				, mHeight( 0 )
@@ -69,6 +56,8 @@ namespace sisu
 			{
 				_loadImageFromMemory( xData, xSize );
 			}
+			*/
+
 
 			~DevILImage( )
 			{
@@ -78,6 +67,11 @@ namespace sisu
 
 					ilDeleteImage( mImgID );
 				}
+
+				if ( mBuffer != NULL )
+				{
+					free ( mBuffer );
+				}
 			}
 
 			uint32_t getWidth( )  const { return mWidth;  }
@@ -85,7 +79,6 @@ namespace sisu
 
 			GLubyte * toGLTextureBuffer( )
 			{
-				SISULOG( "In toGlTextureBuffer" );
 				ilBindImage( mImgID );
 
 				if ( !ilConvertImage( IL_RGBA, IL_UNSIGNED_BYTE ) )
@@ -98,7 +91,6 @@ namespace sisu
 
 				ilBindImage( 0 );
 
-				SISULOG( "Out toGlTextureBuffer" );
 				return data;
 			}
 

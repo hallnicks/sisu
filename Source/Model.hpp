@@ -4,6 +4,8 @@
 #include "TGAImage.hpp"
 #include "Mesh.hpp"
 #include "Texture2D.hpp"
+#include "ioassist.hpp"
+#include "AndroidLogWrapper.hpp"
 
 #include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
@@ -24,9 +26,10 @@ namespace sisu {
 
 class Model
 {
-	std::vector< Texture2D > mTextures;
-	std::vector< Mesh > 	 mMeshes;
-	std::string 		 mDirectory;
+	std::vector< Texture2D >    mTextures;
+	std::vector< Mesh > 	    mMeshes;
+	std::vector< DevILImage * > mTextureData;
+	std::string 		    mDirectory;
 
 	bool mGammaCorrection;
 
@@ -35,6 +38,8 @@ class Model
 		std::string path( xPath );
 
 		Assimp::Importer importer;
+
+#if 0
         	const aiScene* scene = importer.ReadFile(path
 							, aiProcess_Triangulate      |
 							  aiProcess_FlipUVs          |
@@ -42,6 +47,27 @@ class Model
 							  aiProcess_GenNormals       |
                                                           aiProcess_SplitLargeMeshes |
 							  aiProcess_OptimizeMeshes );
+
+
+#else
+		size_t out;
+
+		char * buffer = fileToBuffer( xPath, &out );
+
+        	const aiScene* scene = importer.ReadFileFromMemory( buffer
+								  , out
+								  , aiProcess_Triangulate      |
+	 							    aiProcess_FlipUVs          |
+	 							    aiProcess_CalcTangentSpace |
+								    aiProcess_GenNormals       |
+	                                                            aiProcess_SplitLargeMeshes |
+		  						    aiProcess_OptimizeMeshes
+								  , "" );
+
+		free ( buffer );
+#endif
+
+
  	       // Check for errors
 	        if(!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 	        {
@@ -94,7 +120,7 @@ class Model
 
 			vertex.Normals = vector3;
 
-			if ( xMesh->mTextureCoords[ ii ] != NULL )
+			if ( xMesh->mTextureCoords[ 0 ] != NULL )
 			{
 				glm::vec2 vector2;
 
@@ -108,18 +134,36 @@ class Model
 				vertex.TexCoords = glm::vec2( 0.0f, 0.0f );
 			}
 
-			vector3.x = xMesh->mTangents[ ii ] .x;
-			vector3.y = xMesh->mTangents[ ii ] .y;
-			vector3.z = xMesh->mTangents[ ii ] .z;
+			if ( xMesh->mTangents != NULL )
+			{
+				vector3.x = xMesh->mTangents[ ii ] .x;
+				vector3.y = xMesh->mTangents[ ii ] .y;
+				vector3.z = xMesh->mTangents[ ii ] .z;
+			}
+			else
+			{
+				vector3 = glm::vec3( 0.0f, 0.0f, 0.0f );
+			}
+
 			vertex.Tangent = vector3;
 
-			vector3.x = xMesh->mBitangents[ ii ] .x;
-			vector3.y = xMesh->mBitangents[ ii ] .y;
-			vector3.z = xMesh->mBitangents[ ii ] .z;
+			if ( xMesh->mBitangents != NULL )
+			{
+				vector3.x = xMesh->mBitangents[ ii ] .x;
+				vector3.y = xMesh->mBitangents[ ii ] .y;
+				vector3.z = xMesh->mBitangents[ ii ] .z;
+			}
+			else
+			{
+				vector3 = glm::vec3( 0.0f, 0.0f, 0.0f );
+			}
+
 			vertex.Bitangent = vector3;
 
 			xVertices.push_back( vertex );
 		}
+
+		std::cout << "Found " << xVertices.size( ) << " vertices" << std::endl;
 	}
 
 	static void _loadIndices( std::vector < GLuint > & xIndices, aiMesh * xMesh )
@@ -140,20 +184,24 @@ class Model
 		   	     , const char * xPath
 			     , eTexture2DType const xLocalEquivalent )
 	{
-		DevILImage image( xPath );
+		SISULOG( "IN _loadPNGTexture" );
+		std::cerr << "xPath = " << xPath << std::endl;
+		DevILImage * image = new DevILImage( xPath );
 
                 Texture2D texture( xLocalEquivalent );
 
-		texture.initialize( image.getWidth( )
-				   , image.getHeight( )
-				   , image.toGLTextureBuffer( )
+		texture.initialize( image->getWidth( )
+				   , image->getHeight( )
+				   , image->toGLTextureBuffer( )
 				   , aiString( xPath ) );
 
-                xTextures.push_back(texture);
-                mTextures.push_back(texture);
-
+                xTextures.push_back( texture );
+                mTextures.push_back( texture );
+		mTextureData.push_back( image );
+		SISULOG( "OUT _loadPNGTexture" );
 	}
 
+	/*
 	void _loadTGATexture( std::vector<Texture2D> & xTextures
 		   	     , const char * xPath
 			     , eTexture2DType const xLocalEquivalent )
@@ -170,6 +218,7 @@ class Model
                 mTextures.push_back(texture);
 
 	}
+	*/
 
 	// Checks all material textures of a given type and loads the textures if they're not loaded yet.
 	// The required info is returned as a Texture struct.
@@ -227,6 +276,10 @@ class Model
 			__loadMatTex( aiTextureType_HEIGHT  , eTexture2DType_Normal   ); // ? Bug ? TODO: Ask joey.
 			__loadMatTex( aiTextureType_AMBIENT , eTexture2DType_Height   );
 		}
+		else
+		{
+			SISULOG("No materials found.");
+		}
 	}
 
 	Mesh _processMesh( aiMesh * xMesh, const aiScene * xScene )
@@ -251,8 +304,21 @@ class Model
 	public:
 		Model( )
 			: mGammaCorrection( false )
+			, mTextures( )
+			, mMeshes( )
+			, mTextureData( )
+			, mDirectory( )
 		{
 			;
+		}
+
+		~Model( )
+		{
+			for ( auto && ii : mTextureData )
+			{
+				delete ii;
+			}
+
 		}
 
 		void render( SDLShader & xShader )

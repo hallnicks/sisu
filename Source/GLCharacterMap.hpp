@@ -123,14 +123,10 @@ namespace sisu {
 
 		std::vector<uint8_t> _makePNG( char const xC )
 		{
-			SISULOG("_makePNG IN");
-			SISULOG("Loading glyph.");
 			mFont.loadGlyph( xC, 0.0f );
 
-			SISULOG("Creating blank PNG.");
 			PNGImage output( { mFont.getGlyphWidth( ), mFont.getGlyphHeight( ) } );
 
-			SISULOG("Printing spans onto PNG");
 			mFont.printSpans( output, mOutlineColor, mFillColor );
 
 #if 0
@@ -175,7 +171,6 @@ namespace sisu {
 				, mOutlineColor( xOutline )
 				, mFillColor( xFill )
 			{
-				SISULOG( "In GlCharacterMap Ctor" );
 				if ( xTextureStoragePath == NULL )
 				{
 					SISULOG("Texture storage location was not specified (null).");
@@ -183,7 +178,6 @@ namespace sisu {
 				}
 
 				mFont.setFontSize( xFontSize );
-				SISULOG( "Out GlCharacterMap Ctor" );
 			}
 
 			~GLCharacterMap( )
@@ -200,32 +194,11 @@ namespace sisu {
 
 				if ( mCharacters.find( xCharacter ) == mCharacters.end( ) )
 				{
-					SISULOG("Make PNG." );
-
 //#ifdef ANDROID
 #if 1
 					mFont.loadGlyph( xCharacter, 0.0f );
 
-					SISULOG("Creating blank PNG.");
 					PNGImage output( { mFont.getGlyphWidth( ), mFont.getGlyphHeight( ) } );
-
-					SISULOG("Printing spans onto PNG");
-					/*
-					for ( int32_t ii = 0; ii < output.getHeight( ); ++ii )
-					{
-						_PNGImageRow row = output[ ii ];
-
-						for ( int32_t jj = 0; jj < output.getWidth( ); ++jj )
-						{
-							uint8_t * pixel = row[ jj ];
-
-							pixel[ 0 ] = rand( ) % 255;
-							pixel[ 1 ] = rand( ) % 255;
-							pixel[ 2 ] = rand( ) % 255;
-							pixel[ 3 ] = 255;
-						}
-					}
-					*/
 
 					mFont.printSpans( output, mOutlineColor, mFillColor );
 

@@ -56,7 +56,7 @@ class Texture2D
 			, mTextureType( xTextureType )
 			, mIdentifier( )
 		{
-			SISULOG( "In Texture2D Ctor" );
+			;
 		}
 
 		~Texture2D( )
