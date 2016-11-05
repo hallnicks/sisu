@@ -26,6 +26,21 @@
 
 namespace sisu {
 
+
+void sisuFullPath( char * xOut, size_t const xBuffSize, const char * xPathRelative )
+{
+#ifdef WIN32
+	if ( GetFullPathName( xPathRelative, xBuffSize, xOut, NULL ) == 0 )
+	{
+		std::cerr << "GetFullPathName failed in " << __PRETTY_FUNCTION__ << " : " << GetLastError( ) << std::endl;
+		exit( -1 );
+	}
+#else
+	std::cerr << __PRETTY_FUNCTION__ << " is not implemented on this platform." << std::endl;
+	exit( -1 );
+#endif
+}
+
 static inline bool fileExists( const char * xPathToFile )
 {
 	bool exists = false;

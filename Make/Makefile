@@ -25,10 +25,13 @@ TARGET_LIBS  += png z freetype
 #For Assimp
 TARGET_LIBS  += assimp
 
+#ffmpeg
+TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample m z bz2
+
 ifeq ($(OS),Windows_NT)
 # If using OpenGL, use this line
 #    TARGET_LIBS  += opengl32 freeglut glew32
-    TARGET_LIBS  += Dbghelp ws2_32 Shlwapi gdi32
+    TARGET_LIBS  += Dbghelp ws2_32 Secur32 wsock32 Shlwapi gdi32
 else
 #    TARGET_LIBS += GL GLEW GLU
 endif
@@ -48,8 +51,6 @@ TARGET_LIBS += tbb
 #for DEVIL
 TARGET_LIBS += DevIL
 
-#ffmpeg
-TARGET_LIBS += avformat avcodec avdevice avfilter avutil swscale x264 swresample m z
 
 ifeq ($(OS),Windows_NT)
     TARGET_LIBS += iconv log
@@ -134,8 +135,9 @@ endif
 #LDFLAGS  += -Wall -Wextra
 #CXXFLAGS += -Werror -O3
 
-#for FFMPEG :( TODO: Use non-deprecated approachj
-CXXFLAGS += -Wno-deprecated-declarations
+#for FFMPEG :( TODO: Use non-deprecated approach
+CXXFLAGS += -Wno-deprecated-declarations -D__STDC_FORMAT_MACROS
+
 
 #for OpenAL:( TODO: Fix bugs in OpenAL example code
 CXXFLAGS += -Wno-pointer-arith -Wno-attributes
@@ -156,12 +158,12 @@ LDFLAGS      += -L/usr/local/lib
 #CXXFLAGS += -D BEEP_UT
 #CXXFLAGS += -D GAMECONTROLLER_UT
 #CXXFLAGS += -D KEYBOARD_UT
-#CXXFLAGS += -D LIBAVCODEC_UT
+CXXFLAGS  += -D LIBAVCODEC_UT
 #CXXFLAGS += -D LIBFREETYPE_UT
 #CXXFLAGS += -D LIBOPENSSL_UT
 #CXXFLAGS += -D LIBPNG_UT
 CXXFLAGS  += -D LOG_UT
-CXXFLAGS  += -D DEVIL_UT
+#CXXFLAGS += -D DEVIL_UT
 #CXXFLAGS += -D MEMBLOCK_UT
 #CXXFLAGS += -D MOUSE_UT
 #CXXFLAGS += -D OPENAL_UT
@@ -169,8 +171,6 @@ CXXFLAGS  += -D DEVIL_UT
 #CXXFLAGS += -D OPENGLES_HELLOTRIANGLE_UT
 #CXXFLAGS += -D OPENGLES_HELLOTEXTURE_UT
 #CXXFLAGS += -D OPENGLES_HELLOINSTANCING_UT
-#CXXFLAGS += -D OPENGLES_HELLOTEXTURE_UT
-CXXFLAGS  += -D OPENGLES_HELLOINSTANCING_UT
 #CXXFLAGS += -D PNG_IMAGE_STREAMER_UT
 #CXXFLAGS += -D POPEN_UT
 #CXXFLAGS += -D SDL_AUDIO_MIXER_UT
