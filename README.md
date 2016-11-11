@@ -15,3 +15,14 @@ along with sisu.  If not, see <http://www.gnu.org/licenses/>.
 sisu productivity framework
 =======
 
+SISU is a unit test framework intended to facilitate the transition 
+of code from unit tests into many small libraries and executables.
+
+Tests are written in test directories and code is written in source
+directories. A special entry point is included in sisuTest which links 
+in all libraries and tests. However, separate from this, the framework 
+is arbitrary and may include arbitary separations of executable, shared
+and static library releases.
+
+SISU is still under development and runs on Android, Windows 7 and 
+Linux. A transition to CMAKE is planned.
